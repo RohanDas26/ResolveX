@@ -1,6 +1,5 @@
 "use client";
 
-import { useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2, ShieldAlert } from "lucide-react";
@@ -15,34 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
 import { collection, query, where, Query } from "firebase/firestore";
-
-const ADMIN_EMAIL = "admin@klh.edu.in";
-
-const AdminAuthGuard = ({ children }: { children: React.ReactNode }) => {
-  const { user, isUserLoading: loading } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.replace("/login");
-      } else if (user.email !== ADMIN_EMAIL) {
-        router.replace("/");
-      }
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user || user.email !== ADMIN_EMAIL) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-};
-
 
 function AdminDashboardContent() {
   const firestore = useFirestore();
@@ -151,8 +122,6 @@ function AdminDashboardContent() {
 
 export default function AdminPage() {
   return (
-    <AdminAuthGuard>
       <AdminDashboardContent />
-    </AdminAuthGuard>
   );
 }

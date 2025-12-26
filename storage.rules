@@ -3,15 +3,10 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Match any file in the 'grievances' folder.
-    match /grievances/{userId}/{allPaths=**} {
-      // Allow users to upload (create) files only if they are authenticated
-      // and the `userId` in the path matches their own UID.
-      allow create: if request.auth != null && request.auth.uid == userId;
-
-      // Allow anyone to read images. This is required to display them
-      // in the app on the map and dashboard.
-      allow read;
+    // Allow public read and write access to all files for now.
+    // We will add more specific security rules later.
+    match /{allPaths=**} {
+      allow read, write: if true;
     }
   }
 }

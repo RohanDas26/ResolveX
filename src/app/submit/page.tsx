@@ -13,8 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
-import AuthGuard from "@/components/auth-guard";
-import { useUser, useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase";
 import { GeoPoint, Timestamp, collection, doc } from "firebase/firestore";
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
@@ -35,7 +34,6 @@ const formSchema = z.object({
 });
 
 function SubmitPageContent() {
-    const { user } = useUser();
     const { toast } = useToast();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
@@ -76,41 +74,36 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Location unavailable", description: "Cannot submit without your location." });
             return;
         }
-        if (!user) {
-            toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a report." });
-            return;
-        }
-
+        
         setIsLoading(true);
         try {
             const imageFile = values.photo[0];
             const storage = getStorage();
             const grievanceId = uuidv4();
-            const imageRef = ref(storage, `grievances/${user.uid}/${grievanceId}-${imageFile.name}`);
+            // Use a generic user ID for now
+            const userId = "public_user";
+            const imageRef = ref(storage, `grievances/${userId}/${grievanceId}-${imageFile.name}`);
             
             await uploadBytes(imageRef, imageFile);
             const imageUrl = await getDownloadURL(imageRef);
 
             const grievanceData = {
                 id: grievanceId,
-                userId: user.uid,
-                userName: user.displayName || "Anonymous",
+                userId: userId,
+                userName: "Anonymous User",
                 description: values.description,
                 imageUrl: imageUrl,
                 location: new GeoPoint(location.lat, location.lng),
                 status: "Submitted",
                 createdAt: Timestamp.now(),
             };
-
-            // Write to the user-specific collection for their dashboard
-            setDocumentNonBlocking(doc(firestore, "users", user.uid, "grievances", grievanceId), grievanceData, { merge: true });
-
+            
             // Write to the public collection for the map
-            setDocumentNonBlocking(doc(firestore, "grievances", grievanceId), grievanceData, { merge: true });
+            await setDoc(doc(firestore, "grievances", grievanceId), grievanceData, { merge: true });
 
 
             toast({ title: "Grievance Submitted!", description: "Thank you for your report. It is now under review." });
-            router.push("/dashboard");
+            router.push("/");
 
         } catch (error: any) {
             console.error("Submission error:", error);
@@ -184,10 +177,8 @@ function SubmitPageContent() {
 
 export default function SubmitPage() {
     return (
-        <AuthGuard>
-            <div className="container mx-auto px-4 py-8 flex justify-center">
-                <SubmitPageContent />
-            </div>
-        </AuthGuard>
+        <div className="container mx-auto px-4 py-8 flex justify-center">
+            <SubmitPageContent />
+        </div>
     );
 }

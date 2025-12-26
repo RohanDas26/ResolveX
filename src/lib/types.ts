@@ -11,11 +11,3 @@ export interface Grievance {
   status: "Submitted" | "In Progress" | "Resolved";
   createdAt: Timestamp;
 }
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  registrationDate: string;
-}
