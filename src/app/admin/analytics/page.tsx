@@ -83,10 +83,10 @@ export default function AnalyticsPage() {
     }
     
     return (
-        <div className="p-4 sm:p-8 space-y-8 animate-fade-in-up">
-            <h1 className="text-3xl font-bold tracking-tight">Grievance Analytics</h1>
+        <div className="p-4 sm:p-8 space-y-8">
+            <h1 className="text-3xl font-bold tracking-tight animate-fade-in-up">Grievance Analytics</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card>
+                <Card className="animate-fade-in-up">
                     <CardHeader>
                         <CardTitle>Grievances by Status</CardTitle>
                         <CardDescription>A breakdown of all reports by their current status.</CardDescription>
@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
-                 <Card>
+                 <Card className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                     <CardHeader>
                         <CardTitle>Grievances by Category</CardTitle>
                         <CardDescription>Distribution of grievances across different categories.</CardDescription>
@@ -123,7 +123,7 @@ export default function AnalyticsPage() {
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
-                <Card className="lg:col-span-2">
+                <Card className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                     <CardHeader>
                         <CardTitle>Submission Trends</CardTitle>
                         <CardDescription>Grievances submitted over the last 30 days.</CardDescription>
