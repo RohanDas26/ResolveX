@@ -18,7 +18,7 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-transparent">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-slate-950/80 backdrop-blur-sm">
       <div className="container flex h-16 max-w-screen-2xl items-center">
         <div className="mr-8 flex items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -27,7 +27,17 @@ export default function Header() {
           </Link>
           <nav className="hidden md:flex items-center gap-2">
             {navLinks.map((link) => (
-              <Button key={link.href} variant="ghost" asChild className={cn("transition-colors", pathname === link.href ? "text-primary hover:text-primary" : "text-foreground/60 hover:text-foreground")}>
+              <Button
+                key={link.href}
+                variant="ghost"
+                asChild
+                className={cn(
+                  "transition-colors",
+                  pathname === link.href
+                    ? "text-primary hover:text-primary"
+                    : "text-foreground/60 hover:text-foreground"
+                )}
+              >
                 <Link href={link.href}>
                   <link.icon className="h-4 w-4 mr-2" />
                   {link.label}
