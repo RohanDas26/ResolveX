@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, ShieldAlert } from "lucide-react";
 import GrievanceMap from "@/components/grievance-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { summarizePriorities } from "@/ai/flows/summarize-priorities-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
-import { collection, query, where, Query, writeBatch, or } from "firebase/firestore";
+import { collection, query, writeBatch } from "firebase/firestore";
 import { dummyGrievances } from "@/lib/dummy-data";
 import { v4 as uuidv4 } from 'uuid';
 import { doc } from 'firebase/firestore';
@@ -28,31 +29,17 @@ function AdminDashboardContent() {
   const { toast } = useToast();
 
   const grievancesQuery = useMemoFirebase(() => {
-    let q: Query = query(collection(firestore, "grievances"));
-    
-    // Firestore's where clause with 'in' or 'array-contains-any' is good for multiple *exact* matches on a field,
-    // but not for partial text search. For a robust keyword search like this, we would ideally use a
-    // dedicated search service like Algolia or Elasticsearch, or Firestore's new Vector search.
-    // As a workaround for this demo, we can perform multiple queries for case variations or use `or` filters if the keywords are distinct.
-    // The current dummy data uses lowercase, so we will filter based on that.
-    // For a real-world app, we'd standardize the case on write (e.g., all lowercase) or use a more advanced search solution.
-    if (filter === "potholes") {
-        q = query(q, or(
-            where("description", ">=", "pothole"), where("description", "<=", "pothole\uf8ff"),
-            where("description", ">=", "Pothole"), where("description", "<=", "Pothole\uf8ff")
-        ));
-    }
-    if (filter === "streetlights") {
-        q = query(q, or(
-            where("description", ">=", "streetlight"), where("description", "<=", "streetlight\uf8ff"),
-            where("description", ">=", "Streetlight"), where("description", "<=", "Streetlight\uf8ff")
-        ));
-    }
-    return q;
-}, [firestore, filter]);
+    if (!firestore) return null;
+    return query(collection(firestore, "grievances"));
+}, [firestore]);
 
+  const { data: allGrievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
 
-  const { data: grievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  const grievances = useMemo(() => {
+    if (!allGrievances) return [];
+    if (!filter) return allGrievances;
+    return allGrievances.filter(g => g.description.toLowerCase().includes(filter));
+  }, [allGrievances, filter]);
   
   useEffect(() => {
     if (grievances && grievances.length > 0) {
@@ -154,10 +141,10 @@ function AdminDashboardContent() {
           </CardHeader>
           <CardContent className="grid gap-2">
               <Button variant={filter === null ? 'default' : 'outline'} onClick={() => setFilter(null)}>All Grievances</Button>
-              <Button variant={filter === 'potholes' ? 'default' : 'outline'} onClick={() => setFilter('potholes')}>
+              <Button variant={filter === 'pothole' ? 'default' : 'outline'} onClick={() => setFilter('pothole')}>
                   <Wrench className="mr-2 h-4 w-4"/> Potholes
               </Button>
-              <Button variant={filter === 'streetlights' ? 'default' : 'outline'} onClick={() => setFilter('streetlights')}>
+              <Button variant={filter === 'streetlight' ? 'default' : 'outline'} onClick={() => setFilter('streetlight')}>
                   <Lightbulb className="mr-2 h-4 w-4"/> Streetlights
               </Button>
           </CardContent>
