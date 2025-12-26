@@ -110,6 +110,7 @@ const getManeuverIcon = (maneuver: string | undefined) => {
 export default function RoutePlanner() {
     const map = useMap();
     const routesLibrary = useMapsLibrary('routes');
+    const geometryLibrary = useMapsLibrary('geometry');
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -132,6 +133,8 @@ export default function RoutePlanner() {
 
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
+    const [selectedRoute, setSelectedRoute] = useState<google.maps.DirectionsRoute | null>(null);
+
     const [routePreference, setRoutePreference] = useState<'avoid_issues' | 'fastest'>('avoid_issues');
     const [isLoading, setIsLoading] = useState(false);
     const [issuesOnRoute, setIssuesOnRoute] = useState<Grievance[]>([]);
@@ -159,106 +162,110 @@ export default function RoutePlanner() {
         );
     }
     
-    // Server Action Stub (simulated client-side)
-    const getSmartRoute = async (
-        originLoc: google.maps.LatLng,
-        destinationLoc: google.maps.LatLng,
-        mode: 'fastest' | 'avoid_issues'
-    ): Promise<{ route: google.maps.DirectionsRoute, issues: Grievance[] } | null> => {
-        if (!directionsService) return null;
+    const countIssuesOnRoute = (route: google.maps.DirectionsRoute, openGrievances: Grievance[]) => {
+        if (!geometryLibrary) return openGrievances.length;
+        
+        const routePolyline = new google.maps.Polyline({ path: route.overview_path });
+        
+        return openGrievances.filter(g => {
+            const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
+            return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, routePolyline, 0.001); // Tolerance of ~100 meters
+        }).length;
+    };
+    
+    const findRoute = async () => {
+        const originLocation = (origin as any)?.geometry?.location || origin;
+        const destinationLocation = (destination as any)?.geometry?.location || destination;
 
-        const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
+        if (!originLocation || !destinationLocation || !directionsService) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Please select both an origin and a destination." });
+            return;
+        }
+        
+        setIsLoading(true);
+        setDirectionsResult(null);
+        setSelectedRoute(null);
+        setIssuesOnRoute([]);
         
         const request: google.maps.DirectionsRequest = {
-            origin: originLoc,
-            destination: destinationLoc,
+            origin: originLocation,
+            destination: destinationLocation,
             travelMode: google.maps.TravelMode.DRIVING,
+            provideRouteAlternatives: true, // Request multiple routes
         };
-
-        // If safest route is selected, add waypoints to avoid issues
-        if (mode === 'avoid_issues' && openGrievances.length > 0) {
-            request.avoid = ['tolls', 'highways']; // Example, can be more specific
-            request.waypoints = openGrievances.map(g => ({
-                location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
-                stopover: false, // This makes it a point to avoid, not a stop
-            }));
-        }
-
 
         try {
             const response = await directionsService.route(request);
             if (response.status !== 'OK' || !response.routes || response.routes.length === 0) {
                 toast({ variant: "destructive", title: "Route Not Found", description: "Could not find a route for the selected locations."});
-                return null;
+                setIsLoading(false);
+                return;
             }
 
-            const chosenRoute = response.routes[0]; // The API returns the best route based on the request
+            setDirectionsResult(response);
+            const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
 
-            // After getting the route, check which issues are still on it (for display)
-            const issues = openGrievances.filter(g => {
-                const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                // Check if the issue is very close to the polyline of the route
-                 return google.maps.geometry.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: chosenRoute.overview_path }), 0.001); // ~100m tolerance
-            });
+            let bestRoute: google.maps.DirectionsRoute;
+
+            if (routePreference === 'avoid_issues' && response.routes.length > 1) {
+                // Score each route by the number of issues on it
+                const routesWithScores = response.routes.map(route => ({
+                    route: route,
+                    issueCount: countIssuesOnRoute(route, openGrievances),
+                }));
+
+                // Find the route with the minimum number of issues
+                routesWithScores.sort((a, b) => a.issueCount - b.issueCount);
+                bestRoute = routesWithScores[0].route;
+
+                if (routesWithScores[0].issueCount < routesWithScores.find(r => r.route === response.routes[0])!.issueCount) {
+                     toast({
+                        title: "Safer Route Found!",
+                        description: "A route with fewer reported issues has been selected.",
+                        variant: 'default',
+                        className: 'bg-green-600 border-green-600 text-white'
+                    });
+                }
+
+            } else {
+                // Default to the fastest (primary) route
+                bestRoute = response.routes[0];
+            }
             
-            return { route: chosenRoute, issues: issues };
-        
-        } catch (error) {
-             toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
-             return null;
-        }
-    };
+            setSelectedRoute(bestRoute);
 
-    const handleFindRoute = async () => {
-        const originLocation = (origin as any)?.geometry?.location || origin;
-        const destinationLocation = (destination as any)?.geometry?.location || destination;
+            // Final check for issues on the chosen route to display them
+            const finalIssuesOnRoute = openGrievances.filter(g => {
+                if (!geometryLibrary) return false;
+                const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
+                const routePolyline = new google.maps.Polyline({ path: bestRoute.overview_path });
+                return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, routePolyline, 0.001);
+            });
 
-        if (!originLocation || !destinationLocation) {
-            toast({ variant: "destructive", title: "Missing Information", description: "Please select both an origin and a destination." });
-            return;
-        }
+            setIssuesOnRoute(finalIssuesOnRoute);
 
-        setIsLoading(true);
-        setDirectionsResult(null);
-        setIssuesOnRoute([]);
-
-        const result = await getSmartRoute(originLocation, destinationLocation, routePreference);
-        
-        if (result && result.route) {
-            const newDirectionsResult: google.maps.DirectionsResult = {
-                routes: [result.route],
-                geocoded_waypoints: [],
-                request: {} as google.maps.DirectionsRequest,
-                // @ts-ignore
-                bounds: result.route.bounds
-            };
-            setDirectionsResult(newDirectionsResult);
-            setIssuesOnRoute(result.issues);
-
-             if (routePreference === 'avoid_issues' && result.issues.length > 0) {
+            if (routePreference === 'fastest' && finalIssuesOnRoute.length > 0) {
                 toast({
-                    variant: 'destructive',
-                    title: "Issues Persist",
-                    description: `The safest route still has ${result.issues.length} issue(s). No completely clear route was found.`,
+                    title: "Issues on Fastest Route",
+                    description: `FYI: The fastest route has ${finalIssuesOnRoute.length} reported issue(s).`,
+                    variant: 'destructive'
                 });
-            } else if (routePreference === 'fastest' && result.issues.length > 0) {
+            } else if (finalIssuesOnRoute.length === 0) {
                  toast({
-                    title: "FYI: Issues on Route",
-                    description: `The fastest route has ${result.issues.length} issue(s). Choose 'Safest' for a clearer path.`,
-                });
-            } else if (routePreference === 'avoid_issues' && result.issues.length === 0) {
-                toast({
-                    title: "Route Clear!",
-                    description: `No open grievances found on your selected route.`,
+                    title: "Route Appears Clear!",
+                    description: `No open grievances were found along your selected route.`,
                 });
             }
-        } else {
-            setDirectionsResult(null);
+
+
+        } catch (e) {
+            console.error("Directions request failed", e);
+            toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
-    const selectedRoute = useMemo(() => directionsResult?.routes[0], [directionsResult]);
     const routeColor = routePreference === 'fastest' ? '#3b82f6' : '#22c55e'; // blue or green
 
     return (
@@ -299,7 +306,7 @@ export default function RoutePlanner() {
                                 <Label htmlFor="avoid_issues">Safest (avoid issues)</Label>
                             </div>
                         </RadioGroup>
-                        <Button onClick={handleFindRoute} className="w-full" disabled={isLoading}>
+                        <Button onClick={findRoute} className="w-full" disabled={isLoading}>
                             {isLoading && <Loader2 className="animate-spin mr-2"/>}
                             {isLoading ? 'Finding Route...' : 'Find Route'}
                         </Button>
@@ -376,5 +383,8 @@ export default function RoutePlanner() {
             </div>
         </div>
     );
+
+    
+}
 
     
