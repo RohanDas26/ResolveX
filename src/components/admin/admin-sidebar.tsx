@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import GrievanceDetails from "./grievance-details";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "../ui/badge";
+import { useEffect, useState } from "react";
 
 interface AdminSidebarProps {
     grievances: Grievance[] | null;
@@ -24,6 +25,21 @@ interface AdminSidebarProps {
     selectedGrievance: Grievance | null;
     onSelectGrievance: (id: string | null) => void;
 }
+
+const ClientTime = ({ date }: { date: Date }) => {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        return null; // Or a loader/placeholder
+    }
+
+    return <>{formatDistanceToNow(date, { addSuffix: true })}</>;
+};
+
 
 export default function AdminSidebar({ 
     grievances, 
@@ -87,7 +103,9 @@ export default function AdminSidebar({
                                     <button key={g.id} onClick={() => onSelectGrievance(g.id)} className="w-full text-left p-2 rounded-md hover:bg-muted transition-colors">
                                         <p className="font-semibold truncate">{g.description}</p>
                                         <div className="flex justify-between items-center">
-                                            <p className="text-sm text-muted-foreground">{formatDistanceToNow(g.createdAt.toDate(), {addSuffix: true})}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                <ClientTime date={g.createdAt.toDate()} />
+                                            </p>
                                             <Badge variant={g.status === 'Resolved' ? 'default' : g.status === 'In Progress' ? 'secondary' : 'destructive'} className="shrink-0">{g.status}</Badge>
                                         </div>
                                     </button>
