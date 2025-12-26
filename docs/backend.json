@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile in the ResolveX application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "User's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "User's last name."
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "Date and time the user registered.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "registrationDate"
+      ]
+    },
+    "Grievance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Grievance",
+      "type": "object",
+      "description": "Represents a user-submitted grievance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Grievance entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Grievance)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the grievance."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL of the photo submitted with the grievance.",
+          "format": "uri"
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude of the grievance location."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude of the grievance location."
+        },
+        "submissionDate": {
+          "type": "string",
+          "description": "Date and time the grievance was submitted.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the grievance (e.g., 'Open', 'In Progress', 'Resolved')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "description",
+        "photoUrl",
+        "latitude",
+        "longitude",
+        "submissionDate",
+        "status"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. The userId is the Firebase Auth UID. This enables path-based authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/grievances/{grievanceId}",
+        "definition": {
+          "entityName": "Grievance",
+          "schema": {
+            "$ref": "#/backend/entities/Grievance"
+          },
+          "description": "Stores user-submitted grievances. The userId matches the user document ID in /users. This enables path-based authorization and supports listing grievances by a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user who submitted the grievance."
+            },
+            {
+              "name": "grievanceId",
+              "description": "The unique ID of the grievance."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to address the 'registration failed error' and ensure secure and scalable data management for the ResolveX application. It leverages path-based ownership for user profiles and grievances, enabling simple and robust security rules. The structure avoids hierarchical authorization dependencies by not relying on `get()` calls in security rules, ensuring atomic operations and improved debuggability.\n\n**Authorization Independence:** User profiles and grievances are stored in separate collections with explicit ownership via the `userId` field in grievances, which corresponds to the document ID in the `/users` collection. This eliminates the need to fetch parent document data to authorize access to child documents.\n\n**QAPs:** The design supports secure list operations. Grievances are stored under `/users/{userId}/grievances/{grievanceId}`, allowing users to only list grievances associated with their own user ID, as defined by the `request.auth.uid`.\n\n**User Registration Error Fix:** The user registration process writes directly to the `/users/{userId}` collection, storing the user profile data. By ensuring the `userId` used during registration matches the `request.auth.uid` after successful authentication, we avoid potential write permission errors.\n\nTo further improve data consistency and scalability, consider denormalizing user profile information, such as `firstName` and `lastName`, into the grievance documents. This would eliminate the need to query the `/users` collection when displaying grievance information, optimizing read operations. However, this approach must be considered against data duplication and eventual consistency challenges."
+  }
+}

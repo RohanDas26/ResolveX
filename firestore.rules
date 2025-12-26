@@ -1,0 +1,130 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model.
+ * All user-generated data is private and can only be accessed by the user who
+ * created it. The rules are designed for rapid prototyping, focusing on
+ * authorization rather than strict data schema validation.
+ *
+ * Data Structure: The data is organized hierarchically under a top-level `users`
+ * collection. Each user has a profile document (`/users/{userId}`) and a
+ * subcollection for their private data, such as grievances
+ * (`/users/{userId}/grievances/{grievanceId}`).
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only access documents within their own data
+ *   tree (i.e., paths starting with `/users/{their_auth_uid}`).
+ * - No Public Listing: It is not possible to list all user profiles in the
+ *   database, protecting user privacy.
+ * - Path-Based Security: The rules rely on the document path (`userId` wildcard)
+ *   to determine ownership, which is efficient and avoids costly `get()` calls.
+ * - Relational Integrity: On document creation, key identifiers (like `id` and
+ *   `userId`) are validated to ensure they match the document's path,
+ *   maintaining data consistency. These identifiers are immutable on update.
+ *
+ * Denormalization for Authorization: The structure inherently supports simple
+ * authorization. By placing grievances in a subcollection under the user, rules
+ * for grievances can efficiently check ownership using the `userId` from the
+ * path without needing to read other documents.
+ *
+ * Structural Segregation: The design naturally separates each user's data into
+ * their own document tree, providing a secure and scalable way to manage
+ * private content.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for improved readability and reusability.
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for verifying document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Combines an ownership check with a check for document existence.
+     * CRITICAL for all update and delete operations to prevent acting on
+     * non-existent data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates required relational fields on UserProfile creation.
+     * Enforces consistency between the document ID and its internal `id` field.
+     */
+    function isValidUserProfileCreate(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Enforces immutability of the core `id` field for a UserProfile.
+     * Prevents re-assigning the ownership link of a profile.
+     */
+    function isImmutableUserProfile() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates required relational fields on Grievance creation.
+     * Enforces consistency between the document path and internal IDs.
+     */
+    function isValidGrievanceCreate(userId, grievanceId) {
+      let data = request.resource.data;
+      return data.userId == userId && data.id == grievanceId;
+    }
+
+    /**
+     * Enforces immutability of core relational fields for a Grievance.
+     * Prevents changing the owner (`userId`) or unique ID (`id`) of a grievance.
+     */
+    function isImmutableGrievance() {
+      let incomingData = request.resource.data;
+      let existingData = resource.data;
+      return incomingData.userId == existingData.userId && incomingData.id == existingData.id;
+    }
+
+    /**
+     * @description Allows a user to create, read, update, and delete their own profile.
+     * @path /users/{userId}
+     * @allow A signed-in user 'user123' can (create) their own profile at `/users/user123`.
+     * @deny An anonymous user cannot (create) a profile.
+     * @deny User 'user456' cannot (get) or (update) the profile for 'user123'.
+     * @deny No user can (list) the entire `/users` collection.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidUserProfileCreate(userId);
+      allow update: if isExistingOwner(userId) && isImmutableUserProfile();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows a user to manage the grievances they have submitted.
+     * @path /users/{userId}/grievances/{grievanceId}
+     * @allow A signed-in user 'user123' can (create) a new grievance at `/users/user123/grievances/grievance_abc`.
+     * @allow User 'user123' can (list) all documents in their `/users/user123/grievances` collection.
+     * @deny User 'user456' cannot (get), (list), or (delete) any grievances belonging to 'user123'.
+     * @principle Enforces document ownership for all operations within a user's private subcollection.
+     */
+    match /users/{userId}/grievances/{grievanceId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidGrievanceCreate(userId, grievanceId);
+      allow update: if isExistingOwner(userId) && isImmutableGrievance();
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
