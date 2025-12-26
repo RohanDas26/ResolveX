@@ -2,8 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 import { Grievance, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,30 +30,41 @@ const getBadge = (grievanceCount: number) => {
 };
 
 export default function ProfilePage() {
-    const { user: authUser, profile, isUserLoading, isProfileLoading } = useUser();
+    const { user: authUser, isUserLoading } = useUser();
     const { toast } = useToast();
-    const [allGrievances, setAllGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
-
-    const userGrievances = useMemo(() => {
-        if (!authUser) return [];
-        // This will now filter the static DEMO_GRIEVANCES
-        return allGrievances.filter(g => g.userId === authUser.uid);
-    }, [authUser, allGrievances]);
-
-    // Get the accurate count from the user profile data, which is now consistent
-    const grievanceCount = useMemo(() => {
-        const userProfileData = DEMO_USERS.find(u => u.id === authUser?.uid);
-        return userProfileData?.grievanceCount || userGrievances.length;
-    }, [authUser, userGrievances, DEMO_USERS]);
-
-    const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
-
-    const isLoading = isUserLoading || isProfileLoading;
     
-    const leaderboardUsers = useMemo(() => {
-        // DEMO_USERS is now pre-sorted with correct counts
-        return DEMO_USERS;
-    }, []);
+    // DEMO DATA STATE
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [userGrievances, setUserGrievances] = useState<Grievance[]>([]);
+    const [leaderboardUsers, setLeaderboardUsers] = useState<UserProfile[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!isUserLoading) {
+            if (authUser) {
+                // Find the demo profile for the logged-in user, or create a default one
+                const demoProfile = DEMO_USERS.find(u => u.id === authUser.uid) || {
+                    id: authUser.uid,
+                    name: authUser.displayName || 'New User',
+                    email: authUser.email || '',
+                    imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`,
+                    grievanceCount: 0,
+                };
+                setProfile(demoProfile);
+                
+                // Filter demo grievances for this user
+                setUserGrievances(DEMO_GRIEVANCES.filter(g => g.userId === authUser.uid));
+                
+                // Use the pre-sorted demo users for the leaderboard
+                setLeaderboardUsers(DEMO_USERS);
+            }
+            setIsLoading(false);
+        }
+    }, [authUser, isUserLoading]);
+
+
+    const grievanceCount = useMemo(() => profile?.grievanceCount || 0, [profile]);
+    const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
     const handleResendVerification = async () => {
         if (authUser) {
@@ -131,7 +141,7 @@ export default function ProfilePage() {
                 <div className="md:col-span-2">
                     <h2 className="text-2xl font-bold mb-4">Your Reported Grievances</h2>
                     <div className="space-y-4">
-                        {userGrievances && userGrievances.length > 0 ? userGrievances.map((g, index) => (
+                        {userGrievances.length > 0 ? userGrievances.map((g, index) => (
                              <Card key={g.id} className="flex items-start gap-4 p-4 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`}}>
                                  <div className="w-24 h-24 rounded-md overflow-hidden shrink-0">
                                      <img src={g.imageUrl} alt={g.description} className="w-full h-full object-cover" />
@@ -144,7 +154,7 @@ export default function ProfilePage() {
                                      </div>
                                       <div className="flex items-center text-sm text-muted-foreground mt-1">
                                          {g.status === 'Resolved' ? <CheckCircle className="h-4 w-4 mr-1 text-green-500" /> : <Clock className="h-4 w-4 mr-1" />}
-                                         <span>{g.status} • {g.createdAt ? formatDistanceToNow(new Date(g.createdAt.seconds * 1000), { addSuffix: true }) : ''}</span>
+                                         <span>{g.status} • {g.createdAt ? formatDistanceToNow(g.createdAt.toDate(), { addSuffix: true }) : ''}</span>
                                      </div>
                                  </div>
                                  <Badge variant={g.status === 'Resolved' ? 'default' : g.status === 'In Progress' ? 'secondary' : 'destructive'} className="shrink-0">{g.status}</Badge>
