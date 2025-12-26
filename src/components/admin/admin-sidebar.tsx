@@ -8,9 +8,8 @@ import Leaderboard from "../leaderboard";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { BarChart2 } from "lucide-react";
+import { BarChart2, BookOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 interface AdminSidebarProps {
     grievances: Grievance[] | null;
@@ -32,10 +31,15 @@ export default function AdminSidebar({ grievances, users, isLoading, activeFilte
                         <CardHeader>
                             <CardTitle className="text-lg">Admin Tools</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-2">
                              <Button asChild variant={pathname.endsWith("analytics") ? 'default' : 'secondary'} className="w-full justify-start">
                                 <Link href="/admin/analytics">
                                     <BarChart2 className="mr-2 h-4 w-4"/> Analytics Dashboard
+                                </Link>
+                            </Button>
+                             <Button asChild variant={pathname.endsWith("integration-guide") ? 'default' : 'secondary'} className="w-full justify-start">
+                                <Link href="/admin/integration-guide">
+                                    <BookOpen className="mr-2 h-4 w-4"/> Integration Guide
                                 </Link>
                             </Button>
                         </CardContent>
