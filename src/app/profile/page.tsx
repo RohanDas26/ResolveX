@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, MapPin, CheckCircle, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import Leaderboard from '@/components/leaderboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -29,7 +28,7 @@ const getBadge = (grievanceCount: number) => {
 
 export default function ProfilePage() {
     const firestore = useFirestore();
-    const { user: authUser, isUserLoading: authLoading } = useUser();
+    const { user: authUser, isUserLoading: authLoading } = useUser(useAuth());
     const router = useRouter();
 
     useEffect(() => {
@@ -68,14 +67,6 @@ export default function ProfilePage() {
                                 <Skeleton className="h-5 w-32" />
                             </CardHeader>
                         </Card>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle>Top Reporters</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Skeleton className="h-40 w-full" />
-                            </CardContent>
-                        </Card>
                     </div>
                     <div className="md:col-span-2 space-y-4">
                         <h2 className="text-2xl font-bold mb-4">Your Reported Grievances</h2>
@@ -110,17 +101,6 @@ export default function ProfilePage() {
                                 </div>
                             )}
                         </CardHeader>
-                    </Card>
-
-                    {/* Leaderboard Card */}
-                    <Card className="animate-fade-in-up animation-delay-200">
-                        <CardHeader>
-                            <CardTitle>Top Reporters</CardTitle>
-                            <CardDescription>The most active students making a difference.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           <Leaderboard />
-                        </CardContent>
                     </Card>
                 </div>
 
