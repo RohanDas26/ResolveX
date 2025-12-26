@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, UploadCloud } from "lucide-react";
-import { useFirestore } from "@/firebase";
-import { GeoPoint, Timestamp, collection, doc, setDoc } from "firebase/firestore";
+import { useFirestore, useUser } from "@/firebase";
+import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction, getDoc } from "firebase/firestore";
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,14 @@ const formSchema = z.object({
       ".jpg, .jpeg, .png and .webp files are accepted."
     ),
 });
+
+// For demonstration, we'll cycle through a few mock users.
+const mockUsers = [
+    { id: 'user_student_1', name: 'Alex Doe' },
+    { id: 'user_student_2', name: 'Jane Smith' },
+    { id: 'user_student_3', name: 'Sam Wilson' },
+];
+let currentUserIndex = 0;
 
 function SubmitPageContent() {
     const { toast } = useToast();
@@ -78,24 +86,30 @@ function SubmitPageContent() {
         
         setIsLoading(true);
         try {
+            if (!firestore) {
+              throw new Error("Firestore is not initialized");
+            }
+
             const imageFile = values.photo[0];
             const storage = getStorage();
             const grievanceId = uuidv4();
-            // Use a generic user ID for now
-            const userId = "public_user";
+            
+            // Cycle through mock users for demo
+            const currentUser = mockUsers[currentUserIndex];
+            currentUserIndex = (currentUserIndex + 1) % mockUsers.length;
+            
+            const userId = currentUser.id;
+            const userName = currentUser.name;
+
             const imageRef = ref(storage, `grievances/${userId}/${grievanceId}-${imageFile.name}`);
             
             await uploadBytes(imageRef, imageFile);
             const imageUrl = await getDownloadURL(imageRef);
 
-            if (!firestore) {
-              throw new Error("Firestore is not initialized");
-            }
-
             const grievanceData = {
                 id: grievanceId,
                 userId: userId,
-                userName: "Anonymous User",
+                userName: userName,
                 description: values.description,
                 imageUrl: imageUrl,
                 location: new GeoPoint(location.lat, location.lng),
@@ -103,11 +117,33 @@ function SubmitPageContent() {
                 createdAt: Timestamp.now(),
             };
             
-            // Write to the public collection for the map
-            await setDoc(doc(firestore, "grievances", grievanceId), grievanceData, { merge: true });
+            const grievanceDocRef = doc(firestore, "grievances", grievanceId);
+            const userDocRef = doc(firestore, "users", userId);
+
+            // Use a transaction to ensure atomicity
+            await runTransaction(firestore, async (transaction) => {
+                const userDoc = await transaction.get(userDocRef);
+
+                if (!userDoc.exists()) {
+                    // If user doesn't exist, create them.
+                    transaction.set(userDocRef, {
+                        id: userId,
+                        name: userName,
+                        grievanceCount: 1,
+                        imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${userId}`
+                    });
+                } else {
+                    // If user exists, increment their grievance count.
+                    const newCount = (userDoc.data().grievanceCount || 0) + 1;
+                    transaction.update(userDocRef, { grievanceCount: newCount });
+                }
+
+                // Set the grievance document
+                transaction.set(grievanceDocRef, grievanceData);
+            });
 
 
-            toast({ title: "Grievance Submitted!", description: "Thank you for your report. It is now under review." });
+            toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
             router.push("/");
 
         } catch (error: any) {

@@ -9,6 +9,7 @@ import { collection, query, doc, updateDoc } from "firebase/firestore";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
 import { useToast } from "@/hooks/use-toast";
+import { UserProfile } from "@/lib/types";
 
 function AdminDashboardContent() {
   const firestore = useFirestore();
@@ -20,7 +21,13 @@ function AdminDashboardContent() {
     return query(collection(firestore, "grievances"));
   }, [firestore]);
 
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, "users"));
+  }, [firestore]);
+
   const { data: allGrievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  const { data: allUsers, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
   const filteredGrievances = useMemo(() => {
     if (!allGrievances) return [];
@@ -51,7 +58,8 @@ function AdminDashboardContent() {
     <div className="flex h-[calc(100vh-4rem)]">
       <AdminSidebar 
         grievances={filteredGrievances}
-        isLoading={grievancesLoading}
+        users={allUsers}
+        isLoading={grievancesLoading || usersLoading}
         activeFilter={filter}
         onFilterChange={setFilter}
         onUpdateGrievanceStatus={handleUpdateGrievanceStatus}

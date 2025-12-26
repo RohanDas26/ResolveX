@@ -1,6 +1,6 @@
 
 import { GeoPoint, Timestamp } from "firebase/firestore";
-import { Grievance } from "@/lib/types";
+import type { Grievance, UserProfile } from "@/lib/types";
 
 // Note: This is partial data. The seeding function will fill in id, userId, userName.
 export const dummyGrievances: Omit<Grievance, 'id' | 'userId' | 'userName'>[] = [
@@ -74,4 +74,12 @@ export const dummyGrievances: Omit<Grievance, 'id' | 'userId' | 'userName'>[] = 
     status: "In Progress",
     createdAt: Timestamp.fromDate(new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)), // 8 days ago
   },
+];
+
+export const dummyUsers: Omit<UserProfile, 'grievanceCount'>[] = [
+    { id: 'user_student_1', name: 'Alex Doe', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=alex' },
+    { id: 'user_student_2', name: 'Jane Smith', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=jane' },
+    { id: 'user_student_3', name: 'Sam Wilson', imageUrl: 'https://api.dicebear.com/8x/bottts/svg?seed=sam' },
+    { id: 'user_student_4', name: 'Priya Rao', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=priya' },
+    { id: 'user_student_5', name: 'Chen Wei', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=chen' },
 ];
