@@ -25,7 +25,7 @@ export default function AISummary({ grievances, isLoading }: AISummaryProps) {
             .then(result => setSummary(result.summary))
             .catch(err => {
                 console.error("Error generating summary: ", err);
-                setSummary("Could not generate AI summary.");
+                setSummary("Could not generate AI summary due to an error.");
             })
             .finally(() => setIsSummaryLoading(false));
         } else if (!isLoading) {
