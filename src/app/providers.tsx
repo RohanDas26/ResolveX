@@ -19,7 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   
   return (
     <FirebaseClientProvider>
-      <APIProvider apiKey={apiKey} libraries={['visualization']}>
+      <APIProvider apiKey={apiKey} libraries={['visualization', 'routes', 'places', 'geometry']}>
         {children}
       </APIProvider>
     </FirebaseClientProvider>

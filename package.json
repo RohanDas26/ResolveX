@@ -1,3 +1,4 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -62,6 +63,7 @@
     "lucide": "^0.400.0"
   },
   "devDependencies": {
+    "@types/google.maps": "^3.55.10",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.2.1",
