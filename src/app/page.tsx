@@ -45,15 +45,15 @@ export default function AuthPage() {
     <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden" >
       <StarTrail />
        <div
-        className="pointer-events-none fixed inset-0 z-30 transition duration-300"
+        className="pointer-events-none fixed inset-0 z-30 transition duration-300 lg:absolute"
         style={{
-          background: `radial-gradient(100px circle at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--primary) / 0.1), transparent 80%)`,
+          background: `radial-gradient(200px circle at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--primary) / 0.05), transparent 80%)`,
         }}
       />
        <div
-        className="pointer-events-none fixed inset-0 z-30 transition duration-300"
+        className="pointer-events-none fixed inset-0 z-30 transition duration-300 lg:absolute"
         style={{
-          background: `radial-gradient(100px circle at ${mousePosition.x + 20}px ${mousePosition.y + 20}px, hsl(var(--accent) / 0.1), transparent 80%)`,
+          background: `radial-gradient(200px circle at ${mousePosition.x + 20}px ${mousePosition.y + 20}px, hsl(var(--accent) / 0.05), transparent 80%)`,
         }}
       />
       
