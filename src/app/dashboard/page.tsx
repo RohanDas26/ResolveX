@@ -1,8 +1,9 @@
+
 "use client";
 
 import AuthGuard from "@/components/auth-guard";
 import { type Grievance } from "@/lib/types";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, Timestamp } from "firebase/firestore";
 import { useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,13 @@ function DashboardPageContent() {
     }, [firestore, user]);
 
     const { data: grievances, isLoading: loading } = useCollection<Grievance>(grievancesQuery);
+
+    const getGrievanceDate = (createdAt: Date | Timestamp) => {
+        if (createdAt instanceof Timestamp) {
+            return createdAt.toDate();
+        }
+        return createdAt;
+    }
 
     if (loading) {
         return (
@@ -78,7 +86,7 @@ function DashboardPageContent() {
                             </CardHeader>
                             <CardContent className="p-4 flex-grow">
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    {grievance.createdAt ? formatDistanceToNow(grievance.createdAt, { addSuffix: true }) : 'Just now'}
+                                    {grievance.createdAt ? formatDistanceToNow(getGrievanceDate(grievance.createdAt), { addSuffix: true }) : 'Just now'}
                                 </p>
                                 <CardTitle className="text-lg leading-tight line-clamp-3">{grievance.description}</CardTitle>
                             </CardContent>

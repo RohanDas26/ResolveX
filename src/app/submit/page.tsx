@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -14,10 +15,10 @@ import { useEffect, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
 import AuthGuard from "@/components/auth-guard";
 import { useUser, useFirestore } from "@/firebase";
-import { GeoPoint, Timestamp, addDoc, collection, getFirestore } from "firebase/firestore";
+import { GeoPoint, Timestamp, collection, doc } from "firebase/firestore";
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -84,12 +85,14 @@ function SubmitPageContent() {
         try {
             const imageFile = values.photo[0];
             const storage = getStorage();
-            const imageRef = ref(storage, `grievances/${user.uid}/${uuidv4()}-${imageFile.name}`);
+            const grievanceId = uuidv4();
+            const imageRef = ref(storage, `grievances/${user.uid}/${grievanceId}-${imageFile.name}`);
             
             await uploadBytes(imageRef, imageFile);
             const imageUrl = await getDownloadURL(imageRef);
 
             const grievanceData = {
+                id: grievanceId,
                 userId: user.uid,
                 userName: user.displayName || "Anonymous",
                 description: values.description,
@@ -99,7 +102,12 @@ function SubmitPageContent() {
                 createdAt: Timestamp.now(),
             };
 
-            addDocumentNonBlocking(collection(firestore, "users", user.uid, "grievances"), grievanceData);
+            // Write to the user-specific collection for their dashboard
+            setDocumentNonBlocking(doc(firestore, "users", user.uid, "grievances", grievanceId), grievanceData, { merge: true });
+
+            // Write to the public collection for the map
+            setDocumentNonBlocking(doc(firestore, "grievances", grievanceId), grievanceData, { merge: true });
+
 
             toast({ title: "Grievance Submitted!", description: "Thank you for your report. It is now under review." });
             router.push("/dashboard");

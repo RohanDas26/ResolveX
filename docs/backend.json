@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -127,6 +128,22 @@
               "name": "userId",
               "description": "The Firebase Auth UID of the user who submitted the grievance."
             },
+            {
+              "name": "grievanceId",
+              "description": "The unique ID of the grievance."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/grievances/{grievanceId}",
+        "definition": {
+          "entityName": "Grievance",
+          "schema": {
+            "$ref": "#/backend/entities/Grievance"
+          },
+          "description": "A public collection of all grievances for map display. This collection can be queried by any authenticated user.",
+          "params": [
             {
               "name": "grievanceId",
               "description": "The unique ID of the grievance."

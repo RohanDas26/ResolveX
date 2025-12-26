@@ -1,3 +1,4 @@
+
 import type { Timestamp, GeoPoint } from "firebase/firestore";
 
 export interface Grievance {
@@ -8,7 +9,7 @@ export interface Grievance {
   location: GeoPoint;
   imageUrl: string;
   status: "Submitted" | "In Progress" | "Resolved";
-  createdAt: Date;
+  createdAt: Timestamp;
 }
 
 export interface UserProfile {

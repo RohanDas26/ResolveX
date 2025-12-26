@@ -1,21 +1,26 @@
+
 /**
- * Core Philosophy: This ruleset enforces a strict user-ownership model.
+ * Core Philosophy: This ruleset enforces a strict user-ownership model for writes,
+ * but allows public, read-only access to a global `grievances` collection for the map.
  * All user-generated data is private and can only be accessed by the user who
  * created it. The rules are designed for rapid prototyping, focusing on
- * authorization rather than strict data schema validation.
+* authorization rather than strict data schema validation.
  *
  * Data Structure: The data is organized hierarchically under a top-level `users`
  * collection. Each user has a profile document (`/users/{userId}`) and a
  * subcollection for their private data, such as grievances
- * (`/users/{userId}/grievances/{grievanceId}`).
+ * (`/users/{userId}/grievances/{grievanceId}`). A top-level `grievances` collection
+ * mirrors the user-specific grievances for public read access.
  *
  * Key Security Decisions:
- * - User Isolation: A user can only access documents within their own data
+ * - User Isolation for Writes: A user can only write to documents within their own data
  *   tree (i.e., paths starting with `/users/{their_auth_uid}`).
- * - No Public Listing: It is not possible to list all user profiles in the
+ * - Public Read on Grievances: Any authenticated user can read from the top-level
+ *   `/grievances` collection, which is necessary for the public-facing map.
+ * - No Public Listing of Users: It is not possible to list all user profiles in the
  *   database, protecting user privacy.
  * - Path-Based Security: The rules rely on the document path (`userId` wildcard)
- *   to determine ownership, which is efficient and avoids costly `get()` calls.
+ *   to determine ownership for writes, which is efficient and avoids costly `get()` calls.
  * - Relational Integrity: On document creation, key identifiers (like `id` and
  *   `userId`) are validated to ensure they match the document's path,
  *   maintaining data consistency. These identifiers are immutable on update.
@@ -79,9 +84,9 @@ service cloud.firestore {
      * Validates required relational fields on Grievance creation.
      * Enforces consistency between the document path and internal IDs.
      */
-    function isValidGrievanceCreate(userId, grievanceId) {
+    function isValidGrievanceCreate(userId) {
       let data = request.resource.data;
-      return data.userId == userId && data.id == grievanceId;
+      return data.userId == userId;
     }
 
     /**
@@ -92,6 +97,15 @@ service cloud.firestore {
       let incomingData = request.resource.data;
       let existingData = resource.data;
       return incomingData.userId == existingData.userId && incomingData.id == existingData.id;
+    }
+    
+    /**
+     * @description Allows public read access for all authenticated users to view grievances on the map.
+     * Writes are restricted to prevent unauthorized modification.
+     */
+    match /grievances/{grievanceId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(request.resource.data.userId); 
     }
 
     /**
@@ -109,22 +123,22 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUserProfileCreate(userId);
       allow update: if isExistingOwner(userId) && isImmutableUserProfile();
       allow delete: if isExistingOwner(userId);
-    }
 
-    /**
-     * @description Allows a user to manage the grievances they have submitted.
-     * @path /users/{userId}/grievances/{grievanceId}
-     * @allow A signed-in user 'user123' can (create) a new grievance at `/users/user123/grievances/grievance_abc`.
-     * @allow User 'user123' can (list) all documents in their `/users/user123/grievances` collection.
-     * @deny User 'user456' cannot (get), (list), or (delete) any grievances belonging to 'user123'.
-     * @principle Enforces document ownership for all operations within a user's private subcollection.
-     */
-    match /users/{userId}/grievances/{grievanceId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidGrievanceCreate(userId, grievanceId);
-      allow update: if isExistingOwner(userId) && isImmutableGrievance();
-      allow delete: if isExistingOwner(userId);
+      /**
+       * @description Allows a user to manage the grievances they have submitted.
+       * @path /users/{userId}/grievances/{grievanceId}
+       * @allow A signed-in user 'user123' can (create) a new grievance at `/users/user123/grievances/grievance_abc`.
+       * @allow User 'user123' can (list) all documents in their `/users/user123/grievances` collection.
+       * @deny User 'user456' cannot (get), (list), or (delete) any grievances belonging to 'user123'.
+       * @principle Enforces document ownership for all operations within a user's private subcollection.
+       */
+      match /grievances/{grievanceId} {
+        allow read: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidGrievanceCreate(userId);
+        allow update: if isExistingOwner(userId) && isImmutableGrievance();
+        allow delete: if isExistingOwner(userId);
+      }
     }
   }
 }

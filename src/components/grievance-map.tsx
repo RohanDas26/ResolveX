@@ -1,8 +1,9 @@
+
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
 import { useState, useCallback } from "react";
-import { collectionGroup, query } from "firebase/firestore";
+import { collection, query } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -13,7 +14,7 @@ const KLH_HYD_COORDS = { lat: 17.3033, lng: 78.5833 };
 
 export default function GrievanceMap() {
   const firestore = useFirestore();
-  const grievancesQuery = useMemoFirebase(() => query(collectionGroup(firestore, "grievances")), [firestore]);
+  const grievancesQuery = useMemoFirebase(() => query(collection(firestore, "grievances")), [firestore]);
   const { data: grievances } = useCollection<Grievance>(grievancesQuery);
   
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export default function GrievanceMap() {
             <CardContent className="p-2">
               <CardTitle className="text-base font-semibold leading-tight mb-1">{selectedGrievance.description}</CardTitle>
               <CardDescription className="text-xs">
-                By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(selectedGrievance.createdAt, { addSuffix: true }) : 'Just now'}
+                By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
               </CardDescription>
               <p className="text-sm font-semibold mt-2">Status: <span className="text-accent">{selectedGrievance.status}</span></p>
             </CardContent>
