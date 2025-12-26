@@ -15,7 +15,7 @@ type GrievanceWithPinColor = Grievance & { pinColor?: string };
 interface GrievanceMapProps {
   grievances?: GrievanceWithPinColor[] | null;
   children?: ReactNode;
-  onMarkerClick?: (grievanceId: string) => void;
+  onMarkerClick?: (grievanceId: string | null) => void;
   selectedGrievanceId?: string | null;
 }
 
@@ -34,8 +34,12 @@ export default function GrievanceMap({ grievances, children, onMarkerClick, sele
   }, [setSelectedGrievanceId]);
 
   const handleCloseInfoWindow = useCallback(() => {
-    setSelectedGrievanceId(null);
-  }, [setSelectedGrievanceId]);
+    if (onMarkerClick) {
+      onMarkerClick(null);
+    } else {
+      setInternalSelectedId(null);
+    }
+  }, [onMarkerClick]);
 
   const getStatusVariant = (status: Grievance['status']): "default" | "secondary" | "destructive" => {
     switch(status) {
