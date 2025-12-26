@@ -81,7 +81,7 @@ export default function Home() {
 
   if (isLoading || isUserLoading) {
     return (
-      <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted">
+      <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="ml-4 text-lg">Loading Live Grievance Data...</p>
       </div>
@@ -99,7 +99,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] w-full">
+    <div className="relative h-[calc(100vh-4rem)] w-full animate-fade-in">
       <GrievanceMap 
         grievances={grievances} 
         onMarkerClick={handleMarkerClick}

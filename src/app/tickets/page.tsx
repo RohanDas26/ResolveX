@@ -21,7 +21,7 @@ export default function TicketsPage() {
 
     if (isUserLoading) {
         return (
-            <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8">
+            <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
@@ -29,14 +29,14 @@ export default function TicketsPage() {
     
     if (!authUser) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-8 animate-fade-in">
                 <p>Could not load user data. Please make sure you are logged in.</p>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 animate-fade-in">
             <header className="mb-8">
                 <h1 className="text-3xl font-bold tracking-tight">My Reported Tickets</h1>
                 <p className="mt-1 text-muted-foreground">
@@ -64,7 +64,7 @@ export default function TicketsPage() {
                          <Badge variant={g.status === 'Resolved' ? 'default' : g.status === 'In Progress' ? 'secondary' : 'destructive'} className="shrink-0 mt-2 md:mt-0">{g.status}</Badge>
                      </Card>
                 )) : (
-                    <Card><CardContent className="p-6 text-center"><p>You haven't reported any grievances yet. <br/>Click "New Grievance" to get started!</p></CardContent></Card>
+                    <Card className="animate-fade-in-up"><CardContent className="p-6 text-center"><p>You haven&apos;t reported any grievances yet. <br/>Click "New Grievance" to get started!</p></CardContent></Card>
                 )}
             </div>
         </div>

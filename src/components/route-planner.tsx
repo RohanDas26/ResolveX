@@ -174,7 +174,7 @@ export default function RoutePlanner() {
             origin: originLoc,
             destination: destinationLoc,
             travelMode: google.maps.TravelMode.DRIVING,
-            provideRouteAlternatives: true // Always request alternatives
+            provideRouteAlternatives: true
         };
 
         try {
@@ -198,22 +198,24 @@ export default function RoutePlanner() {
                 };
             });
 
-
             let chosenRoute;
             if (mode === 'fastest') {
-                // Find the route with the minimum travel time
-                chosenRoute = scoredRoutes.reduce((fastest, current) => {
-                    return current.travelTime < fastest.travelTime ? current : fastest;
-                });
+                chosenRoute = scoredRoutes.reduce((fastest, current) => current.travelTime < fastest.travelTime ? current : fastest);
             } else { // 'avoid_issues'
-                // Find the minimum number of issues on any route
-                const minIssues = Math.min(...scoredRoutes.map(r => r.issueCount));
-                // Filter to only routes that have that minimum number of issues
-                const safestCandidates = scoredRoutes.filter(r => r.issueCount === minIssues);
-                // From that safest group, pick the fastest one
-                chosenRoute = safestCandidates.reduce((fastest, current) => {
-                    return current.travelTime < fastest.travelTime ? current : fastest;
-                });
+                 // Prioritize routes with 0 issues first, then by time.
+                 const zeroIssueRoutes = scoredRoutes.filter(r => r.issueCount === 0);
+                 if (zeroIssueRoutes.length > 0) {
+                     chosenRoute = zeroIssueRoutes.reduce((fastest, current) => current.travelTime < fastest.travelTime ? current : fastest);
+                 } else {
+                     // If all routes have issues, pick the one with the fewest issues.
+                     // If there's a tie in issue count, pick the fastest among them.
+                     chosenRoute = scoredRoutes.sort((a, b) => {
+                        if (a.issueCount !== b.issueCount) {
+                            return a.issueCount - b.issueCount;
+                        }
+                        return a.travelTime - b.travelTime;
+                     })[0];
+                 }
             }
             
             return { route: chosenRoute.route, issues: chosenRoute.issues };
@@ -261,7 +263,7 @@ export default function RoutePlanner() {
                     title: "FYI: Issues on Route",
                     description: `The fastest route has ${result.issues.length} issue(s). Choose 'Safest' for a clearer path.`,
                 });
-            } else if (result.issues.length === 0) {
+            } else if (routePreference === 'avoid_issues' && result.issues.length === 0) {
                 toast({
                     title: "Route Clear!",
                     description: `No open grievances found on your selected route.`,
@@ -316,14 +318,14 @@ export default function RoutePlanner() {
                         </RadioGroup>
                         <Button onClick={handleFindRoute} className="w-full" disabled={isLoading}>
                             {isLoading && <Loader2 className="animate-spin mr-2"/>}
-                            Find Route
+                            {isLoading ? 'Finding Route...' : 'Find Route'}
                         </Button>
                     </CardContent>
                 </Card>
 
                 <ScrollArea className="flex-1">
                     {selectedRoute ? (
-                        <div className="p-4 space-y-4">
+                        <div className="p-4 space-y-4 animate-fade-in">
                             <Card>
                                 <CardHeader className="p-4">
                                      <CardTitle className="text-lg">Route Summary</CardTitle>
@@ -342,7 +344,7 @@ export default function RoutePlanner() {
                             <h3 className="text-lg font-semibold mt-4">Turn-by-turn Directions</h3>
                             <div className="space-y-3">
                                 {selectedRoute.legs[0].steps.map((step, index) => (
-                                    <div key={index} className="flex gap-4 items-start p-2 rounded-md hover:bg-muted">
+                                    <div key={index} className="flex gap-4 items-start p-2 rounded-md hover:bg-muted animate-fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
                                         <div className="pt-1 text-primary">
                                              {getManeuverIcon(step.maneuver)}
                                         </div>
@@ -359,7 +361,7 @@ export default function RoutePlanner() {
 
                         </div>
                     ) : (
-                         <div className="p-8 text-center text-muted-foreground">
+                         <div className="p-8 text-center text-muted-foreground animate-fade-in">
                             <Info className="h-8 w-8 mx-auto mb-2" />
                             <p>Enter an origin and destination to see your route.</p>
                         </div>
@@ -382,7 +384,7 @@ export default function RoutePlanner() {
                     
                     {issuesOnRoute.map(issue => (
                          <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
-                           <div className="p-1 bg-amber-500 rounded-full shadow-lg">
+                           <div className="p-1 bg-amber-500 rounded-full shadow-lg animate-pulse">
                              <AlertTriangle className="h-4 w-4 text-white" />
                            </div>
                          </AdvancedMarker>
@@ -392,5 +394,3 @@ export default function RoutePlanner() {
         </div>
     );
 }
-
-    

@@ -52,16 +52,16 @@ export default function ProfilePage() {
 
     if (isLoading) {
         return (
-            <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8">
+            <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
     }
     
-    if (!profile || !authUser) return <div className="container mx-auto px-4 py-8"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
+    if (!profile || !authUser) return <div className="container mx-auto px-4 py-8 animate-fade-in"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-1 space-y-8">
                     {/* User Profile Card */}
@@ -81,7 +81,7 @@ export default function ProfilePage() {
                             )}
                         </CardHeader>
                     </Card>
-                     <Card>
+                     <Card className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                         <CardHeader>
                             <CardTitle>Leaderboard</CardTitle>
                         </CardHeader>
@@ -96,7 +96,7 @@ export default function ProfilePage() {
                     <h2 className="text-2xl font-bold mb-4">Your Reported Grievances</h2>
                     <div className="space-y-4">
                         {userGrievances && userGrievances.length > 0 ? userGrievances.map((g, index) => (
-                             <Card key={g.id} className="flex items-start gap-4 p-4 animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
+                             <Card key={g.id} className="flex items-start gap-4 p-4 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`}}>
                                  <div className="w-24 h-24 rounded-md overflow-hidden shrink-0">
                                      <img src={g.imageUrl} alt={g.description} className="w-full h-full object-cover" />
                                  </div>
@@ -114,7 +114,7 @@ export default function ProfilePage() {
                                  <Badge variant={g.status === 'Resolved' ? 'default' : g.status === 'In Progress' ? 'secondary' : 'destructive'} className="shrink-0">{g.status}</Badge>
                              </Card>
                         )) : (
-                            <Card><CardContent className="p-6"><p>You haven&apos;t reported any grievances yet.</p></CardContent></Card>
+                            <Card className="animate-fade-in-up"><CardContent className="p-6"><p>You haven&apos;t reported any grievances yet.</p></CardContent></Card>
                         )}
                     </div>
                 </div>

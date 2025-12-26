@@ -159,7 +159,7 @@ function SubmitPageContent() {
     
     if (isUserLoading) {
         return (
-             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8">
+             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         )
@@ -253,7 +253,7 @@ function SubmitPageContent() {
                                 Get Current Location
                             </Button>
                             {location && (
-                                <Alert>
+                                <Alert className="animate-fade-in">
                                     <CheckCircle className="h-4 w-4" />
                                     <AlertTitle>Location Acquired!</AlertTitle>
                                     <AlertDescription>
@@ -262,7 +262,7 @@ function SubmitPageContent() {
                                 </Alert>
                             )}
                             {locationError && (
-                                <Alert variant="destructive">
+                                <Alert variant="destructive" className="animate-fade-in">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertTitle>Location Error</AlertTitle>
                                     <AlertDescription>
@@ -285,7 +285,7 @@ function SubmitPageContent() {
 
 export default function SubmitPage() {
     return (
-        <div className="container mx-auto px-4 py-8 flex justify-center">
+        <div className="container mx-auto px-4 py-8 flex justify-center animate-fade-in">
             <SubmitPageContent />
         </div>
     );

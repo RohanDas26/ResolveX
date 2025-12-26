@@ -57,7 +57,7 @@ function AdminDashboardContent() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <div className="flex h-[calc(100vh-4rem)] animate-fade-in">
       <AdminSidebar 
         grievances={filteredGrievances}
         isLoading={false}
