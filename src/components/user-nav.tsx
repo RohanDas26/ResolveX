@@ -24,11 +24,17 @@ export function UserNav() {
   const handleLogout = () => {
     // In a real app, you would call your Firebase sign out function here.
     // For this demo, we'll just redirect to the auth page.
-    router.push("/auth");
+    router.push("/");
   };
 
   if (!user || !profile) {
-    return null;
+    return (
+       <Button asChild>
+          <Link href="/">
+            Get Started
+          </Link>
+        </Button>
+    )
   }
 
   return (
