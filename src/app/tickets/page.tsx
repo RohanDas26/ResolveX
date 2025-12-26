@@ -1,23 +1,37 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { DEMO_GRIEVANCES } from '@/lib/demo-data';
+import { type Grievance } from '@/lib/types';
+
+// Access the global store
+// @ts-ignore
+const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : {
+    get: () => [],
+    subscribe: () => () => {},
+};
 
 export default function TicketsPage() {
     const { user: authUser, isUserLoading } = useUser();
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>(grievanceStore.get());
 
-    // Use demo grievances and filter them for the current mock user
+    useEffect(() => {
+        const handleUpdate = () => {
+            setAllGrievances([...grievanceStore.get()]);
+        };
+        const unsubscribe = grievanceStore.subscribe(handleUpdate);
+        return () => unsubscribe();
+    }, []);
+
     const userGrievances = useMemo(() => {
         if (!authUser) return [];
-        // This combines your specific reports with any others assigned to your ID
-        return DEMO_GRIEVANCES.filter(g => g.userId === authUser.uid);
-    }, [authUser]);
+        return allGrievances.filter(g => g.userId === authUser.uid);
+    }, [authUser, allGrievances]);
 
     if (isUserLoading) {
         return (

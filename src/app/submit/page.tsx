@@ -153,8 +153,8 @@ function SubmitPageContent() {
         
         // This is a temporary solution to pass data between pages on the client
         // In a real app, this would be handled by a state management library or server-side logic
-        if (typeof window !== 'undefined' && (window as any).addGrievance) {
-            (window as any).addGrievance(newGrievance);
+        if (typeof window !== 'undefined' && (window as any).grievanceStore) {
+            (window as any).grievanceStore.add(newGrievance);
         }
 
         toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });

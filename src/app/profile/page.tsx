@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Grievance, UserProfile } from '@/lib/types';
@@ -11,11 +11,18 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2, MailWarning } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Leaderboard from '@/components/leaderboard';
-import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
+import { DEMO_USERS } from "@/lib/demo-data";
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+
+// Access the global store
+// @ts-ignore
+const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : {
+    get: () => [],
+    subscribe: () => () => {},
+};
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -33,18 +40,25 @@ const getBadge = (grievanceCount: number) => {
 export default function ProfilePage() {
     const { user: authUser, profile, isUserLoading, isProfileLoading } = useUser();
     const { toast } = useToast();
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>(grievanceStore.get());
 
-    // Use demo grievances and filter them for the current mock user
+    useEffect(() => {
+        const handleUpdate = () => {
+            setAllGrievances([...grievanceStore.get()]);
+        };
+        const unsubscribe = grievanceStore.subscribe(handleUpdate);
+        return () => unsubscribe();
+    }, []);
+
     const userGrievances = useMemo(() => {
         if (!authUser) return [];
-        return DEMO_GRIEVANCES.filter(g => g.userId === authUser.uid);
-    }, [authUser]);
+        return allGrievances.filter(g => g.userId === authUser.uid);
+    }, [authUser, allGrievances]);
 
     // Get the accurate count from the user profile data, which is now consistent
     const grievanceCount = useMemo(() => {
-        const currentUserData = DEMO_USERS.find(u => u.id === authUser?.uid);
-        return currentUserData?.grievanceCount || 0;
-    }, [authUser]);
+        return userGrievances.length;
+    }, [userGrievances]);
 
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 

@@ -14,15 +14,46 @@ const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
 const DETAIL_ZOOM = 15;
 
-// A simple in-memory store for our demo data
-const grievanceStore = {
-  grievances: [...DEMO_GRIEVANCES],
-  add: (grievance: Grievance) => {
-    grievanceStore.grievances.unshift(grievance);
-  },
-  get: () => {
-    return grievanceStore.grievances;
-  }
+// A simple in-memory store for our demo data, attached to the window for global access
+if (typeof window !== 'undefined') {
+    // @ts-ignore
+    if (!window.grievanceStore) {
+        // @ts-ignore
+        window.grievanceStore = {
+            grievances: [...DEMO_GRIEVANCES],
+            listeners: new Set(),
+            add(grievance: Grievance) {
+                // @ts-ignore
+                this.grievances.unshift(grievance);
+                // @ts-ignore
+                this.notify();
+            },
+            get() {
+                // @ts-ignore
+                return this.grievances;
+            },
+            subscribe(listener: () => void) {
+                // @ts-ignore
+                this.listeners.add(listener);
+                return () => {
+                    // @ts-ignore
+                    this.listeners.delete(listener);
+                };
+            },
+            notify() {
+                // @ts-ignore
+                this.listeners.forEach(listener => listener());
+            }
+        };
+    }
+}
+
+// @ts-ignore
+const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : {
+    grievances: [...DEMO_GRIEVANCES],
+    get: () => DEMO_GRIEVANCES,
+    add: () => {},
+    subscribe: () => () => {},
 };
 
 function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null }) {
@@ -47,20 +78,20 @@ function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null 
 
 export default function MapPage() {
   const searchParams = useSearchParams();
-  const [grievances, setGrievances] = useState<Grievance[] | null>(null);
+  const [grievances, setGrievances] = useState<Grievance[] | null>(grievanceStore.get());
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // This flag ensures the initial zoom effect runs only once
   const initialEffectRan = useRef(false);
-
+  
   useEffect(() => {
-    // Simulate loading data
-    setIsLoading(true);
-    const data = grievanceStore.get();
-    setGrievances(data);
-    setIsLoading(false);
+    const handleUpdate = () => {
+        setGrievances([...grievanceStore.get()]);
+    };
+    const unsubscribe = grievanceStore.subscribe(handleUpdate);
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -88,16 +119,6 @@ export default function MapPage() {
     );
   }
   
-  // This is a shared state that can be updated from the submit page.
-  if (typeof window !== 'undefined') {
-    // @ts-ignore
-    window.addGrievance = (grievance: Grievance) => {
-      grievanceStore.add(grievance);
-      // This is a bit of a hack to force a re-render
-      setGrievances([...grievanceStore.get()]);
-    };
-  }
-
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full animate-fade-in">
       <GrievanceMap 
