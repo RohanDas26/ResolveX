@@ -68,57 +68,59 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
-  .ambient-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    z-index: -1;
-    overflow: hidden;
-    background: hsl(var(--background));
-    background-size: 400% 400%;
-    animation: gradient-animation 20s ease infinite;
+}
+
+@layer utilities {
+  .neon-frame {
+    @apply relative w-full h-full p-1 overflow-hidden rounded-lg;
+    background: conic-gradient(from var(--angle), hsl(var(--accent)) 0%, hsl(var(--primary)) 50%, hsl(var(--accent)) 100%);
+    animation: border-glow 8s linear infinite;
   }
 
-  .ambient-background::before,
-  .ambient-background::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at center, hsla(var(--primary), 0.2) 0%, transparent 40%),
-                radial-gradient(circle at center, hsla(var(--accent), 0.2) 0%, transparent 40%);
-    background-size: 200% 200%;
-    animation: spin 30s linear infinite;
+  .neon-frame-inner {
+    @apply relative w-full h-full bg-background/80 backdrop-blur-sm rounded-md overflow-hidden;
   }
 
-  .ambient-background::after {
-    animation-delay: -15s; /* Offset the second layer's animation */
-    animation-direction: reverse;
+  .neon-stars {
+    @apply absolute inset-0 w-full h-full;
+    background-image:
+      radial-gradient(1px 1px at 20px 30px, #eee, transparent),
+      radial-gradient(1px 1px at 40px 70px, #fff, transparent),
+      radial-gradient(1px 1px at 50px 160px, #ddd, transparent),
+      radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+      radial-gradient(1px 1px at 130px 80px, #fff, transparent),
+      radial-gradient(1px 1px at 160px 120px, #ddd, transparent);
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    animation: star-field 40s linear infinite;
   }
 
-  @keyframes gradient-animation {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
+  .neon-comet {
+    @apply absolute top-2 left-0 h-0.5 w-full;
+    background: linear-gradient(90deg, transparent, hsl(var(--accent) / 0.5), transparent);
+    animation: comet-sweep 12s ease-in-out infinite;
+    opacity: 0;
   }
+}
 
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-glow {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
+@keyframes star-field {
+  from { background-position: 0 0; }
+  to { background-position: -10000px 5000px; }
+}
+
+@keyframes comet-sweep {
+  0% { transform: translateX(-100%); opacity: 0; }
+  20%, 80% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
 }

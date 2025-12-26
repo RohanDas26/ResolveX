@@ -22,10 +22,17 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
         <Providers>
-          <div className="ambient-background" />
-          <MainLayout>
-            {children}
-          </MainLayout>
+          <div className="p-4 h-screen">
+            <div className="neon-frame">
+              <div className="neon-frame-inner">
+                <div className="neon-stars"></div>
+                <div className="neon-comet"></div>
+                 <MainLayout>
+                  {children}
+                </MainLayout>
+              </div>
+            </div>
+          </div>
           <Toaster />
         </Providers>
       </body>
