@@ -21,6 +21,44 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import { summarizeGrievance } from "@/ai/flows/summarize-grievance-flow";
 import { Badge } from "@/components/ui/badge";
+import type { Grievance } from "@/lib/types";
+import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+
+
+// A simple in-memory store for our demo data, attached to the window for global access
+if (typeof window !== 'undefined') {
+    // @ts-ignore
+    if (!window.grievanceStore) {
+        // @ts-ignore
+        window.grievanceStore = {
+            grievances: [...DEMO_GRIEVANCES],
+            listeners: new Set(),
+            add(grievance: Grievance) {
+                // @ts-ignore
+                this.grievances.unshift(grievance);
+                // @ts-ignore
+                this.notify();
+            },
+            get() {
+                // @ts-ignore
+                return this.grievances;
+            },
+            subscribe(listener: () => void) {
+                // @ts-ignore
+                this.listeners.add(listener);
+                return () => {
+                    // @ts-ignore
+                    this.listeners.delete(listener);
+                };
+            },
+            notify() {
+                // @ts-ignore
+                this.listeners.forEach(listener => listener());
+            }
+        };
+    }
+}
+
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -348,7 +386,3 @@ export default function SubmitPage() {
         </div>
     );
 }
-
-    
-
-    

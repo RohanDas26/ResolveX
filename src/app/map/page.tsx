@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { type Grievance } from "@/lib/types";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 import { useUser } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
 
@@ -14,40 +13,7 @@ const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
 const DETAIL_ZOOM = 15;
 
-// A simple in-memory store for our demo data, attached to the window for global access
-if (typeof window !== 'undefined') {
-    // @ts-ignore
-    if (!window.grievanceStore) {
-        // @ts-ignore
-        window.grievanceStore = {
-            grievances: [...DEMO_GRIEVANCES],
-            listeners: new Set(),
-            add(grievance: Grievance) {
-                // @ts-ignore
-                this.grievances.unshift(grievance);
-                // @ts-ignore
-                this.notify();
-            },
-            get() {
-                // @ts-ignore
-                return this.grievances;
-            },
-            subscribe(listener: () => void) {
-                // @ts-ignore
-                this.listeners.add(listener);
-                return () => {
-                    // @ts-ignore
-                    this.listeners.delete(listener);
-                };
-            },
-            notify() {
-                // @ts-ignore
-                this.listeners.forEach(listener => listener());
-            }
-        };
-    }
-}
-
+// Access the global store
 // @ts-ignore
 const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : null;
 
