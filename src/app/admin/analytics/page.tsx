@@ -8,10 +8,11 @@ import type { Grievance } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { format, subDays, isWithinInterval } from "date-fns";
-import { Loader2, Zap, QrCode } from "lucide-react";
+import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import QRCode from "qrcode";
-import Image from "next/image";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { DEMO_GRIEVANCES, DEMO_CENTERS } from "@/lib/demo-data";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
 
@@ -59,55 +60,117 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
     );
 }
 
-function QRCodeGenerator() {
-    const [qrCodeUrl, setQrCodeUrl] = useState('');
-    const [appUrl, setAppUrl] = useState('');
+function ImpactSimulator() {
+    const [selectedArea, setSelectedArea] = useState<string>(DEMO_CENTERS[0].name);
+    const [issuesToResolve, setIssuesToResolve] = useState(15);
 
-    useEffect(() => {
-        // This code now runs only on the client, ensuring `window` is available.
-        const currentAppUrl = window.location.origin;
-        setAppUrl(currentAppUrl);
+    const simulationData = useMemo(() => {
+        const center = DEMO_CENTERS.find(c => c.name === selectedArea);
+        if (!center) return null;
 
-        const generateQR = async () => {
-            try {
-                const dataUrl = await QRCode.toDataURL(currentAppUrl, {
-                    errorCorrectionLevel: 'H',
-                    type: 'image/jpeg',
-                    quality: 0.9,
-                    margin: 1,
-                    color: {
-                        dark: "#0F0F1A",
-                        light: "#FFFFFF"
-                    }
-                });
-                setQrCodeUrl(dataUrl);
-            } catch (err) {
-                console.error(err);
-            }
+        const { lat, lng, radiusKm } = center;
+        const radiusDeg = radiusKm / 111.32; // Approx conversion
+
+        const areaGrievances = DEMO_GRIEVANCES.filter(g => 
+            Math.sqrt(Math.pow(g.location.latitude - lat, 2) + Math.pow(g.location.longitude - lng, 2)) < radiusDeg
+        );
+
+        const openGrievances = areaGrievances.filter(g => g.status !== 'Resolved');
+        const openIssueCount = openGrievances.length;
+        const currentRisk = openIssueCount > 0 
+            ? openGrievances.reduce((acc, g) => acc + (g.riskScore || 0), 0) / openIssueCount
+            : 0;
+        
+        const totalComplaintsLast30Days = areaGrievances.filter(g => {
+            const grievanceDate = g.createdAt.toDate();
+            const thirtyDaysAgo = subDays(new Date(), 30);
+            return grievanceDate > thirtyDaysAgo;
+        }).length;
+        
+        // Simple projection
+        const resolvedCount = Math.min(issuesToResolve, openIssueCount);
+        const projectedOpenIssues = openIssueCount - resolvedCount;
+        const reductionFactor = openIssueCount > 0 ? (1 - (resolvedCount / openIssueCount)) : 1;
+        const projectedRisk = Math.max(0, currentRisk * reductionFactor);
+        const projectedComplaints = Math.round(totalComplaintsLast30Days * reductionFactor);
+        
+        return {
+            openIssueCount,
+            currentRisk: Math.round(currentRisk),
+            totalComplaintsLast30Days,
+            resolvedCount,
+            projectedOpenIssues,
+            projectedRisk: Math.round(projectedRisk),
+            projectedComplaints,
         };
+    }, [selectedArea, issuesToResolve]);
 
-        generateQR();
-    }, []);
+    if (!simulationData) return null;
+
+    const { openIssueCount, currentRisk, totalComplaintsLast30Days, projectedOpenIssues, projectedRisk, projectedComplaints, resolvedCount } = simulationData;
+
+    const riskReduction = currentRisk > 0 ? Math.round(((currentRisk - projectedRisk) / currentRisk) * 100) : 0;
+    const complaintReduction = totalComplaintsLast30Days > 0 ? Math.round(((totalComplaintsLast30Days - projectedComplaints) / totalComplaintsLast30Days) * 100) : 0;
+
+    const chartData = [
+        { name: 'Risk', Before: currentRisk, After: projectedRisk }
+    ];
 
     return (
         <Card className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <CardHeader>
-                <CardTitle className="flex items-center"><QrCode className="mr-2 h-5 w-5 text-primary" /> App QR Code</CardTitle>
-                <CardDescription>Share this to direct users to the app.</CardDescription>
+                <CardTitle className="flex items-center"><BrainCircuit className="mr-2 h-5 w-5 text-primary" /> Impact Simulator</CardTitle>
+                <CardDescription>Simulate how resolving issues changes risk and future complaints.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center gap-4">
-                {qrCodeUrl ? (
-                    <Image src={qrCodeUrl} alt="App QR Code" width={180} height={180} className="rounded-lg border-4 border-primary/50" />
-                ) : (
-                    <div className="w-[180px] h-[180px] flex items-center justify-center bg-muted rounded-lg">
-                        <Loader2 className="h-8 w-8 animate-spin" />
+            <CardContent className="space-y-6">
+                <div className="space-y-4">
+                    <Select value={selectedArea} onValueChange={setSelectedArea}>
+                        <SelectTrigger><SelectValue placeholder="Select an area" /></SelectTrigger>
+                        <SelectContent>
+                            {DEMO_CENTERS.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <div className="space-y-2">
+                        <Label>Number of open issues to resolve: {issuesToResolve}</Label>
+                        <Slider
+                            value={[issuesToResolve]}
+                            onValueChange={(val) => setIssuesToResolve(val[0])}
+                            max={Math.max(1, openIssueCount)}
+                            step={1}
+                        />
                     </div>
-                )}
-                 {qrCodeUrl && (
-                    <Button asChild>
-                        <a href={qrCodeUrl} download="resolvex-app-qrcode.jpg">Download QR Code</a>
-                    </Button>
-                )}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                        <p className="text-xs text-muted-foreground">Risk Score</p>
+                        <p className="text-lg font-bold flex items-center justify-center gap-1">{currentRisk} <ArrowRight className="h-4 w-4" /> <span className="text-green-400">{projectedRisk}</span></p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground">Open Issues</p>
+                        <p className="text-lg font-bold flex items-center justify-center gap-1">{openIssueCount} <ArrowRight className="h-4 w-4" /> <span className="text-green-400">{projectedOpenIssues}</span></p>
+                    </div>
+                     <div>
+                        <p className="text-xs text-muted-foreground">Next 30d Reports</p>
+                        <p className="text-lg font-bold flex items-center justify-center gap-1">{totalComplaintsLast30Days} <ArrowRight className="h-4 w-4" /> <span className="text-green-400">{projectedComplaints}</span></p>
+                    </div>
+                </div>
+
+                <div className="h-20 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
+                            <XAxis type="number" hide />
+                            <YAxis type="category" dataKey="name" hide />
+                            <Tooltip cursor={{fill: 'hsl(var(--muted))'}} contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
+                            <Bar dataKey="Before" fill="hsl(var(--primary) / 0.5)" radius={[4, 4, 4, 4]} />
+                            <Bar dataKey="After" fill="hsl(var(--primary))" radius={[4, 4, 4, 4]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                
+                 <p className="text-sm text-muted-foreground text-center bg-secondary/30 p-3 rounded-md">
+                    Resolving <span className="font-bold text-primary">{resolvedCount}</span> issues around <span className="font-bold text-primary">{selectedArea}</span> is projected to reduce local risk by <span className="font-bold text-green-400">{riskReduction}%</span> and future complaints by <span className="font-bold text-green-400">{complaintReduction}%</span>.
+                </p>
+
             </CardContent>
         </Card>
     );
@@ -177,7 +240,7 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <AIInsights grievances={grievances} />
-                    <QRCodeGenerator />
+                    <ImpactSimulator />
                 </div>
                 <Card className="animate-fade-in-up">
                     <CardHeader>

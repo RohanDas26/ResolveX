@@ -7,7 +7,7 @@ import { GeoPoint, Timestamp } from "firebase/firestore";
  * Multiple city/district centers across Telangana
  */
 
-const CENTERS = [
+export const DEMO_CENTERS = [
   {
     name: "KLH University Campus",
     lat: 17.3946,
@@ -91,7 +91,7 @@ const getRandomLocationInRadius = (
 
 // Pick random center & generate point in its radius
 const getClusterLocation = () => {
-  const center = CENTERS[Math.floor(Math.random() * CENTERS.length)];
+  const center = DEMO_CENTERS[Math.floor(Math.random() * DEMO_CENTERS.length)];
   return getRandomLocationInRadius(center.lat, center.lng, center.radiusKm);
 };
 
