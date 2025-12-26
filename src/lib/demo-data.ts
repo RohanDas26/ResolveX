@@ -2,23 +2,91 @@
 import type { Grievance } from "./types";
 import { GeoPoint, Timestamp } from "firebase/firestore";
 
-// Bounding box for Telangana
-const TELANGANA_BOUNDS = {
-  lat: { min: 15.8, max: 19.9 },
-  lng: { min: 77.2, max: 81.8 },
+/**
+ * CLUSTERED GEO DISTRIBUTION
+ * Multiple city/district centers across Telangana
+ */
+
+const CENTERS = [
+  {
+    name: "Hyderabad",
+    lat: 17.385,  // adjust to your campus if you want
+    lng: 78.486,
+    radiusKm: 15,
+  },
+  {
+    name: "Warangal",
+    lat: 17.978,
+    lng: 79.594,
+    radiusKm: 10,
+  },
+  {
+    name: "Nizamabad",
+    lat: 18.672,
+    lng: 78.094,
+    radiusKm: 8,
+  },
+  {
+    name: "Karimnagar",
+    lat: 18.438,
+    lng: 79.128,
+    radiusKm: 8,
+  },
+  {
+    name: "Khammam",
+    lat: 17.247,
+    lng: 80.151,
+    radiusKm: 8,
+  },
+  {
+    name: "Nalgonda",
+    lat: 17.052,
+    lng: 79.267,
+    radiusKm: 8,
+  },
+  {
+    name: "Mahbubnagar",
+    lat: 16.74,
+    lng: 77.985,
+    radiusKm: 10,
+  },
+];
+
+const KM_PER_DEG_LAT = 111;
+
+const getRandomLocationInRadius = (
+  centerLat: number,
+  centerLng: number,
+  radiusKm: number
+) => {
+  const radiusDegLat = radiusKm / KM_PER_DEG_LAT;
+  const radiusDegLng =
+    radiusKm / (KM_PER_DEG_LAT * Math.cos((centerLat * Math.PI) / 180));
+
+  const u = Math.random();
+  const v = Math.random();
+  const r = radiusDegLat * Math.sqrt(u);
+  const theta = 2 * Math.PI * v;
+
+  const dLat = r * Math.cos(theta);
+  const dLng = (radiusDegLng / radiusDegLat) * r * Math.sin(theta);
+
+  return {
+    lat: centerLat + dLat,
+    lng: centerLng + dLng,
+  };
 };
 
-const getRandomLocation = () => {
-  const lat =
-    Math.random() * (TELANGANA_BOUNDS.lat.max - TELANGANA_BOUNDS.lat.min) +
-    TELANGANA_BOUNDS.lat.min;
-  const lng =
-    Math.random() * (TELANGANA_BOUNDS.lng.max - TELANGANA_BOUNDS.lng.min) +
-    TELANGANA_BOUNDS.lng.min;
-  return { lat, lng };
+// Pick random center & generate point in its radius
+const getClusterLocation = () => {
+  const center = CENTERS[Math.floor(Math.random() * CENTERS.length)];
+  return getRandomLocationInRadius(center.lat, center.lng, center.radiusKm);
 };
 
-// More varied problem descriptions
+/**
+ * DATA POOLS
+ */
+
 const descriptions = [
   "Large pothole in the middle of the road causing traffic.",
   "Streetlight has been out for over a week near the hostel junction.",
@@ -42,7 +110,6 @@ const descriptions = [
   "Illegal dumping of construction waste in residential layout.",
 ];
 
-// More user names for variety
 const userNames = [
   "Priya",
   "Rohan",
@@ -63,7 +130,6 @@ const userNames = [
 
 const statuses: Grievance["status"][] = ["Submitted", "In Progress", "Resolved"];
 
-// Optional: different seed prefixes to make images look problem‑relevant
 const imageSeeds = [
   "road",
   "streetlight",
@@ -85,20 +151,20 @@ const imageSeeds = [
 const getPinColor = (status: Grievance["status"]) => {
   switch (status) {
     case "Resolved":
-      return "#22c55e"; // green-500
+      return "#22c55e";
     case "In Progress":
-      return "#f59e0b"; // amber-500
+      return "#f59e0b";
     case "Submitted":
     default:
-      return "#ef4444"; // red-500
+      return "#ef4444";
   }
 };
 
-// idIndex used to spread data over last N days
-const generateRandomGrievance = (idIndex: number): Grievance & { pinColor: string } => {
-  const randomLocation = getRandomLocation();
+const generateRandomGrievance = (
+  idIndex: number
+): Grievance & { pinColor: string } => {
+  const randomLocation = getClusterLocation();
 
-  // Spread over last 60 days instead of 30 to look richer
   const randomDate = new Date(
     Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000
   );
@@ -110,7 +176,7 @@ const generateRandomGrievance = (idIndex: number): Grievance & { pinColor: strin
 
   return {
     id: `demo-${idIndex}`,
-    userId: `user-demo-${(idIndex % 50) + 1}`, // 50 pseudo users
+    userId: `user-demo-${(idIndex % 50) + 1}`,
     userName,
     description,
     location: new GeoPoint(randomLocation.lat, randomLocation.lng),
@@ -121,7 +187,6 @@ const generateRandomGrievance = (idIndex: number): Grievance & { pinColor: strin
   };
 };
 
-// Change this number to 100, 500, 1000, etc.
 const DEMO_COUNT = 1000;
 
 export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = Array.from(
