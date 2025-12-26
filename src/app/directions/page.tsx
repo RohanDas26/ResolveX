@@ -5,18 +5,19 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Map, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import type { Grievance } from '@/lib/types';
 import { DEMO_GRIEVANCES } from '@/lib/demo-data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, Milestone, Map as MapIcon } from 'lucide-react';
+import { AlertTriangle, Milestone, Map as MapIcon, LocateFixed } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-
-const AVOIDANCE_RADIUS_METERS = 50; // 50 meters radius around a grievance
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 // Separate component for Autocomplete functionality
-function PlaceAutocomplete({ onPlaceChanged, placeholder }: { onPlaceChanged: (place: google.maps.places.PlaceResult) => void, placeholder: string }) {
+function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value }: { onPlaceChanged: (place: google.maps.places.PlaceResult) => void, placeholder: string, onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void, value: string }) {
     const placesLibrary = useMapsLibrary('places');
     const inputRef = useRef<HTMLInputElement>(null);
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
@@ -45,20 +46,27 @@ function PlaceAutocomplete({ onPlaceChanged, placeholder }: { onPlaceChanged: (p
         };
     }, [autocomplete, onPlaceChanged]);
 
-    return <Input ref={inputRef} placeholder={placeholder} className="w-full" />;
+    return <Input ref={inputRef} placeholder={placeholder} className="w-full" onChange={onInputChange} value={value} />;
 }
 
 function Directions() {
     const map = useMap();
     const routesLibrary = useMapsLibrary('routes');
     const geometryLibrary = useMapsLibrary('geometry');
+    const { toast } = useToast();
 
-    const [origin, setOrigin] = useState<google.maps.places.PlaceResult | null>(null);
-    const [destination, setDestination] = useState<google.maps.places.PlaceResult | null>(null);
+    type LocationValue = google.maps.LatLngLiteral | google.maps.places.PlaceResult;
+
+    const [origin, setOrigin] = useState<LocationValue | null>(null);
+    const [destination, setDestination] = useState<LocationValue | null>(null);
+    const [originText, setOriginText] = useState('');
+    const [destinationText, setDestinationText] = useState('');
+
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
     const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
     const [avoidedGrievances, setAvoidedGrievances] = useState<Grievance[]>([]);
+    const [routePreference, setRoutePreference] = useState<'avoid-all' | 'avoid-potholes' | 'fastest'>('avoid-all');
 
     useEffect(() => {
         if (!routesLibrary || !map) return;
@@ -67,24 +75,30 @@ function Directions() {
     }, [routesLibrary, map]);
 
     useEffect(() => {
-        if (!directionsRenderer || !directionsResult) return;
+        if (!directionsRenderer) return;
         directionsRenderer.setDirections(directionsResult);
     }, [directionsRenderer, directionsResult]);
 
 
     const handleFindRoute = () => {
-        if (!origin || !destination || !origin.geometry?.location || !destination.geometry?.location || !directionsService) {
-            alert("Please select both an origin and a destination.");
+        const originLocation = (origin as any)?.geometry?.location || origin;
+        const destinationLocation = (destination as any)?.geometry?.location || destination;
+
+        if (!originLocation || !destinationLocation || !directionsService) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Please select both an origin and a destination." });
             return;
         }
-
-        const activeGrievances = DEMO_GRIEVANCES.filter(
-            g => g.status === 'Submitted' || g.status === 'In Progress'
-        );
+        
+        let grievancesToAvoid: Grievance[] = [];
+        if (routePreference === 'avoid-all') {
+            grievancesToAvoid = DEMO_GRIEVANCES.filter(g => g.status === 'Submitted' || g.status === 'In Progress');
+        } else if (routePreference === 'avoid-potholes') {
+            grievancesToAvoid = DEMO_GRIEVANCES.filter(g => g.description.toLowerCase().includes('pothole') && (g.status === 'Submitted' || g.status === 'In Progress'));
+        }
 
         const request: google.maps.DirectionsRequest = {
-            origin: origin.geometry.location,
-            destination: destination.geometry.location,
+            origin: originLocation,
+            destination: destinationLocation,
             travelMode: google.maps.TravelMode.DRIVING,
         };
         
@@ -102,28 +116,81 @@ function Directions() {
                 }
             } else {
                 console.error(`Directions request failed due to ${status}`);
-                alert(`Failed to get directions: ${status}. The route might be too complex or impossible with the given avoidances.`);
+                toast({ variant: "destructive", title: "Route Failed", description: `Failed to get directions: ${status}` });
             }
         });
     };
+
+    const handleUseMyLocation = () => {
+        if (!navigator.geolocation) {
+             toast({ variant: "destructive", title: "Geolocation Error", description: "Geolocation is not supported by your browser." });
+             return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const latLng = { lat: position.coords.latitude, lng: position.coords.longitude };
+                setOrigin(latLng);
+                setOriginText(`My Location (${latLng.lat.toFixed(4)}, ${latLng.lng.toFixed(4)})`);
+                 toast({ title: "Location Acquired", description: "Your current location has been set as the origin." });
+            },
+            () => {
+                toast({ variant: "destructive", title: "Geolocation Error", description: "Unable to retrieve your location. Please enable permissions." });
+            }
+        );
+    }
     
 
     return (
         <>
             <Card className="w-full max-w-md m-4 border-0 md:border md:shadow-lg z-10 animate-fade-in-left absolute">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Milestone /> Directions</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><Milestone /> Safe Path Finder</CardTitle>
+                    <CardDescription>Plan your route avoiding road grievances.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col h-[calc(100vh-10rem)] space-y-4">
+                <CardContent className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="origin-input" className="text-sm font-medium">Origin</label>
-                        <PlaceAutocomplete onPlaceChanged={setOrigin} placeholder="Enter origin" />
+                        <Label htmlFor="origin-input" className="text-sm font-medium">Origin</Label>
+                        <div className="flex gap-2">
+                            <PlaceAutocomplete 
+                                onPlaceChanged={place => { setOrigin(place); setOriginText(place.formatted_address || place.name || ''); }} 
+                                placeholder="Enter origin" 
+                                value={originText}
+                                onInputChange={(e) => setOriginText(e.target.value)}
+                            />
+                            <Button variant="outline" size="icon" onClick={handleUseMyLocation} aria-label="Use my location">
+                                <LocateFixed className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                      <div className="space-y-2">
-                         <label htmlFor="destination-input" className="text-sm font-medium">Destination</label>
-                        <PlaceAutocomplete onPlaceChanged={setDestination} placeholder="Enter destination" />
+                        <Label htmlFor="destination-input" className="text-sm font-medium">Destination</Label>
+                        <PlaceAutocomplete 
+                            onPlaceChanged={place => { setDestination(place); setDestinationText(place.formatted_address || place.name || ''); }} 
+                            placeholder="Enter destination"
+                            value={destinationText}
+                            onInputChange={(e) => setDestinationText(e.target.value)}
+                        />
                     </div>
-                    <Button onClick={handleFindRoute} className="w-full">Find Route Avoiding Grievances</Button>
+
+                    <div className="space-y-3">
+                         <Label className="text-sm font-medium">Route Preference</Label>
+                         <RadioGroup defaultValue="avoid-all" onValueChange={(value: 'avoid-all' | 'avoid-potholes' | 'fastest') => setRoutePreference(value)}>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="fastest" id="fastest" />
+                                <Label htmlFor="fastest">Fastest Route</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="avoid-potholes" id="avoid-potholes" />
+                                <Label htmlFor="avoid-potholes">Avoid Potholes</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="avoid-all" id="avoid-all" />
+                                <Label htmlFor="avoid-all">Avoid All Issues</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+
+                    <Button onClick={handleFindRoute} className="w-full">Find Route</Button>
                     
                     <div className="flex-grow overflow-hidden">
                         <p className="font-semibold text-sm mb-2">Route Information</p>
@@ -169,8 +236,6 @@ function Directions() {
                     </div>
                 </CardContent>
             </Card>
-
-            {/* The DirectionsRenderer is managed via useEffect and attached to the map instance */}
         </>
     );
 }
@@ -192,3 +257,5 @@ export default function DirectionsPage() {
         </div>
     );
 }
+
+    
