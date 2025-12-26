@@ -24,28 +24,25 @@ export async function summarizeGrievance(input: GrievanceSummaryInput): Promise<
   return summarizeGrievanceFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'summarizeGrievancePrompt',
-  input: { schema: GrievanceSummaryInputSchema },
-  output: { schema: GrievanceSummaryOutputSchema },
-  prompt: `You are an expert at refining and classifying civic issue reports.
-A user has submitted the following raw description of a grievance.
-Your task is to:
-1. Rewrite the description to be clear, professional, and detailed. Convert keywords and broken phrases into a full, coherent sentence.
-2. Classify the grievance into one of the following categories: Pothole, Streetlight, Garbage, Water, Sidewalk, Vendor, Debris, Other.
-
-User input: {{{prompt}}}
-`,
-});
-
 const summarizeGrievanceFlow = ai.defineFlow(
   {
     name: 'summarizeGrievanceFlow',
     inputSchema: GrievanceSummaryInputSchema,
     outputSchema: GrievanceSummaryOutputSchema,
   },
-  async (input) => {
-    const { output } = await prompt(input);
-    return output!;
+  async (userInput) => {
+    const { output } = await ai.generate({
+      prompt: `You are an expert at refining and classifying civic issue reports.
+A user has submitted the following raw description of a grievance.
+Your task is to:
+1. Rewrite the description to be clear, professional, and detailed. Convert keywords and broken phrases into a full, coherent sentence.
+2. Classify the grievance into one of the following categories: Pothole, Streetlight, Garbage, Water, Sidewalk, Vendor, Debris, Other.
+
+User input: "${userInput}"`,
+      output: {
+        schema: GrievanceSummaryOutputSchema,
+      },
+    });
+    return output;
   }
 );
