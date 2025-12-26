@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useMap, useMapsLibrary, useDirectionsService, DirectionsRenderer } from '@vis.gl/react-google-maps';
+import { useMap, useMapsLibrary, useDirectionsService } from '@vis.gl/react-google-maps';
 import type { Grievance } from '@/lib/types';
 import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,9 +57,21 @@ function Directions() {
     const [destination, setDestination] = useState<google.maps.places.PlaceResult | null>(null);
     const [directionsRequest, setDirectionsRequest] = useState<google.maps.DirectionsRequest | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
+    const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
     const [avoidedGrievances, setAvoidedGrievances] = useState<Grievance[]>([]);
 
     const directionsService = useDirectionsService();
+
+    useEffect(() => {
+        if (!routesLibrary || !map) return;
+        setDirectionsRenderer(new routesLibrary.DirectionsRenderer({ map }));
+    }, [routesLibrary, map]);
+
+    useEffect(() => {
+        if (!directionsRenderer || !directionsResult) return;
+        directionsRenderer.setDirections(directionsResult);
+    }, [directionsRenderer, directionsResult]);
+
 
     const handleFindRoute = () => {
         if (!origin || !destination || !origin.geometry?.location || !destination.geometry?.location) {
@@ -80,10 +92,6 @@ function Directions() {
             origin: origin.geometry.location,
             destination: destination.geometry.location,
             travelMode: google.maps.TravelMode.DRIVING,
-            // Setting waypoints to avoid areas
-            // Note: This is a simplified approach. For true avoidance, you might need more complex logic
-            // or use the Directions API's `avoid` feature with polygons if available/applicable.
-            // For now, we are just telling the API to consider these points, which might not strictly "avoid" them.
         };
         
         setDirectionsRequest(request);
@@ -176,7 +184,7 @@ function Directions() {
             </Card>
 
             <div className="flex-1 h-full w-full absolute top-0 left-0 -z-10">
-                 {routesLibrary && map && <DirectionsRenderer directions={directionsResult} />}
+                 {/* The DirectionsRenderer is now managed via useEffect */}
             </div>
         </div>
     );
