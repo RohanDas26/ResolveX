@@ -18,7 +18,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
   
   return (
-    <APIProvider apiKey={apiKey} libraries={['visualization', 'routes', 'places', 'geometry']}>
+    <APIProvider 
+      apiKey={apiKey} 
+      libraries={['visualization', 'routes', 'places', 'geometry']}
+      solutionChannel="GMP_visgl_rgm_v1_next"
+    >
       <FirebaseClientProvider>
         {children}
       </FirebaseClientProvider>
