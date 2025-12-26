@@ -8,12 +8,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 import { Icons } from "@/components/icons";
 
 export default function AuthPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [showAuthForms, setShowAuthForms] = useState(false);
 
   const handleAuthAction = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,75 +28,91 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative flex items-center justify-center min-h-[calc(100vh-10rem)] animate-fade-in-up overflow-hidden">
-      <Tabs defaultValue="sign-in" className="w-full max-w-sm z-10">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="sign-in">Sign In</TabsTrigger>
-          <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
-        </TabsList>
-        <TabsContent value="sign-in">
-          <Card>
-            <form onSubmit={handleAuthAction}>
-              <CardHeader className="text-center">
-                <div className="mx-auto mb-4">
-                  <Icons.logo className="h-12 w-12 text-primary" />
-                </div>
-                <CardTitle>Welcome Back to ResolveX</CardTitle>
-                <CardDescription>Enter your credentials to access your account.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email-signin">Email</Label>
-                  <Input id="email-signin" type="email" placeholder="user@klh.edu.in" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password-signin">Password</Label>
-                  <Input id="password-signin" type="password" required />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign In
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </TabsContent>
-        <TabsContent value="sign-up">
-          <Card>
-            <form onSubmit={handleAuthAction}>
-              <CardHeader className="text-center">
-                 <div className="mx-auto mb-4">
-                  <Icons.logo className="h-12 w-12 text-primary" />
-                </div>
-                <CardTitle>Create a ResolveX Account</CardTitle>
-                <CardDescription>It's quick and easy to get started.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                 <div className="space-y-2">
-                  <Label htmlFor="name-signup">Full Name</Label>
-                  <Input id="name-signup" placeholder="Alex Doe" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email-signup">Email</Label>
-                  <Input id="email-signup" type="email" placeholder="user@klh.edu.in" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password-signup">Password</Label>
-                  <Input id="password-signup" type="password" required />
-                </div>
-              </CardContent>
-              <CardFooter>
-                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Account
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </TabsContent>
-      </Tabs>
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-10rem)] overflow-hidden">
+      
+      {!showAuthForms ? (
+        <div className="z-10 text-center animate-fade-in-up">
+            <Icons.logo className="h-20 w-20 text-primary mx-auto mb-6" />
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Welcome to ResolveX</h1>
+            <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+                Your platform for reporting and tracking local civic issues. See a problem? Report it and help build a better community.
+            </p>
+            <Button size="lg" className="mt-8 font-semibold text-lg" onClick={() => setShowAuthForms(true)}>
+                Get Started <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+        </div>
+      ) : (
+        <div className="w-full max-w-sm z-10 animate-fade-in-up">
+            <Tabs defaultValue="sign-in">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="sign-in">Sign In</TabsTrigger>
+                <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
+              </TabsList>
+              <TabsContent value="sign-in">
+                <Card>
+                  <form onSubmit={handleAuthAction}>
+                    <CardHeader className="text-center">
+                      <div className="mx-auto mb-4">
+                        <Icons.logo className="h-12 w-12 text-primary" />
+                      </div>
+                      <CardTitle>Welcome Back to ResolveX</CardTitle>
+                      <CardDescription>Enter your credentials to access your account.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email-signin">Email</Label>
+                        <Input id="email-signin" type="email" placeholder="user@klh.edu.in" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password-signin">Password</Label>
+                        <Input id="password-signin" type="password" required />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Sign In
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+              <TabsContent value="sign-up">
+                <Card>
+                  <form onSubmit={handleAuthAction}>
+                    <CardHeader className="text-center">
+                       <div className="mx-auto mb-4">
+                        <Icons.logo className="h-12 w-12 text-primary" />
+                      </div>
+                      <CardTitle>Create a ResolveX Account</CardTitle>
+                      <CardDescription>It's quick and easy to get started.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                       <div className="space-y-2">
+                        <Label htmlFor="name-signup">Full Name</Label>
+                        <Input id="name-signup" placeholder="Alex Doe" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email-signup">Email</Label>
+                        <Input id="email-signup" type="email" placeholder="user@klh.edu.in" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password-signup">Password</Label>
+                        <Input id="password-signup" type="password" required />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                       <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Create Account
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+            </Tabs>
+        </div>
+      )}
       
       {/* Background Glows */}
       <div className="absolute top-1/4 left-0 w-full h-full sm:w-1/2 sm:h-1/2 bg-primary/10 rounded-full blur-[150px] -z-10 animate-pulse" style={{ animationDuration: '6s' }}></div>
