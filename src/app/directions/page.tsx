@@ -148,102 +148,100 @@ function Directions() {
     
 
     return (
-        <>
-            <Card className="w-full max-w-md m-4 border-0 md:border md:shadow-lg z-10 animate-fade-in-left absolute">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Milestone /> Safe Path Finder</CardTitle>
-                    <CardDescription>Plan your route and see potential road issues.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="origin-input" className="text-sm font-medium">Origin</Label>
-                        <div className="flex gap-2">
-                            <PlaceAutocomplete 
-                                onPlaceChanged={place => { setOrigin(place); setOriginText(place.formatted_address || place.name || ''); }} 
-                                placeholder="Enter origin" 
-                                value={originText}
-                                onInputChange={(e) => setOriginText(e.target.value)}
-                            />
-                            <Button variant="outline" size="icon" onClick={handleUseMyLocation} aria-label="Use my location">
-                                <LocateFixed className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="destination-input" className="text-sm font-medium">Destination</Label>
+        <Card className="w-full max-w-md m-4 border-0 md:border md:shadow-lg z-10 animate-fade-in-left absolute left-0 top-0 bg-background/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Milestone /> Safe Path Finder</CardTitle>
+                <CardDescription>Plan your route and see potential road issues.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col h-[calc(100vh-16rem)] space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="origin-input" className="text-sm font-medium">Origin</Label>
+                    <div className="flex gap-2">
                         <PlaceAutocomplete 
-                            onPlaceChanged={place => { setDestination(place); setDestinationText(place.formatted_address || place.name || ''); }} 
-                            placeholder="Enter destination"
-                            value={destinationText}
-                            onInputChange={(e) => setDestinationText(e.target.value)}
+                            onPlaceChanged={place => { setOrigin(place); setOriginText(place.formatted_address || place.name || ''); }} 
+                            placeholder="Enter origin" 
+                            value={originText}
+                            onInputChange={(e) => setOriginText(e.target.value)}
                         />
+                        <Button variant="outline" size="icon" onClick={handleUseMyLocation} aria-label="Use my location">
+                            <LocateFixed className="h-4 w-4" />
+                        </Button>
                     </div>
+                </div>
+                    <div className="space-y-2">
+                    <Label htmlFor="destination-input" className="text-sm font-medium">Destination</Label>
+                    <PlaceAutocomplete 
+                        onPlaceChanged={place => { setDestination(place); setDestinationText(place.formatted_address || place.name || ''); }} 
+                        placeholder="Enter destination"
+                        value={destinationText}
+                        onInputChange={(e) => setDestinationText(e.target.value)}
+                    />
+                </div>
 
-                    <div className="space-y-3">
-                         <Label className="text-sm font-medium">Route Preference</Label>
-                         <RadioGroup defaultValue="avoid-all" onValueChange={(value: 'avoid-all' | 'avoid-potholes' | 'fastest') => setRoutePreference(value)}>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="fastest" id="fastest" />
-                                <Label htmlFor="fastest">Fastest Route</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="avoid-potholes" id="avoid-potholes" />
-                                <Label htmlFor="avoid-potholes">Check for Potholes</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="avoid-all" id="avoid-all" />
-                                <Label htmlFor="avoid-all">Check for All Issues</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
+                <div className="space-y-3">
+                        <Label className="text-sm font-medium">Route Preference</Label>
+                        <RadioGroup defaultValue="avoid-all" onValueChange={(value: 'avoid-all' | 'avoid-potholes' | 'fastest') => setRoutePreference(value)}>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="fastest" id="fastest" />
+                            <Label htmlFor="fastest">Fastest Route</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="avoid-potholes" id="avoid-potholes" />
+                            <Label htmlFor="avoid-potholes">Check for Potholes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="avoid-all" id="avoid-all" />
+                            <Label htmlFor="avoid-all">Check for All Issues</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
 
-                    <Button onClick={handleFindRoute} className="w-full">Find Route</Button>
-                    
-                    <div className="flex-grow overflow-hidden">
-                        <p className="font-semibold text-sm mb-2">Route Information</p>
-                        {directionsResult ? (
-                            <ScrollArea className="h-full pr-4">
-                                <div className="space-y-4">
-                                    <div className="p-3 bg-muted rounded-md text-sm">
-                                        <p><strong>Distance:</strong> {directionsResult.routes[0].legs[0].distance?.text}</p>
-                                        <p><strong>Duration:</strong> {directionsResult.routes[0].legs[0].duration?.text}</p>
-                                    </div>
-                                    {avoidedGrievances.length > 0 && (
-                                         <div>
-                                            <h4 className="font-semibold flex items-center gap-2"><AlertTriangle className="text-amber-500" /> Issues on Your Route</h4>
-                                            <div className="space-y-3 mt-2">
-                                                {avoidedGrievances.map(g => (
-                                                    <div key={g.id} className="flex gap-3 items-start text-xs p-2 bg-secondary rounded-md">
-                                                        <Image src={g.imageUrl} width={48} height={48} alt={g.description} className="rounded-md w-12 h-12 object-cover"/>
-                                                        <div className="flex-grow">
-                                                            <p className="font-semibold">{g.description}</p>
-                                                            <Badge variant={g.status === 'Resolved' ? 'default' : 'destructive'} className="mt-1">{g.status}</Badge>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                         </div>
-                                    )}
-                                     <div>
-                                        <h4 className="font-semibold">Directions</h4>
-                                        <ol className="list-decimal list-inside space-y-2 mt-2 text-sm text-muted-foreground">
-                                            {directionsResult.routes[0].legs[0].steps.map((step, i) => (
-                                                <li key={i} dangerouslySetInnerHTML={{ __html: step.instructions }} />
-                                            ))}
-                                        </ol>
-                                    </div>
+                <Button onClick={handleFindRoute} className="w-full">Find Route</Button>
+                
+                <div className="flex-grow overflow-hidden">
+                    <p className="font-semibold text-sm mb-2">Route Information</p>
+                    {directionsResult ? (
+                        <ScrollArea className="h-full pr-4">
+                            <div className="space-y-4">
+                                <div className="p-3 bg-muted rounded-md text-sm">
+                                    <p><strong>Distance:</strong> {directionsResult.routes[0].legs[0].distance?.text}</p>
+                                    <p><strong>Duration:</strong> {directionsResult.routes[0].legs[0].duration?.text}</p>
                                 </div>
-                            </ScrollArea>
-                        ) : (
-                             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4 bg-muted rounded-md">
-                                <MapIcon className="h-10 w-10 mb-2"/>
-                                <p>Your route will be displayed here once you enter an origin and destination.</p>
+                                {avoidedGrievances.length > 0 && (
+                                        <div>
+                                        <h4 className="font-semibold flex items-center gap-2"><AlertTriangle className="text-amber-500" /> Issues on Your Route</h4>
+                                        <div className="space-y-3 mt-2">
+                                            {avoidedGrievances.map(g => (
+                                                <div key={g.id} className="flex gap-3 items-start text-xs p-2 bg-secondary rounded-md">
+                                                    <Image src={g.imageUrl} width={48} height={48} alt={g.description} className="rounded-md w-12 h-12 object-cover"/>
+                                                    <div className="flex-grow">
+                                                        <p className="font-semibold">{g.description}</p>
+                                                        <Badge variant={g.status === 'Resolved' ? 'default' : 'destructive'} className="mt-1">{g.status}</Badge>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        </div>
+                                )}
+                                    <div>
+                                    <h4 className="font-semibold">Directions</h4>
+                                    <ol className="list-decimal list-inside space-y-2 mt-2 text-sm text-muted-foreground">
+                                        {directionsResult.routes[0].legs[0].steps.map((step, i) => (
+                                            <li key={i} dangerouslySetInnerHTML={{ __html: step.instructions }} />
+                                        ))}
+                                    </ol>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-        </>
+                        </ScrollArea>
+                    ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4 bg-muted rounded-md">
+                            <MapIcon className="h-10 w-10 mb-2"/>
+                            <p>Your route will be displayed here once you enter an origin and destination.</p>
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
     );
 }
 
