@@ -119,7 +119,7 @@ function SubmitPageContent() {
         toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
 
         // Optimistically navigate to the map, highlighting the new pin
-        router.push(`/?id=${grievanceId}`);
+        router.push(`/map?id=${grievanceId}`);
     }
 
     const handleFile = (file: File) => {
