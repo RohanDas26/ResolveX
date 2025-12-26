@@ -27,7 +27,7 @@ function HeatmapLayer({ grievances }: { grievances: Grievance[] | null }) {
   
       const heatmapData = grievances.map(g => ({
         location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
-        weight: 1 // You could adjust weight based on some metric
+        weight: 1 // You could adjust weight based on a riskScore in the future
       }));
   
       const heatmap = new google.maps.visualization.HeatmapLayer({
