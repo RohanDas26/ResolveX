@@ -35,7 +35,7 @@ Your task is to:
 1. Rewrite the description to be clear, professional, and detailed. Convert keywords and broken phrases into a full, coherent sentence.
 2. Classify the grievance into one of the following categories: Pothole, Streetlight, Garbage, Water, Sidewalk, Vendor, Debris, Other.
 
-User input: "{{{input}}}"
+User input: "{{{prompt}}}"
 `,
 });
 
