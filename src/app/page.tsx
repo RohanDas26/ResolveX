@@ -146,7 +146,7 @@ export default function AuthPage() {
           description = "Incorrect password. Please try again or use the 'Forgot password?' link.";
           break;
         case 'auth/invalid-credential':
-          description = "Invalid credentials. Please check your email and password.";
+           description = "Invalid credentials. Please check your email and password and try again.";
           break;
         default:
           description = "An unexpected error occurred. Please try again.";
