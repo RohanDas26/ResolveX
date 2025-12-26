@@ -12,7 +12,7 @@ import { summarizePriorities } from "@/ai/flows/summarize-priorities-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
-import { collection, query, where, Query, writeBatch } from "firebase/firestore";
+import { collection, query, where, Query, writeBatch, or } from "firebase/firestore";
 import { dummyGrievances } from "@/lib/dummy-data";
 import { v4 as uuidv4 } from 'uuid';
 import { doc } from 'firebase/firestore';
@@ -29,11 +29,24 @@ function AdminDashboardContent() {
 
   const grievancesQuery = useMemoFirebase(() => {
     let q: Query = query(collection(firestore, "grievances"));
+    
+    // Firestore's where clause with 'in' or 'array-contains-any' is good for multiple *exact* matches on a field,
+    // but not for partial text search. For a robust keyword search like this, we would ideally use a
+    // dedicated search service like Algolia or Elasticsearch, or Firestore's new Vector search.
+    // As a workaround for this demo, we can perform multiple queries for case variations or use `or` filters if the keywords are distinct.
+    // The current dummy data uses lowercase, so we will filter based on that.
+    // For a real-world app, we'd standardize the case on write (e.g., all lowercase) or use a more advanced search solution.
     if (filter === "potholes") {
-        q = query(q, where("description", ">=", "pothole"), where("description", "<=", "pothole\uf8ff"));
+        q = query(q, or(
+            where("description", ">=", "pothole"), where("description", "<=", "pothole\uf8ff"),
+            where("description", ">=", "Pothole"), where("description", "<=", "Pothole\uf8ff")
+        ));
     }
     if (filter === "streetlights") {
-        q = query(q, where("description", ">=", "streetlight"), where("description", "<=", "streetlight\uf8ff"));
+        q = query(q, or(
+            where("description", ">=", "streetlight"), where("description", "<=", "streetlight\uf8ff"),
+            where("description", ">=", "Streetlight"), where("description", "<=", "Streetlight\uf8ff")
+        ));
     }
     return q;
 }, [firestore, filter]);
@@ -54,7 +67,7 @@ function AdminDashboardContent() {
         .finally(() => setIsSummaryLoading(false));
     } else if (!grievancesLoading) {
         setIsSummaryLoading(false);
-        setSummary("No grievances to summarize.");
+        setSummary("No grievances to summarize for the current filter.");
     }
   }, [grievances, grievancesLoading]);
 
