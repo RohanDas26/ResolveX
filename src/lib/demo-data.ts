@@ -148,6 +148,25 @@ const imageSeeds = [
   "parking",
 ];
 
+const riskFactors: { [key: string]: { base: number, note: string } } = {
+    pothole: { base: 40, note: "Potential for traffic disruption and vehicle damage. High traffic areas increase risk." },
+    streetlight: { base: 25, note: "Low visibility at night can lead to accidents or crime. Risk is higher in residential areas." },
+    garbage: { base: 50, note: "Sanitation hazard, can lead to disease vectors. Proximity to homes or markets increases severity." },
+    water: { base: 65, note: "Water wastage and potential for road damage. Can escalate to a major supply issue." },
+    sidewalk: { base: 30, note: "Direct safety hazard for pedestrians, especially elderly or disabled individuals." },
+    vendor: { base: 20, note: "Can cause pedestrian congestion, but typically a low-severity issue unless blocking emergency access." },
+    debris: { base: 35, note: "Can be a traffic hazard and is an environmental issue." },
+    tree: { base: 45, note: "Can block traffic completely. If near power lines, risk increases significantly." },
+    manhole: { base: 90, note: "Critical safety hazard. High risk of serious injury to pedestrians, cyclists, and bikers. Immediate action required." },
+    power: { base: 75, note: "Exposed wires pose an electrocution risk. High priority, especially in wet conditions." },
+    drainage: { base: 55, note: "Public health risk due to stagnant, contaminated water." },
+    signal: { base: 70, note: "High risk of major traffic accidents at intersections." },
+    parking: { base: 25, note: "Can obstruct traffic or emergency services. Severity depends on the location." },
+    // Default/Other
+    default: { base: 20, note: "Initial assessment indicates low risk, but requires manual review for confirmation." }
+};
+
+
 const getPinColor = (status: Grievance["status"]) => {
   switch (status) {
     case "Resolved":
@@ -174,6 +193,13 @@ const generateRandomGrievance = (
   const userName = userNames[idIndex % userNames.length];
   const imageSeed = imageSeeds[idIndex % imageSeeds.length];
 
+  const keyword = imageSeeds.find(seed => description.toLowerCase().includes(seed));
+  // Safely get riskData by checking if the keyword exists in riskFactors, otherwise use 'default'.
+  const riskData = (keyword && riskFactors[keyword]) ? riskFactors[keyword] : riskFactors.default;
+
+  // Add some randomness to the risk score
+  const riskScore = Math.min(100, Math.max(0, riskData.base + Math.floor(Math.random() * 20) - 10));
+
   return {
     id: `demo-${idIndex}`,
     userId: `user-demo-${(idIndex % 50) + 1}`,
@@ -184,6 +210,8 @@ const generateRandomGrievance = (
     status,
     createdAt: Timestamp.fromDate(randomDate),
     pinColor: getPinColor(status),
+    riskScore: riskScore,
+    aiNotes: riskData.note,
   };
 };
 

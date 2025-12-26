@@ -2,7 +2,7 @@
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
-import { useState, useCallback, useMemo, ReactNode } from "react";
+import { useState, useCallback, useMemo, ReactNode, useEffect } from "react";
 import { type Grievance } from "@/lib/types";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -15,20 +15,27 @@ type GrievanceWithPinColor = Grievance & { pinColor?: string };
 interface GrievanceMapProps {
   grievances?: GrievanceWithPinColor[] | null;
   children?: ReactNode;
+  onMarkerClick?: (grievanceId: string) => void;
+  selectedGrievanceId?: string | null;
 }
 
-export default function GrievanceMap({ grievances, children }: GrievanceMapProps) {
-  const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
+export default function GrievanceMap({ grievances, children, onMarkerClick, selectedGrievanceId: externalSelectedId }: GrievanceMapProps) {
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 
-  const selectedGrievance = grievances?.find(g => g.id === selectedGrievanceId) || null;
+  const selectedGrievanceId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
+  const setSelectedGrievanceId = onMarkerClick || setInternalSelectedId;
+
+  const selectedGrievance = useMemo(() => 
+    grievances?.find(g => g.id === selectedGrievanceId) || null
+  , [grievances, selectedGrievanceId]);
   
   const handleMarkerClick = useCallback((grievanceId: string) => {
     setSelectedGrievanceId(grievanceId);
-  }, []);
+  }, [setSelectedGrievanceId]);
 
   const handleCloseInfoWindow = useCallback(() => {
     setSelectedGrievanceId(null);
-  }, []);
+  }, [setSelectedGrievanceId]);
 
   const getStatusVariant = (status: Grievance['status']): "default" | "secondary" | "destructive" => {
     switch(status) {
@@ -59,9 +66,10 @@ export default function GrievanceMap({ grievances, children }: GrievanceMapProps
           onClick={() => handleMarkerClick(grievance.id)}
         >
           <Pin
-            background={grievance.pinColor || "#ef4444"}
+            background={selectedGrievanceId === grievance.id ? '#9333ea' : (grievance.pinColor || "#ef4444")}
             borderColor={"#ffffff"}
             glyphColor={"#ffffff"}
+            scale={selectedGrievanceId === grievance.id ? 1.2 : 1}
           />
         </AdvancedMarker>
       ))}

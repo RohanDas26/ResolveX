@@ -10,6 +10,8 @@ import { GoogleMapsContext } from "@vis.gl/react-google-maps";
 interface AdminMapProps {
     grievances: Grievance[] | null;
     isLoading: boolean;
+    onMarkerClick: (grievanceId: string) => void;
+    selectedGrievanceId: string | null;
 }
 
 function HeatmapLayer({ grievances }: { grievances: Grievance[] | null }) {
@@ -27,7 +29,7 @@ function HeatmapLayer({ grievances }: { grievances: Grievance[] | null }) {
   
       const heatmapData = grievances.map(g => ({
         location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
-        weight: 1 // You could adjust weight based on a riskScore in the future
+        weight: g.riskScore || 1 // Use riskScore for heatmap weight
       }));
   
       const heatmap = new google.maps.visualization.HeatmapLayer({
@@ -35,7 +37,25 @@ function HeatmapLayer({ grievances }: { grievances: Grievance[] | null }) {
         map: map,
       });
 
-      heatmap.set('radius', 20);
+      // Gradient for the heatmap
+      const gradient = [
+        "rgba(0, 255, 255, 0)",
+        "rgba(0, 255, 255, 1)",
+        "rgba(0, 191, 255, 1)",
+        "rgba(0, 127, 255, 1)",
+        "rgba(0, 63, 255, 1)",
+        "rgba(0, 0, 255, 1)",
+        "rgba(0, 0, 223, 1)",
+        "rgba(0, 0, 191, 1)",
+        "rgba(0, 0, 159, 1)",
+        "rgba(0, 0, 127, 1)",
+        "rgba(63, 0, 91, 1)",
+        "rgba(127, 0, 63, 1)",
+        "rgba(191, 0, 31, 1)",
+        "rgba(255, 0, 0, 1)",
+      ];
+      heatmap.set("gradient", gradient);
+      heatmap.set('radius', 30);
       heatmap.set('opacity', 0.6);
   
       // Clean up the heatmap when the component unmounts or data changes
@@ -47,7 +67,7 @@ function HeatmapLayer({ grievances }: { grievances: Grievance[] | null }) {
     return null; // This component does not render anything itself
 }
 
-export default function AdminMap({ grievances, isLoading }: AdminMapProps) {
+export default function AdminMap({ grievances, isLoading, onMarkerClick, selectedGrievanceId }: AdminMapProps) {
 
     const getPinColor = (status: Grievance['status']) => {
         switch(status) {
@@ -73,7 +93,11 @@ export default function AdminMap({ grievances, isLoading }: AdminMapProps) {
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </div>
             ) : (
-                <GrievanceMap grievances={grievancesWithPins}>
+                <GrievanceMap 
+                    grievances={grievancesWithPins}
+                    onMarkerClick={onMarkerClick}
+                    selectedGrievanceId={selectedGrievanceId}
+                >
                     <HeatmapLayer grievances={grievances} />
                 </GrievanceMap>
             )}

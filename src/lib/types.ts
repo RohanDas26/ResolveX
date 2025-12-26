@@ -10,6 +10,9 @@ export interface Grievance {
   status: "Submitted" | "In Progress" | "Resolved";
   createdAt: Timestamp;
   pinColor?: string;
+  // New fields for AI analysis
+  riskScore?: number; // A score from 0 to 100
+  aiNotes?: string; // AI-generated notes about the grievance
 }
 
 export interface UserProfile {
