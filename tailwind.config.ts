@@ -80,6 +80,19 @@ const config = {
         "fade-in-left": {
           from: { opacity: "0", transform: "translateX(-5px)" },
           to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "border-glow": {
+          from: { '--angle': '0deg' },
+          to: { '--angle': '360deg' },
+        },
+        "star-field": {
+          from: { backgroundPosition: '0 0' },
+          to: { backgroundPosition: '-10000px 5000px' },
+        },
+        "comet-sweep": {
+          '0%': { transform: 'translateX(-100%)', opacity: '0' },
+          '20%, 80%': { opacity: '1' },
+          '100%': { transform: 'translateX(100%)', opacity: '0' },
         }
       },
       animation: {
@@ -88,6 +101,9 @@ const config = {
         "fade-in": "fade-in 0.3s ease-out",
         "fade-in-up": "fade-in-up 0.3s ease-out",
         "fade-in-left": "fade-in-left 0.3s ease-out",
+        "border-glow": "border-glow 8s linear infinite",
+        "star-field": "star-field 40s linear infinite",
+        "comet-sweep": "comet-sweep 12s ease-in-out infinite",
       },
     },
   },
