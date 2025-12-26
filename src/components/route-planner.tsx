@@ -63,12 +63,7 @@ export default function RoutePlanner() {
     const routesLibrary = useMapsLibrary('routes');
     const geometryLibrary = useMapsLibrary('geometry');
     const { toast } = useToast();
-    const [isClient, setIsClient] = useState(false);
-
-    useEffect(() => {
-      setIsClient(true);
-    }, []);
-
+    
     type LocationValue = google.maps.LatLngLiteral | google.maps.places.PlaceResult;
 
     const [origin, setOrigin] = useState<LocationValue | null>(null);
@@ -141,7 +136,7 @@ export default function RoutePlanner() {
                     return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: route.overview_path }), 0.005); // ~500m tolerance
                 });
                 const travelTime = route.legs[0]?.duration?.value || Infinity;
-                const issuePenalty = issues.length * 600; // Increased penalty: 10 minutes per issue
+                const issuePenalty = issues.length * 600; // 10 minutes per issue
                 const score = travelTime + issuePenalty;
                 return { route, issues, score, travelTime };
             });
@@ -225,13 +220,13 @@ export default function RoutePlanner() {
                         <div className="space-y-2">
                             <Label>Origin</Label>
                             <div className="flex gap-2">
-                               {isClient ? <PlaceAutocomplete onPlaceChanged={p => {setOrigin(p); setOriginText(p.formatted_address || p.name || '')}} placeholder="Enter origin" value={originText} onInputChange={e => setOriginText(e.target.value)} /> : <Input placeholder="Enter origin" disabled />}
+                               <PlaceAutocomplete onPlaceChanged={p => {setOrigin(p); setOriginText(p.formatted_address || p.name || '')}} placeholder="Enter origin" value={originText} onInputChange={e => setOriginText(e.target.value)} />
                                 <Button variant="outline" size="icon" onClick={handleUseMyLocation}><LocateFixed/></Button>
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Destination</Label>
-                             {isClient ? <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} /> : <Input placeholder="Enter destination" disabled />}
+                             <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} />
                         </div>
                         <RadioGroup value={routePreference} onValueChange={(v: 'fastest' | 'avoid_issues') => setRoutePreference(v)}>
                             <div className="flex items-center space-x-2">
@@ -305,11 +300,11 @@ export default function RoutePlanner() {
                     disableDefaultUI={true}
                     className="absolute top-0 left-0 h-full w-full bg-muted"
                 >
-                    {isClient && origin && (origin as any).geometry && <AdvancedMarker position={(origin as any).geometry.location}><Pin background={'#4caf50'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
-                    {isClient && destination && (destination as any).geometry && <AdvancedMarker position={(destination as any).geometry.location}><Pin background={'#f44336'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
-                    {isClient && selectedRoute && <RoutePolyline route={selectedRoute} color={routeColor} />}
+                    {origin && (origin as any).geometry && <AdvancedMarker position={(origin as any).geometry.location}><Pin background={'#4caf50'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
+                    {destination && (destination as any).geometry && <AdvancedMarker position={(destination as any).geometry.location}><Pin background={'#f44336'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
+                    {selectedRoute && <RoutePolyline route={selectedRoute} color={routeColor} />}
                     
-                    {isClient && issuesOnRoute.map(issue => (
+                    {issuesOnRoute.map(issue => (
                          <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
                            <div className="p-1 bg-amber-500 rounded-full shadow-lg">
                              <AlertTriangle className="h-4 w-4 text-white" />
@@ -321,4 +316,3 @@ export default function RoutePlanner() {
         </div>
     );
 }
-    
