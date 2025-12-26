@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
@@ -84,8 +85,8 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
           headerDisabled
         >
           <Card className="border-0 shadow-none bg-transparent">
-            <CardHeader className="p-0">
-              <div className="relative w-full h-40 rounded-t-lg overflow-hidden">
+            <CardHeader className="p-0 mb-3">
+              <div className="relative w-full h-40 rounded-lg overflow-hidden">
                 <Image
                   src={selectedGrievance.imageUrl}
                   alt={selectedGrievance.description}
@@ -96,14 +97,14 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
                 />
               </div>
             </CardHeader>
-            <CardContent className="p-3">
-              <CardTitle className="text-md font-bold leading-tight mb-2">{selectedGrievance.description}</CardTitle>
-              <div className="flex justify-between items-center">
-                <CardDescription className="text-xs">
-                  By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
-                </CardDescription>
-                <Badge variant={getStatusVariant(selectedGrievance.status)}>{selectedGrievance.status}</Badge>
+            <CardContent className="p-1">
+              <div className="flex justify-between items-start mb-2">
+                <CardTitle className="text-md font-bold leading-tight ">{selectedGrievance.description}</CardTitle>
+                <Badge variant={getStatusVariant(selectedGrievance.status)} className="ml-2 shrink-0">{selectedGrievance.status}</Badge>
               </div>
+              <CardDescription className="text-xs">
+                By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
+              </CardDescription>
             </CardContent>
           </Card>
         </InfoWindow>
