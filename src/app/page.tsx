@@ -47,13 +47,13 @@ export default function AuthPage() {
        <div
         className="pointer-events-none fixed inset-0 z-30 transition duration-300 lg:absolute"
         style={{
-          background: `radial-gradient(200px circle at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--primary) / 0.05), transparent 80%)`,
+          background: `radial-gradient(400px circle at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--primary) / 0.05), transparent 80%)`,
         }}
       />
        <div
         className="pointer-events-none fixed inset-0 z-30 transition duration-300 lg:absolute"
         style={{
-          background: `radial-gradient(200px circle at ${mousePosition.x + 20}px ${mousePosition.y + 20}px, hsl(var(--accent) / 0.05), transparent 80%)`,
+          background: `radial-gradient(400px circle at ${mousePosition.x + 20}px ${mousePosition.y + 20}px, hsl(var(--accent) / 0.05), transparent 80%)`,
         }}
       />
       
