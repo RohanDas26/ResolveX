@@ -5,9 +5,10 @@ import { useState, useCallback, useMemo } from "react";
 import { collection, query } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
-import { CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
+import { Badge } from "./ui/badge";
 
 const KLH_HYD_COORDS = { lat: 17.3033, lng: 78.5833 };
 
@@ -20,7 +21,7 @@ interface GrievanceMapProps {
 export default function GrievanceMap({ grievances: initialGrievances }: GrievanceMapProps) {
   const firestore = useFirestore();
   const grievancesQuery = useMemoFirebase(() => {
-    if (initialGrievances) return null;
+    if (initialGrievances || !firestore) return null;
     return query(collection(firestore, "grievances"));
   }, [firestore, initialGrievances]);
   
@@ -38,6 +39,16 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
   const handleCloseInfoWindow = useCallback(() => {
     setSelectedGrievanceId(null);
   }, []);
+
+  const getStatusVariant = (status: Grievance['status']): "default" | "secondary" | "destructive" => {
+    switch(status) {
+      case 'Resolved': return 'default';
+      case 'In Progress': return 'secondary';
+      case 'Submitted':
+      default:
+        return 'destructive';
+    }
+  }
 
   return (
     <Map
@@ -58,9 +69,9 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
           onClick={() => handleMarkerClick(grievance.id)}
         >
           <Pin
-            background={grievance.pinColor || "#9D4EDD"}
-            borderColor={"#48BFE3"}
-            glyphColor={"#FFFFFF"}
+            background={grievance.pinColor || "#ef4444"}
+            borderColor={"#ffffff"}
+            glyphColor={"#ffffff"}
           />
         </AdvancedMarker>
       ))}
@@ -69,26 +80,32 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
         <InfoWindow
           position={{ lat: selectedGrievance.location.latitude, lng: selectedGrievance.location.longitude }}
           onCloseClick={handleCloseInfoWindow}
-          maxWidth={300}
+          maxWidth={320}
+          headerDisabled
         >
-            <CardHeader className="p-2 pb-0">
-              <div className="relative w-full h-40 mb-2 rounded-md overflow-hidden">
+          <Card className="border-0 shadow-none bg-transparent">
+            <CardHeader className="p-0">
+              <div className="relative w-full h-40 rounded-t-lg overflow-hidden">
                 <Image
                   src={selectedGrievance.imageUrl}
                   alt={selectedGrievance.description}
                   fill
                   className="object-cover"
                   data-ai-hint="issue photo"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
             </CardHeader>
-            <CardContent className="p-2">
-              <CardTitle className="text-base font-semibold leading-tight mb-1">{selectedGrievance.description}</CardTitle>
-              <CardDescription className="text-xs">
-                By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
-              </CardDescription>
-              <p className="text-sm font-semibold mt-2">Status: <span className="text-accent">{selectedGrievance.status}</span></p>
+            <CardContent className="p-3">
+              <CardTitle className="text-md font-bold leading-tight mb-2">{selectedGrievance.description}</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardDescription className="text-xs">
+                  By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
+                </CardDescription>
+                <Badge variant={getStatusVariant(selectedGrievance.status)}>{selectedGrievance.status}</Badge>
+              </div>
             </CardContent>
+          </Card>
         </InfoWindow>
       )}
     </Map>

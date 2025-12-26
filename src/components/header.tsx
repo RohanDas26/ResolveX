@@ -3,32 +3,35 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Icons } from "./icons";
-import { PlusCircle, MapPin, Shield } from "lucide-react";
+import { PlusCircle, Map, ShieldCheck } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+const navLinks = [
+  { href: "/", label: "Live Map", icon: Map },
+  { href: "/admin", label: "Admin", icon: ShieldCheck },
+];
 
 export default function Header() {
+  const pathname = usePathname();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-screen-2xl items-center">
-        <div className="mr-4 flex">
+      <div className="container flex h-16 max-w-screen-2xl items-center">
+        <div className="mr-8 flex items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Icons.logo className="h-6 w-6 text-primary" />
-            <span className="font-bold">ResolveX</span>
+            <span className="font-bold text-lg">ResolveX</span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm">
-             <Link
-              href="/"
-              className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center"
-            >
-              <MapPin className="h-4 w-4 mr-1"/>
-              Live Map
-            </Link>
-             <Link
-              href="/admin"
-              className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center"
-            >
-              <Shield className="h-4 w-4 mr-1"/>
-              Admin
-            </Link>
+          <nav className="hidden md:flex items-center gap-2">
+            {navLinks.map((link) => (
+              <Button key={link.href} variant="ghost" asChild className={cn("transition-colors", pathname === link.href ? "text-primary hover:text-primary" : "text-foreground/60 hover:text-foreground")}>
+                <Link href={link.href}>
+                  <link.icon className="h-4 w-4 mr-2" />
+                  {link.label}
+                </Link>
+              </Button>
+            ))}
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">

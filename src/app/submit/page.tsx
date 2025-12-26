@@ -12,12 +12,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Loader2, MapPin } from "lucide-react";
+import { Loader2, MapPin, UploadCloud } from "lucide-react";
 import { useFirestore } from "@/firebase";
-import { GeoPoint, Timestamp, collection, doc } from "firebase/firestore";
+import { GeoPoint, Timestamp, collection, doc, setDoc } from "firebase/firestore";
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { cn } from "@/lib/utils";
+
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -52,7 +53,7 @@ function SubmitPageContent() {
                     setLocationError(null);
                 },
                 (error) => {
-                    setLocationError(`Location Error: ${error.message}. Please enable location services.`);
+                    setLocationError(`Location Error: ${error.message}.`);
                     toast({ variant: "destructive", title: "Location Error", description: "Please enable location services in your browser to submit a grievance." });
                 }
             );
@@ -87,6 +88,10 @@ function SubmitPageContent() {
             await uploadBytes(imageRef, imageFile);
             const imageUrl = await getDownloadURL(imageRef);
 
+            if (!firestore) {
+              throw new Error("Firestore is not initialized");
+            }
+
             const grievanceData = {
                 id: grievanceId,
                 userId: userId,
@@ -114,24 +119,24 @@ function SubmitPageContent() {
     }
 
     return (
-        <Card className="w-full max-w-2xl">
+        <Card className="w-full max-w-2xl border-0 md:border md:shadow-lg animate-fade-in-up">
             <CardHeader>
-                <CardTitle className="text-2xl">Submit a New Grievance</CardTitle>
+                <CardTitle className="text-3xl font-bold tracking-tight">Submit a New Grievance</CardTitle>
                 <CardDescription>
-                    Fill out the form below to report an issue. Your current location will be attached.
+                    Fill out the form below to report a civic issue. Your current location will be attached automatically.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <FormField
                             control={form.control}
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Description</FormLabel>
+                                    <FormLabel>Describe the issue</FormLabel>
                                     <FormControl>
-                                        <Textarea rows={4} placeholder="e.g., Large pothole causing traffic issues on the main road near the library." {...field} />
+                                        <Textarea rows={5} placeholder="e.g., Large pothole causing traffic issues on the main road near the library." {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -142,9 +147,24 @@ function SubmitPageContent() {
                             name="photo"
                             render={({ field: { onChange, value, ...rest } }) => (
                             <FormItem>
-                                <FormLabel>Photo of the Issue</FormLabel>
+                                <FormLabel>Upload a photo</FormLabel>
                                 <FormControl>
-                                <Input type="file" accept="image/*" onChange={(e) => onChange(e.target.files)} {...rest} />
+                                  <div className="relative flex justify-center w-full h-48 px-6 pt-5 pb-6 border-2 border-dashed rounded-md border-input hover:border-primary transition-colors">
+                                      <div className="space-y-1 text-center">
+                                          <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground" />
+                                          <div className="flex text-sm text-muted-foreground">
+                                              <label
+                                                  htmlFor="file-upload"
+                                                  className="relative font-medium bg-transparent rounded-md cursor-pointer text-primary hover:text-primary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring"
+                                              >
+                                                  <span>Upload a file</span>
+                                                  <Input id="file-upload" type="file" className="sr-only" accept="image/*" onChange={(e) => onChange(e.target.files)} {...rest} />
+                                              </label>
+                                              <p className="pl-1">or drag and drop</p>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
+                                      </div>
+                                  </div>
                                 </FormControl>
                                 <FormDescription>A clear photo helps resolve the issue faster.</FormDescription>
                                 <FormMessage />
@@ -152,20 +172,24 @@ function SubmitPageContent() {
                             )}
                         />
                         
-                        {location || locationError ? (
-                            <div className={`flex items-center p-3 rounded-md ${location ? 'bg-secondary text-secondary-foreground' : 'bg-destructive/20 text-destructive-foreground'}`}>
-                                <MapPin className={`mr-2 h-5 w-5 ${location ? 'text-primary' : ''}`} />
-                                {location ? <span>Location captured successfully.</span> : <span>{locationError}</span>}
-                            </div>
-                        ) : (
-                            <div className="flex items-center p-3 rounded-md bg-secondary text-secondary-foreground">
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                <span>Acquiring your location...</span>
-                            </div>
-                        )}
+                        <div className={cn("flex items-center p-3 rounded-md transition-all", 
+                            location ? 'bg-secondary text-secondary-foreground' : 
+                            locationError ? 'bg-destructive/20 text-destructive-foreground' : 
+                            'bg-muted text-muted-foreground animate-pulse')}>
+                          
+                          {location && <MapPin className="mr-3 h-5 w-5 text-primary" />}
+                          {locationError && <MapPin className="mr-3 h-5 w-5 text-destructive" />}
+                          {!location && !locationError && <Loader2 className="mr-3 h-5 w-5 animate-spin" />}
+                          
+                          <div className="text-sm">
+                            {location ? <span>Location captured: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span> : 
+                             locationError ? <span>{locationError}</span> :
+                             <span>Acquiring your location...</span>}
+                          </div>
+                        </div>
 
-                        <Button type="submit" className="w-full" disabled={isLoading || !location}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isLoading || !location}>
+                            {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                             {isLoading ? "Submitting..." : "Submit Grievance"}
                         </Button>
                     </form>
