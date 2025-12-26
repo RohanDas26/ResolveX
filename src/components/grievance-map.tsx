@@ -84,29 +84,27 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
           maxWidth={320}
           headerDisabled
         >
-          <Card className="border-0 shadow-none bg-transparent">
-            <CardHeader className="p-0 mb-3">
-              <div className="relative w-full h-40 rounded-lg overflow-hidden">
-                <Image
-                  src={selectedGrievance.imageUrl}
-                  alt={selectedGrievance.description}
-                  fill
-                  className="object-cover"
-                  data-ai-hint="issue photo"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
+            <div className="w-full max-w-xs rounded-lg overflow-hidden bg-background text-foreground shadow-xl">
+              <div className="relative w-full h-40">
+                  <Image
+                      src={selectedGrievance.imageUrl}
+                      alt={selectedGrievance.description}
+                      fill
+                      className="object-cover"
+                      data-ai-hint="issue photo"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
               </div>
-            </CardHeader>
-            <CardContent className="p-1">
-              <div className="flex justify-between items-start mb-2">
-                <CardTitle className="text-md font-bold leading-tight ">{selectedGrievance.description}</CardTitle>
-                <Badge variant={getStatusVariant(selectedGrievance.status)} className="ml-2 shrink-0">{selectedGrievance.status}</Badge>
+              <div className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-semibold text-base leading-tight truncate pr-2">{selectedGrievance.description}</h3>
+                      <Badge variant={getStatusVariant(selectedGrievance.status)} className="shrink-0">{selectedGrievance.status}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                      By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
+                  </p>
               </div>
-              <CardDescription className="text-xs">
-                By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
-              </CardDescription>
-            </CardContent>
-          </Card>
+          </div>
         </InfoWindow>
       )}
     </Map>
