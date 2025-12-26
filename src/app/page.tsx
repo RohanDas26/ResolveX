@@ -82,10 +82,18 @@ export default function AuthPage() {
 
     } catch (error: any) {
       console.error(error);
+      let description = "An unknown error occurred.";
+      if (error.code === 'auth/email-already-in-use') {
+        description = "This email is already in use. Please sign in or use a different email.";
+      } else if (error.code === 'auth/weak-password') {
+        description = "The password is too weak. Please choose a stronger password.";
+      } else {
+        description = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Sign Up Failed",
-        description: error.message || "An unknown error occurred.",
+        description: description,
       });
       setIsLoading(false);
     }
@@ -118,10 +126,24 @@ export default function AuthPage() {
 
     } catch (error: any) {
       console.error(error);
+      let description = "An unknown error occurred during sign-in.";
+      switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/invalid-email':
+          description = "No account found with this email address.";
+          break;
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          description = "Incorrect password. Please try again or use the 'Forgot password?' link.";
+          break;
+        default:
+          description = "Invalid credentials. Please check your email and password.";
+          break;
+      }
       toast({
         variant: "destructive",
         title: "Sign In Failed",
-        description: "Invalid credentials. Please check your email and password.",
+        description: description,
       });
       setIsLoading(false);
     }
@@ -295,5 +317,4 @@ export default function AuthPage() {
     </div>
   );
 }
-
     
