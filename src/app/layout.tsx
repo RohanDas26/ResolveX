@@ -22,6 +22,7 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
         <Providers>
+          <div className="ambient-background" />
           <MainLayout>
             {children}
           </MainLayout>
