@@ -42,7 +42,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative flex items-center justify-center min-h-[calc(100vh-10rem)] overflow-hidden">
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden">
       
       {!showAuthForms ? (
         <div className="z-10 text-center animate-fade-in-up">
