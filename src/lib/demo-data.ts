@@ -1,3 +1,4 @@
+
 import type { Grievance } from "./types";
 import { GeoPoint, Timestamp } from "firebase/firestore";
 
