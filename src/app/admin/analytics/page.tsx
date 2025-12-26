@@ -8,7 +8,7 @@ import type { Grievance } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { format, subDays, isWithinInterval, differenceInDays } from "date-fns";
-import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight, Lightbulb, AlertTriangle, Clock } from "lucide-react";
+import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight, Lightbulb, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -29,26 +29,33 @@ function categorizeGrievance(description: string): string {
     return "Other";
 }
 
-function AIInsights({ allGrievances }: { allGrievances: Grievance[] | null }) {
+function AIInsights() {
     const [grievances, setGrievances] = useState<Grievance[] | null>(null);
 
     useEffect(() => {
         // Use live data if available, otherwise fall back to demo data on the client.
-        setGrievances(allGrievances ?? ALL_DEMO_GRIEVANCES);
-    }, [allGrievances]);
+        // This prevents hydration errors caused by server/client data mismatch.
+        setGrievances(ALL_DEMO_GRIEVANCES);
+    }, []);
 
     const insights = useMemo(() => {
         if (!grievances || grievances.length === 0) {
-            return { topCategory: null, emergingHotspot: null, resolutionTime: null };
+            return { topCategory: null, emergingHotspot: null, resolutionTime: null, strategicRecommendation: null };
         }
+        
+        const openGrievances = grievances.filter(g => g.status !== 'Resolved');
 
+        // Insight 1: Top Issue
         const categoryMap: { [key: string]: number } = {};
-        grievances.forEach(g => {
+        openGrievances.forEach(g => {
             const category = categorizeGrievance(g.description);
             categoryMap[category] = (categoryMap[category] || 0) + 1;
         });
-        const topCategory = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0];
+        const topCategory = Object.keys(categoryMap).length > 0
+            ? Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0]
+            : null;
 
+        // Insight 2: Emerging Hotspot
         const recentGrievances = grievances.filter(g => {
             const grievanceDate = g.createdAt.toDate();
             const sevenDaysAgo = subDays(new Date(), 7);
@@ -68,6 +75,7 @@ function AIInsights({ allGrievances }: { allGrievances: Grievance[] | null }) {
             }
         }
         
+        // Insight 3: Resolution Time
         const submittedGrievances = grievances.filter(g => g.status === 'Submitted');
         let resolutionTime: number | null = null;
         if (submittedGrievances.length > 0) {
@@ -76,8 +84,35 @@ function AIInsights({ allGrievances }: { allGrievances: Grievance[] | null }) {
             }, 0);
             resolutionTime = Math.round(totalDays / submittedGrievances.length);
         }
+
+        // Insight 4: Strategic Recommendation
+        let strategicRecommendation = null;
+        if (topCategory) {
+            const topCategoryName = topCategory[0];
+            const topCategoryGrievances = openGrievances.filter(g => categorizeGrievance(g.description) === topCategoryName);
+
+            const areaCounts: { [key: string]: number } = {};
+            topCategoryGrievances.forEach(g => {
+                for (const center of DEMO_CENTERS) {
+                    const { lat, lng, radiusKm } = center;
+                    const radiusDeg = radiusKm / 111.32;
+                    if (Math.sqrt(Math.pow(g.location.latitude - lat, 2) + Math.pow(g.location.longitude - lng, 2)) < radiusDeg) {
+                        areaCounts[center.name] = (areaCounts[center.name] || 0) + 1;
+                        break; // Count each grievance only once
+                    }
+                }
+            });
+
+            if (Object.keys(areaCounts).length > 0) {
+                const recommendationArea = Object.entries(areaCounts).sort((a,b) => b[1] - a[1])[0][0];
+                strategicRecommendation = {
+                    category: topCategoryName,
+                    area: recommendationArea,
+                };
+            }
+        }
         
-        return { topCategory, emergingHotspot, resolutionTime };
+        return { topCategory, emergingHotspot, resolutionTime, strategicRecommendation };
 
     }, [grievances]);
 
@@ -101,7 +136,7 @@ function AIInsights({ allGrievances }: { allGrievances: Grievance[] | null }) {
                          <div className="p-2 bg-primary/10 rounded-full"><Lightbulb className="h-5 w-5 text-primary" /></div>
                         <div>
                             <h4 className="font-semibold">Top Issue</h4>
-                            <p className="text-sm text-muted-foreground">{insights.topCategory[0]} reports are the most frequent, making up {((insights.topCategory[1] / (grievances?.length || 1)) * 100).toFixed(0)}% of all issues.</p>
+                            <p className="text-sm text-muted-foreground">Open <span className="font-bold">{insights.topCategory[0]}</span> reports are the most frequent, requiring immediate attention.</p>
                         </div>
                     </div>
                 ) : <p className="text-sm text-muted-foreground">Not enough data for trend analysis.</p>}
@@ -121,10 +156,20 @@ function AIInsights({ allGrievances }: { allGrievances: Grievance[] | null }) {
                          <div className="p-2 bg-green-500/10 rounded-full"><Clock className="h-5 w-5 text-green-500" /></div>
                         <div>
                             <h4 className="font-semibold">Avg. Time Open</h4>
-                            <p className="text-sm text-muted-foreground">Currently, new grievances remain open for an average of <span className="font-bold text-green-500">{insights.resolutionTime} days</span> before being resolved.</p>
+                            <p className="text-sm text-muted-foreground">New grievances remain open for an average of <span className="font-bold text-green-500">{insights.resolutionTime} days</span> before being resolved.</p>
                         </div>
                     </div>
                 ) : <p className="text-sm text-muted-foreground">No open grievances to analyze.</p>}
+
+                {insights.strategicRecommendation && (
+                     <div className="flex items-start gap-3">
+                         <div className="p-2 bg-indigo-500/10 rounded-full"><ShieldCheck className="h-5 w-5 text-indigo-500" /></div>
+                        <div>
+                            <h4 className="font-semibold">Strategic Recommendation</h4>
+                            <p className="text-sm text-muted-foreground">Deploy a <span className="font-bold text-indigo-400">{insights.strategicRecommendation.category}</span> repair team to the <span className="font-bold text-indigo-400">{insights.strategicRecommendation.area}</span> area to address the highest concentration of open issues.</p>
+                        </div>
+                    </div>
+                )}
 
             </CardContent>
         </Card>
@@ -325,7 +370,7 @@ export default function AnalyticsPage() {
             <h1 className="text-3xl font-bold tracking-tight animate-fade-in-up">Grievance Analytics</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <AIInsights allGrievances={grievances} />
+                    <AIInsights />
                     <ImpactSimulator />
                 </div>
                 <Card className="animate-fade-in-up">
@@ -387,5 +432,7 @@ export default function AnalyticsPage() {
         </div>
     );
 }
+
+    
 
     
