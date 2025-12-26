@@ -26,6 +26,11 @@ export function useAuthState(auth: Auth): AuthState {
   const firestore = getFirestore(app);
 
   useEffect(() => {
+    if (!auth) {
+        setIsUserLoading(false);
+        return;
+    };
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsUserLoading(false);
