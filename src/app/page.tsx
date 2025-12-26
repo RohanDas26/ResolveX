@@ -49,7 +49,7 @@ export default function Home() {
   const searchParams = useSearchParams();
   const [grievances, setGrievances] = useState<Grievance[] | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const [isLoading, setIsLoading] = useState(true);
 
   // This flag ensures the initial zoom effect runs only once
@@ -104,6 +104,7 @@ export default function Home() {
         grievances={grievances} 
         onMarkerClick={handleMarkerClick}
         selectedGrievanceId={selectedGrievanceId}
+        currentUserId={user?.uid}
       >
         {selectedGrievance && <MapEffect selectedGrievance={selectedGrievance} />}
       </GrievanceMap>

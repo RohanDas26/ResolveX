@@ -111,7 +111,7 @@ const descriptions = [
 ];
 
 const userNames = [
-  "Priya", "Rohan", "Anika", "Vikram", "Sneha", "Arjun", "Neha", 
+  "Alex Doe", "Priya", "Rohan", "Anika", "Vikram", "Sneha", "Arjun", "Neha", 
   "Karthik", "Ishita", "Rahul", "Divya", "Aditya", "Pooja", "Sanjay", "Meera",
   "Amit", "Sunita", "Rajesh", "Kavita", "Manoj"
 ];
@@ -164,6 +164,14 @@ const getPinColor = (status: Grievance["status"]) => {
   }
 };
 
+// A few reports specifically for our mock user "Alex Doe" (user_student_1)
+const MY_DEMO_REPORTS = [
+    { id: 'demo-901', userId: 'user_student_1', userName: 'Alex Doe', description: 'Broken swings in the main park, unsafe for kids.', location: new GeoPoint(17.44, 78.34), imageUrl: 'https://picsum.photos/seed/park-swing/400/300', status: 'Submitted' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)), riskScore: 60, aiNotes: 'Potential injury hazard for children. Moderate priority.'},
+    { id: 'demo-902', userId: 'user_student_1', userName: 'Alex Doe', description: 'Streetlight flickering constantly on College Ave.', location: new GeoPoint(17.42, 78.48), imageUrl: 'https://picsum.photos/seed/flicker-light/400/300', status: 'In Progress' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)), riskScore: 35, aiNotes: 'Causes visibility issues, potential traffic hazard at night.' },
+    { id: 'demo-903', userId: 'user_student_1', userName: 'Alex Doe', description: 'Overflowing drain near the bus stop.', location: new GeoPoint(17.39, 78.47), imageUrl: 'https://picsum.photos/seed/drain-overflow/400/300', status: 'Submitted' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)), riskScore: 70, aiNotes: 'Public health concern due to stagnant water and smell.' },
+];
+
+
 const generateRandomGrievance = (
   idIndex: number
 ): Grievance & { pinColor: string } => {
@@ -183,13 +191,12 @@ const generateRandomGrievance = (
   const imageSeed = imageSeeds[idIndex % imageSeeds.length];
 
   const keyword = imageSeeds.find(seed => description.toLowerCase().includes(seed));
-  const riskData = (keyword && riskFactors[keyword]) ? riskFactors[keyword] : riskFactors.default;
-
+  const riskData = keyword && riskFactors[keyword] ? riskFactors[keyword] : riskFactors.default;
   const riskScore = Math.min(100, Math.max(0, riskData.base + Math.floor(Math.random() * 20) - 10));
 
   return {
     id: `demo-${idIndex}`,
-    userId: `user-demo-${userIndex + 1}`,
+    userId: userName === 'Alex Doe' ? 'user_student_1' : `user-demo-${userIndex + 1}`,
     userName,
     description,
     location: new GeoPoint(randomLocation.lat, randomLocation.lng),
@@ -204,7 +211,12 @@ const generateRandomGrievance = (
 
 const DEMO_COUNT = 250;
 
-export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = Array.from(
+const OTHER_DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = Array.from(
   { length: DEMO_COUNT },
   (_, i) => generateRandomGrievance(i + 1)
 );
+
+export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = [
+    ...MY_DEMO_REPORTS.map(r => ({...r, pinColor: getPinColor(r.status)})),
+    ...OTHER_DEMO_GRIEVANCES
+];

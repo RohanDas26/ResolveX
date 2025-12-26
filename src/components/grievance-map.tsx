@@ -18,13 +18,15 @@ interface GrievanceMapProps {
   children?: ReactNode;
   onMarkerClick?: (grievanceId: string | null) => void;
   selectedGrievanceId?: string | null;
+  currentUserId?: string | null;
 }
 
 export default function GrievanceMap({ 
   grievances, 
   children, 
   onMarkerClick, 
-  selectedGrievanceId: externalSelectedId
+  selectedGrievanceId: externalSelectedId,
+  currentUserId
 }: GrievanceMapProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 
@@ -77,22 +79,28 @@ export default function GrievanceMap({
       zoomControl={true}
       mapTypeControl={false}
     >
-      {grievances && grievances.map((grievance) => (
-        <AdvancedMarker
-          key={grievance.id}
-          position={{ lat: grievance.location.latitude, lng: grievance.location.longitude }}
-          onClick={() => handleMarkerClick(grievance.id)}
-        >
-          <div className={cn(selectedGrievanceId === grievance.id && "pulsating-pin rounded-full")}>
-            <Pin
-              background={selectedGrievanceId === grievance.id ? 'hsl(var(--primary))' : (grievance.pinColor || "#ef4444")}
-              borderColor={selectedGrievanceId === grievance.id ? 'hsl(var(--primary))' : "#ffffff"}
-              glyphColor={"#ffffff"}
-              scale={selectedGrievanceId === grievance.id ? 1.5 : 1}
-            />
-          </div>
-        </AdvancedMarker>
-      ))}
+      {grievances && grievances.map((grievance) => {
+        const isSelected = selectedGrievanceId === grievance.id;
+        const isUsersReport = currentUserId === grievance.userId;
+        const shouldPulsate = isSelected || isUsersReport;
+
+        return (
+          <AdvancedMarker
+            key={grievance.id}
+            position={{ lat: grievance.location.latitude, lng: grievance.location.longitude }}
+            onClick={() => handleMarkerClick(grievance.id)}
+          >
+            <div className={cn(shouldPulsate && "pulsating-pin rounded-full")}>
+              <Pin
+                background={isSelected || isUsersReport ? 'hsl(var(--primary))' : (grievance.pinColor || "#ef4444")}
+                borderColor={isSelected || isUsersReport ? 'hsl(var(--primary))' : "#ffffff"}
+                glyphColor={"#ffffff"}
+                scale={isSelected ? 1.5 : 1}
+              />
+            </div>
+          </AdvancedMarker>
+        )
+      })}
 
       {selectedGrievance && (
         <InfoWindow
