@@ -12,19 +12,42 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/firebase";
-import { LogOut, Ticket, User } from "lucide-react";
+import { useAuth, useUser } from "@/firebase";
+import { LogOut, Ticket, User, MailWarning } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut, sendEmailVerification } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 export function UserNav() {
   const { user, profile } = useUser();
+  const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
-  const handleLogout = () => {
-    // In a real app, you would call your Firebase sign out function here.
-    // For this demo, we'll just redirect to the auth page.
+  const handleLogout = async () => {
+    await signOut(auth);
     router.push("/");
+  };
+
+  const handleResendVerification = async () => {
+    if (user) {
+      try {
+        await sendEmailVerification(user);
+        toast({
+          title: "Verification Email Sent!",
+          description: "Please check your inbox for the verification link.",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not send verification email. Please try again later.",
+        });
+      }
+    }
   };
 
   if (!user || !profile) {
@@ -36,6 +59,8 @@ export function UserNav() {
         </Button>
     )
   }
+
+  const isEmailVerified = user.emailVerified;
 
   return (
     <DropdownMenu>
@@ -57,6 +82,25 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
+        {!isEmailVerified && (
+          <>
+            <div className="p-2">
+              <Alert variant="destructive" className="border-amber-500/50 text-amber-500 [&>svg]:text-amber-500">
+                <MailWarning className="h-4 w-4" />
+                <AlertTitle className="text-amber-600">Email Not Verified</AlertTitle>
+                <AlertDescription className="text-amber-500 text-xs">
+                  Please verify your email to get full access.
+                </AlertDescription>
+                <Button variant="link" size="sm" className="p-0 h-auto text-xs mt-2" onClick={handleResendVerification}>
+                  Resend verification link
+                </Button>
+              </Alert>
+            </div>
+            <DropdownMenuSeparator />
+          </>
+        )}
+
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/profile">
@@ -80,3 +124,5 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
+
+    

@@ -8,10 +8,14 @@ import { Grievance, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2, MailWarning } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Leaderboard from '@/components/leaderboard';
 import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { sendEmailVerification } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -28,6 +32,7 @@ const getBadge = (grievanceCount: number) => {
 
 export default function ProfilePage() {
     const { user: authUser, profile, isUserLoading, isProfileLoading } = useUser();
+    const { toast } = useToast();
 
     // Use demo grievances and filter them for the current mock user
     const userGrievances = useMemo(() => {
@@ -50,6 +55,24 @@ export default function ProfilePage() {
         return DEMO_USERS;
     }, []);
 
+    const handleResendVerification = async () => {
+        if (authUser) {
+            try {
+                await sendEmailVerification(authUser);
+                toast({
+                    title: "Verification Email Sent!",
+                    description: "Please check your inbox for the verification link.",
+                });
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: "Could not send verification email. Please try again later.",
+                });
+            }
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
@@ -62,6 +85,18 @@ export default function ProfilePage() {
 
     return (
         <div className="container mx-auto px-4 py-8 animate-fade-in">
+             {!authUser.emailVerified && (
+                <Alert variant="destructive" className="mb-8 animate-fade-in-up border-amber-500/50 text-amber-500 [&>svg]:text-amber-500">
+                    <MailWarning className="h-4 w-4" />
+                    <AlertTitle className="font-bold text-amber-600">Verify Your Email Address</AlertTitle>
+                    <AlertDescription>
+                        Your email is not verified. Please check your inbox for a verification link to ensure full access to your account and features.
+                    </AlertDescription>
+                    <Button variant="link" size="sm" className="p-0 h-auto text-xs mt-2 text-amber-500" onClick={handleResendVerification}>
+                        Resend verification link
+                    </Button>
+                </Alert>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-1 space-y-8">
                     {/* User Profile Card */}
@@ -122,3 +157,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    

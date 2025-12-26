@@ -7,26 +7,6 @@ import { useEffect, useState } from 'react';
 import { doc } from 'firebase/firestore';
 import { useDoc } from '../firestore/use-doc';
 
-const MOCK_USER_ID = 'user_student_1';
-
-const mockUser: User = {
-  uid: MOCK_USER_ID,
-  email: 'alex.doe@example.com',
-  displayName: 'Alex Doe',
-  photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`,
-  emailVerified: true,
-  isAnonymous: false,
-  metadata: {},
-  providerData: [],
-  providerId: 'password',
-  tenantId: null,
-  delete: async () => {},
-  getIdToken: async () => '',
-  getIdTokenResult: async () => ({} as any),
-  reload: async () => {},
-  toJSON: () => ({}),
-};
-
 
 interface AuthState {
   user: User | null;
@@ -37,8 +17,6 @@ interface AuthState {
   isProfileLoading: boolean;
 }
 
-// This hook now provides a real auth state that includes a mock user.
-// In a real app, you would replace the mock user with the result of onAuthStateChanged.
 export function useUser(): AuthState {
   const auth = useAuth();
   const firestore = useFirestore();
@@ -49,10 +27,21 @@ export function useUser(): AuthState {
     claims: null,
   });
 
-  // For this demo, we'll always use a mock user, but the structure is here for real auth.
-   useEffect(() => {
-    setAuthState({ user: mockUser, isLoading: false, error: null, claims: { isAdmin: false }});
-  }, []);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const tokenResult = await user.getIdTokenResult();
+        setAuthState({ user, claims: tokenResult.claims, isLoading: false, error: null });
+      } else {
+        setAuthState({ user: null, claims: null, isLoading: false, error: null });
+      }
+    }, (error) => {
+      setAuthState({ user: null, claims: null, isLoading: false, error });
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !authState.user) return null;
@@ -73,3 +62,5 @@ export function useUser(): AuthState {
 
 // Keep useAuthState for any components that might still reference it.
 export const useAuthState = useUser;
+
+    
