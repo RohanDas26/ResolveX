@@ -89,6 +89,45 @@
         "submissionDate",
         "status"
       ]
+    },
+    "AnalyticsData": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "AnalyticsData",
+        "type": "object",
+        "description": "Represents aggregated data for analytics charts.",
+        "properties": {
+            "statusCounts": {
+                "type": "object",
+                "description": "Count of grievances by status.",
+                "properties": {
+                    "Submitted": { "type": "number" },
+                    "InProgress": { "type": "number" },
+                    "Resolved": { "type": "number" }
+                }
+            },
+            "categoryCounts": {
+                "type": "array",
+                "description": "Count of grievances by category.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string" },
+                        "value": { "type": "number" }
+                    }
+                }
+            },
+            "submissionTrends": {
+                "type": "array",
+                "description": "Daily count of submissions over a period.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "date": { "type": "string", "format": "date" },
+                        "count": { "type": "number" }
+                    }
+                }
+            }
+        }
     }
   },
   "auth": {
