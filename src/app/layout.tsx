@@ -23,15 +23,11 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
         <Providers>
           <div className="p-4 h-screen">
-            <div className="neon-frame">
-              <div className="neon-frame-inner">
-                <div className="neon-stars"></div>
-                <div className="neon-comet"></div>
-                 <MainLayout>
+             <div className="relative w-full h-full bg-background/80 backdrop-blur-sm rounded-md overflow-hidden border border-border">
+                <MainLayout>
                   {children}
                 </MainLayout>
               </div>
-            </div>
           </div>
           <Toaster />
         </Providers>
