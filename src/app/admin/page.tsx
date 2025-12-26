@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import type { Grievance } from "@/lib/types";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, doc, updateDoc } from "firebase/firestore";
 
 import AdminSidebar from "@/components/admin/admin-sidebar";
