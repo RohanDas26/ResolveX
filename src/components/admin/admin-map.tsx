@@ -3,9 +3,9 @@
 
 import GrievanceMap from "@/components/grievance-map";
 import { Loader2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useContext } from "react";
 import type { Grievance } from "@/lib/types";
-import { useGoogleMap } from "@vis.gl/react-google-maps";
+import { GoogleMapsContext } from "@vis.gl/react-google-maps";
 
 interface AdminMapProps {
     grievances: Grievance[] | null;
@@ -13,7 +13,8 @@ interface AdminMapProps {
 }
 
 function HeatmapLayer({ grievances }: { grievances: Grievance[] | null }) {
-    const map = useGoogleMap();
+    const context = useContext(GoogleMapsContext);
+    const map = context?.map;
   
     useMemo(() => {
       if (!map || !window.google || !grievances) return;
