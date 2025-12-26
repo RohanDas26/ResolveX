@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowRight, MapPin, Upload, BarChart2 } from "lucide-react";
 import { Icons } from "@/components/icons";
-import StarTrail from "@/components/star-trail";
 import { useAuth } from "@/firebase";
 import { 
   createUserWithEmailAndPassword, 
@@ -190,7 +189,6 @@ export default function AuthPage() {
 
   return (
     <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden p-4 sm:p-6 md:p-8" >
-      <StarTrail />
        <div
         className="pointer-events-none fixed inset-0 z-30 transition duration-300 lg:absolute"
         style={{
