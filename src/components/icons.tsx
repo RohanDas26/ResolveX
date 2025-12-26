@@ -14,9 +14,10 @@ export const Icons = {
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-      <rect width="18" height="18" x="3" y="3" rx="2" />
+      {/* This creates the map pin shape */}
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      {/* This creates the small circle inside the pin */}
+      <circle cx="12" cy="10" r="3" />
     </svg>
   ),
 };
