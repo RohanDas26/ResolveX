@@ -3,7 +3,6 @@
 
 import { useMemo, useState } from "react";
 import type { Grievance } from "@/lib/types";
-import { useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/lib/types";
 import { Loader2 } from "lucide-react";
@@ -18,10 +17,36 @@ function AdminDashboardContent() {
   const [filter, setFilter] = useState<string | null>(null);
 
   const grievances = DEMO_GRIEVANCES; // Use demo data
-  const allUsers: UserProfile[] = []; // No real users with demo data
   
   const grievancesLoading = false;
   const usersLoading = false;
+
+  const allUsers: UserProfile[] = useMemo(() => {
+    if (!grievances) return [];
+
+    const userMap = new Map<string, { id: string, name: string, count: number }>();
+
+    grievances.forEach(g => {
+        if (!userMap.has(g.userId)) {
+            userMap.set(g.userId, { id: g.userId, name: g.userName, count: 0 });
+        }
+        const userData = userMap.get(g.userId);
+        if(userData){
+            userData.count++;
+        }
+    });
+
+    const sortedUsers = Array.from(userMap.values()).sort((a, b) => b.count - a.count);
+    
+    return sortedUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: `${u.name.toLowerCase().replace(' ', '.')}@demo.com`,
+        imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${u.name}`,
+        grievanceCount: u.count,
+    }));
+
+  }, [grievances]);
 
 
   const filteredGrievances = useMemo(() => {
@@ -58,33 +83,6 @@ function AdminDashboardContent() {
 }
 
 export default function AdminPage() {
-    const { claims, isUserLoading } = useUser();
-
-    if (isUserLoading) {
-        return (
-            <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
-    }
     
-    // Since auth is removed, we'll just show the page.
-    // In a real app, you would check claims.isAdmin here.
-    // if (!claims?.isAdmin) {
-    //     return (
-    //          <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8">
-    //             <Card className="max-w-md animate-fade-in-up">
-    //                 <CardHeader className="text-center">
-    //                     <ShieldAlert className="w-16 h-16 mx-auto text-destructive"/>
-    //                     <CardTitle className="text-2xl">Access Denied</CardTitle>
-    //                 </CardHeader>
-    //                 <CardContent>
-    //                     <p className="text-center text-muted-foreground">You do not have permission to view this page. This area is for administrators only.</p>
-    //                 </CardContent>
-    //             </Card>
-    //         </div>
-    //     )
-    // }
-
     return <AdminDashboardContent />;
 }
