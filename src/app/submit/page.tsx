@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Loader2, MapPin, UploadCloud } from "lucide-react";
+import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
 import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction } from "firebase/firestore";
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
@@ -252,5 +252,3 @@ export default function SubmitPage() {
         </div>
     );
 }
-
-    
