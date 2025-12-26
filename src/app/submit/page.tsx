@@ -125,7 +125,7 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Location Missing", description: "Please get your current location before submitting." });
             return;
         }
-        if (!user || !profile) {
+        if (!user) {
             toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
             return;
         }
@@ -141,7 +141,7 @@ function SubmitPageContent() {
         const newGrievance = {
             id: grievanceId,
             userId: user.uid,
-            userName: profile.name,
+            userName: profile?.name || 'Anonymous',
             description: values.description,
             imageUrl: photoPreview, // Use the preview URL for the demo
             location: new GeoPoint(location.lat, location.lng),
@@ -348,5 +348,7 @@ export default function SubmitPage() {
         </div>
     );
 }
+
+    
 
     
