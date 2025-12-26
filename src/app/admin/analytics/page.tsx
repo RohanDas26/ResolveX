@@ -64,13 +64,14 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
 function ImpactSimulator() {
     const [selectedArea, setSelectedArea] = useState<string>(DEMO_CENTERS[0].name);
     const [issuesToResolve, setIssuesToResolve] = useState(15);
+    const [simulationData, setSimulationData] = useState<any>(null);
 
-    const simulationData = useMemo(() => {
+    useEffect(() => {
         const center = DEMO_CENTERS.find(c => c.name === selectedArea);
-        if (!center) return null;
+        if (!center) return;
 
         const { lat, lng, radiusKm } = center;
-        const radiusDeg = radiusKm / 111.32; // Approx conversion
+        const radiusDeg = radiusKm / 111.32;
 
         const areaGrievances = DEMO_GRIEVANCES.filter(g => 
             Math.sqrt(Math.pow(g.location.latitude - lat, 2) + Math.pow(g.location.longitude - lng, 2)) < radiusDeg
@@ -88,14 +89,13 @@ function ImpactSimulator() {
             return grievanceDate > thirtyDaysAgo;
         }).length;
         
-        // Simple projection
         const resolvedCount = Math.min(issuesToResolve, openIssueCount);
         const projectedOpenIssues = openIssueCount - resolvedCount;
         const reductionFactor = openIssueCount > 0 ? (1 - (resolvedCount / openIssueCount)) : 1;
         const projectedRisk = Math.max(0, currentRisk * reductionFactor);
         const projectedComplaints = Math.round(totalComplaintsLast30Days * reductionFactor);
         
-        return {
+        setSimulationData({
             openIssueCount,
             currentRisk: Math.round(currentRisk),
             totalComplaintsLast30Days,
@@ -103,10 +103,14 @@ function ImpactSimulator() {
             projectedOpenIssues,
             projectedRisk: Math.round(projectedRisk),
             projectedComplaints,
-        };
+        });
     }, [selectedArea, issuesToResolve]);
 
-    if (!simulationData) return null;
+    if (!simulationData) return (
+        <Card className="animate-fade-in-up flex items-center justify-center min-h-[400px]" style={{ animationDelay: '400ms' }}>
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </Card>
+    );
 
     const { openIssueCount, currentRisk, totalComplaintsLast30Days, projectedOpenIssues, projectedRisk, projectedComplaints, resolvedCount } = simulationData;
 
@@ -302,3 +306,5 @@ export default function AnalyticsPage() {
         </div>
     );
 }
+
+    
