@@ -133,11 +133,13 @@ export default function AuthPage() {
           description = "No account found with this email address.";
           break;
         case 'auth/wrong-password':
-        case 'auth/invalid-credential':
           description = "Incorrect password. Please try again or use the 'Forgot password?' link.";
           break;
-        default:
+        case 'auth/invalid-credential':
           description = "Invalid credentials. Please check your email and password.";
+          break;
+        default:
+          description = "An unexpected error occurred. Please try again.";
           break;
       }
       toast({
