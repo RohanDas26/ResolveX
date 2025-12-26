@@ -12,7 +12,7 @@ import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight, Lightbulb, A
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { DEMO_GRIEVANCES, DEMO_CENTERS } from "@/lib/demo-data";
+import { DEMO_GRIEVANCES as ALL_DEMO_GRIEVANCES, DEMO_CENTERS } from "@/lib/demo-data";
 import { Label } from "@/components/ui/label";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
@@ -29,7 +29,14 @@ function categorizeGrievance(description: string): string {
     return "Other";
 }
 
-function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
+function AIInsights({ allGrievances }: { allGrievances: Grievance[] | null }) {
+    const [grievances, setGrievances] = useState<Grievance[] | null>(null);
+
+    useEffect(() => {
+        // Use live data if available, otherwise fall back to demo data on the client.
+        setGrievances(allGrievances ?? ALL_DEMO_GRIEVANCES);
+    }, [allGrievances]);
+
     const insights = useMemo(() => {
         if (!grievances || grievances.length === 0) {
             return { topCategory: null, emergingHotspot: null, resolutionTime: null };
@@ -73,6 +80,14 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
         return { topCategory, emergingHotspot, resolutionTime };
 
     }, [grievances]);
+
+    if (!grievances) {
+       return (
+        <Card className="animate-fade-in-up flex items-center justify-center min-h-[400px]" style={{ animationDelay: '300ms' }}>
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </Card>
+       );
+    }
 
     return (
         <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
@@ -124,7 +139,7 @@ function ImpactSimulator() {
     // This state is now initialized inside useEffect to avoid hydration errors
     const [grievances, setGrievances] = useState<Grievance[] | null>(null);
     useEffect(() => {
-        setGrievances(DEMO_GRIEVANCES);
+        setGrievances(ALL_DEMO_GRIEVANCES);
     }, []);
 
     useEffect(() => {
@@ -256,9 +271,9 @@ export default function AnalyticsPage() {
     const { data: grievances, isLoading } = useCollection<Grievance>(grievancesQuery);
 
     const statusData = useMemo(() => {
-        if (!grievances) return [{ status: "Submitted", count: 0 }, { status: "In Progress", count: 0 }, { status: "Resolved", count: 0 }];
+        const data = grievances ?? ALL_DEMO_GRIEVANCES;
         const counts: { [key: string]: number } = { Submitted: 0, "In Progress": 0, Resolved: 0 };
-        grievances?.forEach(g => {
+        data?.forEach(g => {
             if (g.status in counts) {
                 counts[g.status]++;
             }
@@ -272,26 +287,25 @@ export default function AnalyticsPage() {
             return { date: format(date, "MMM dd"), count: 0 };
         });
 
-        if (grievances) {
-            grievances.forEach(g => {
-                if (g.createdAt && 'seconds' in g.createdAt) {
-                    const grievanceDate = new Date(g.createdAt.seconds * 1000);
-                    const dayStr = format(grievanceDate, "MMM dd");
-                    const dayData = last30Days.find(d => d.date === dayStr);
-                    if (dayData) {
-                        dayData.count++;
-                    }
+        const data = grievances ?? ALL_DEMO_GRIEVANCES;
+        data.forEach(g => {
+            if (g.createdAt && 'seconds' in g.createdAt) {
+                const grievanceDate = new Date(g.createdAt.seconds * 1000);
+                const dayStr = format(grievanceDate, "MMM dd");
+                const dayData = last30Days.find(d => d.date === dayStr);
+                if (dayData) {
+                    dayData.count++;
                 }
-            });
-        }
+            }
+        });
 
         return last30Days;
     }, [grievances]);
 
     const categoryData = useMemo(() => {
-        if (!grievances) return [];
+        const data = grievances ?? ALL_DEMO_GRIEVANCES;
         const categoryMap: { [key: string]: number } = {};
-        grievances?.forEach(g => {
+        data?.forEach(g => {
             const category = categorizeGrievance(g.description);
             categoryMap[category] = (categoryMap[category] || 0) + 1;
         });
@@ -311,7 +325,7 @@ export default function AnalyticsPage() {
             <h1 className="text-3xl font-bold tracking-tight animate-fade-in-up">Grievance Analytics</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <AIInsights grievances={grievances ?? DEMO_GRIEVANCES} />
+                    <AIInsights allGrievances={grievances} />
                     <ImpactSimulator />
                 </div>
                 <Card className="animate-fade-in-up">
