@@ -58,7 +58,7 @@ export default function AISummary({ grievances, isLoading }: AISummaryProps) {
                     </Alert>
                 ) : (
                     <div className="text-sm text-center text-muted-foreground py-4">
-                        Click the button to generate an AI summary.
+                        Click the button to generate an AI summary for the current filters.
                     </div>
                 )}
                  <Button onClick={handleGenerateSummary} disabled={isSummaryLoading || isLoading || grievances.length === 0} className="w-full">
