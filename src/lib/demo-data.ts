@@ -206,7 +206,7 @@ const DEMO_COUNT = 250;
 // We'll create a flat list of user IDs to pick from, weighted by how many reports we want them to have.
 const userReportCounts: { [key: string]: number } = {
     'user-demo-3': 36, 'user-demo-1': 29, 'user-demo-4': 25, 'user-demo-2': 22,
-    'user_student_1': 0, // This will be handled by MY_DEMO_REPORTS
+    'user_student_1': 3, // This will be handled by MY_DEMO_REPORTS
     'user-demo-6': 15, 'user-demo-8': 12, 'user-demo-5': 10, 'user-demo-7': 8,
     'user-demo-9': 5, 'user-demo-10': 3, 'user-demo-11': 2, 'user-demo-12': 1,
 };
