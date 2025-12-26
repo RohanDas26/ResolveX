@@ -11,7 +11,7 @@ import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "./ui/badge";
 
-const KLH_HYD_COORDS = { lat: 17.3033, lng: 78.5833 };
+const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 
 type GrievanceWithPinColor = Grievance & { pinColor?: string };
 
@@ -53,8 +53,8 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
 
   return (
     <Map
-      defaultCenter={KLH_HYD_COORDS}
-      defaultZoom={15}
+      defaultCenter={TELANGANA_CENTER}
+      defaultZoom={8}
       mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "RESOLVEX_MAP"}
       className="w-full h-full"
       gestureHandling={'greedy'}
