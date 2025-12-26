@@ -50,7 +50,7 @@ export function UserNav() {
     }
   };
 
-  if (!user || !profile) {
+  if (!user) {
     return (
        <Button asChild>
           <Link href="/">
@@ -61,21 +61,25 @@ export function UserNav() {
   }
 
   const isEmailVerified = user.emailVerified;
+  const userName = profile?.name || user.email;
+  const userImage = profile?.imageUrl;
+  const userFallback = userName?.[0].toUpperCase() || 'U';
+
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={profile.imageUrl} alt={profile.name ?? ""} />
-            <AvatarFallback>{profile.name?.[0]}</AvatarFallback>
+            <AvatarImage src={userImage} alt={userName ?? ""} />
+            <AvatarFallback>{userFallback}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{profile.name}</p>
+            <p className="text-sm font-medium leading-none">{userName}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
@@ -124,5 +128,3 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
-
-    
