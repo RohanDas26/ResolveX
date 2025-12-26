@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/", label: "Live Map", icon: Map },
+  { href: "/map", label: "Live Map", icon: Map },
   { href: "/directions", label: "Directions", icon: Milestone },
   { href: "/tickets", label: "My Tickets", icon: Ticket },
   { href: "/profile", label: "Profile", icon: User },

@@ -1,113 +1,49 @@
 
 "use client";
 
-import GrievanceMap from "@/components/grievance-map";
-import { Loader2 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useMemo, useRef } from "react";
-import { type Grievance } from "@/lib/types";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
-import { useUser } from "@/firebase";
-import { useMap } from "@vis.gl/react-google-maps";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { Icons } from "@/components/icons";
 
-const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
-const INITIAL_ZOOM = 8;
-const DETAIL_ZOOM = 15;
-
-// A simple in-memory store for our demo data
-const grievanceStore = {
-  grievances: [...DEMO_GRIEVANCES],
-  add: (grievance: Grievance) => {
-    grievanceStore.grievances.unshift(grievance);
-  },
-  get: () => {
-    return grievanceStore.grievances;
-  }
-};
-
-function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null }) {
-    const map = useMap();
-
-    useEffect(() => {
-        if (map && selectedGrievance) {
-            // Start zoomed out, then zoom in
-            map.setZoom(INITIAL_ZOOM);
-            map.setCenter(TELANGANA_CENTER);
-
-            setTimeout(() => {
-                map.setCenter({ lat: selectedGrievance.location.latitude, lng: selectedGrievance.location.longitude });
-                map.setZoom(DETAIL_ZOOM);
-            }, 500); // Delay for the "zoom in" effect
-        }
-    }, [map, selectedGrievance]);
-
-    return null;
-}
-
-
-export default function Home() {
-  const searchParams = useSearchParams();
-  const [grievances, setGrievances] = useState<Grievance[] | null>(null);
-  const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
-  const { user, isUserLoading } = useUser();
-  const [isLoading, setIsLoading] = useState(true);
-
-  // This flag ensures the initial zoom effect runs only once
-  const initialEffectRan = useRef(false);
-
-  useEffect(() => {
-    // Simulate loading data
-    setIsLoading(true);
-    const data = grievanceStore.get();
-    setGrievances(data);
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const grievanceIdFromUrl = searchParams.get('id');
-    if (grievanceIdFromUrl && !initialEffectRan.current) {
-        setSelectedGrievanceId(grievanceIdFromUrl);
-        initialEffectRan.current = true;
-    }
-  }, [searchParams]);
-  
-  const selectedGrievance = useMemo(() => {
-    return grievances?.find(g => g.id === selectedGrievanceId) || null;
-  }, [grievances, selectedGrievanceId]);
-  
-  const handleMarkerClick = (id: string | null) => {
-    setSelectedGrievanceId(id);
-  }
-
-  if (isLoading || isUserLoading) {
-    return (
-      <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg">Loading Live Grievance Data...</p>
-      </div>
-    );
-  }
-  
-  // This is a shared state that can be updated from the submit page.
-  if (typeof window !== 'undefined') {
-    // @ts-ignore
-    window.addGrievance = (grievance: Grievance) => {
-      grievanceStore.add(grievance);
-      // This is a bit of a hack to force a re-render
-      setGrievances([...grievanceStore.get()]);
-    };
-  }
-
+export default function LandingPage() {
   return (
-    <div className="relative h-[calc(100vh-4rem)] w-full animate-fade-in">
-      <GrievanceMap 
-        grievances={grievances} 
-        onMarkerClick={handleMarkerClick}
-        selectedGrievanceId={selectedGrievanceId}
-        currentUserId={user?.uid}
-      >
-        {selectedGrievance && <MapEffect selectedGrievance={selectedGrievance} />}
-      </GrievanceMap>
+    <div className="relative isolate flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center animate-fade-in-up overflow-hidden">
+      <div className="mx-auto max-w-2xl">
+        <div className="hidden sm:mb-8 sm:flex sm:justify-center">
+          <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-muted-foreground ring-1 ring-primary/20 hover:ring-primary/40 transition-all">
+            Announcing our new Smart Route Navigator.{" "}
+            <Link href="/directions" className="font-semibold text-primary">
+              <span className="absolute inset-0" aria-hidden="true" />
+              Read more <span aria-hidden="true">&rarr;</span>
+            </Link>
+          </div>
+        </div>
+        <div className="text-center">
+           <Icons.logo className="h-20 w-20 text-primary mx-auto mb-6" />
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
+            ResolveX
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+            Report and track local civic issues seamlessly. From potholes to broken streetlights, make your community better, one report at a time.
+          </p>
+          <div className="mt-10 flex items-center justify-center gap-x-6">
+            <Button asChild size="lg">
+              <Link href="/map">
+                Get Started
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="lg">
+               <Link href="/admin">View Admin Demo <span aria-hidden="true">→</span></Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+       {/* Background Glows */}
+      <div className="absolute top-1/4 left-0 w-full h-full sm:w-1/2 sm:h-1/2 bg-primary/10 rounded-full blur-[150px] -z-10 animate-pulse" style={{ animationDuration: '6s' }}></div>
+      <div className="absolute bottom-1/4 right-0 w-full h-full sm:w-1/2 sm:h-1/2 bg-accent/10 rounded-full blur-[150px] -z-10 animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
     </div>
   );
 }
