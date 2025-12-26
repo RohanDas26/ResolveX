@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -19,7 +18,6 @@ import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 
-
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
@@ -34,14 +32,6 @@ const formSchema = z.object({
     ),
 });
 
-// For demonstration, we'll cycle through a few mock users.
-const mockUsers = [
-    { id: 'user_student_1', name: 'Alex Doe' },
-    { id: 'user_student_2', name: 'Jane Smith' },
-    { id: 'user_student_3', name: 'Sam Wilson' },
-];
-let currentUserIndex = 0;
-
 function SubmitPageContent() {
     const { toast } = useToast();
     const router = useRouter();
@@ -49,6 +39,18 @@ function SubmitPageContent() {
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const firestore = useFirestore();
+    const { user: authUser, isUserLoading } = useUser();
+
+    useEffect(() => {
+        if (!isUserLoading && !authUser) {
+            toast({
+                title: 'Authentication Required',
+                description: 'You need to be logged in to submit a grievance.',
+                variant: 'destructive',
+            });
+            router.push('/login');
+        }
+    }, [authUser, isUserLoading, router, toast]);
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -83,6 +85,10 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Location unavailable", description: "Cannot submit without your location." });
             return;
         }
+        if (!authUser) {
+            toast({ variant: "destructive", title: "Not Authenticated", description: "You must be logged in to submit." });
+            return;
+        }
         
         setIsLoading(true);
         try {
@@ -94,13 +100,8 @@ function SubmitPageContent() {
             const storage = getStorage();
             const grievanceId = uuidv4();
             
-            // Cycle through mock users for demo
-            const currentUser = mockUsers[currentUserIndex];
-            currentUserIndex = (currentUserIndex + 1) % mockUsers.length;
+            const userId = authUser.uid;
             
-            const userId = currentUser.id;
-            const userName = currentUser.name;
-
             const imageRef = ref(storage, `grievances/${userId}/${grievanceId}-${imageFile.name}`);
             
             await uploadBytes(imageRef, imageFile);
@@ -109,7 +110,7 @@ function SubmitPageContent() {
             const grievanceData = {
                 id: grievanceId,
                 userId: userId,
-                userName: userName,
+                userName: authUser.displayName || "Anonymous", // Use displayName from auth user
                 description: values.description,
                 imageUrl: imageUrl,
                 location: new GeoPoint(location.lat, location.lng),
@@ -125,20 +126,19 @@ function SubmitPageContent() {
                 const userDoc = await transaction.get(userDocRef);
 
                 if (!userDoc.exists()) {
-                    // If user doesn't exist, create them.
+                   // This case should ideally not happen if user is created on signup
+                   // But as a fallback, create the user doc
                     transaction.set(userDocRef, {
                         id: userId,
-                        name: userName,
+                        name: authUser.displayName,
+                        email: authUser.email,
                         grievanceCount: 1,
                         imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${userId}`
                     });
                 } else {
-                    // If user exists, increment their grievance count.
                     const newCount = (userDoc.data().grievanceCount || 0) + 1;
                     transaction.update(userDocRef, { grievanceCount: newCount });
                 }
-
-                // Set the grievance document
                 transaction.set(grievanceDocRef, grievanceData);
             });
 
@@ -148,7 +148,7 @@ function SubmitPageContent() {
 
         } catch (error: any) {
             console.error("Submission error:", error);
-            toast({ variant: "destructive", title: "Submission Failed", description: "An unexpected error occurred. Please try again." });
+            toast({ variant: "destructive", title: "Submission Failed", description: error.message || "An unexpected error occurred. Please try again." });
         } finally {
             setIsLoading(false);
         }
@@ -224,7 +224,7 @@ function SubmitPageContent() {
                           </div>
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isLoading || !location}>
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isLoading || !location || !authUser}>
                             {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                             {isLoading ? "Submitting..." : "Submit Grievance"}
                         </Button>

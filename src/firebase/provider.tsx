@@ -5,6 +5,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { useAuthState } from './auth/use-user';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -111,7 +112,4 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
   return memoized;
 }
 
-// Stub useUser hook
-export const useUser = (): { user: null, isUserLoading: boolean, userError: null } => {
-  return { user: null, isUserLoading: false, userError: null };
-};
+export const useUser = useAuthState;

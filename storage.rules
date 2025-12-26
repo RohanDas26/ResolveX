@@ -1,12 +1,18 @@
-
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow public read and write access to all files for now.
-    // We will add more specific security rules later.
-    match /{allPaths=**} {
-      allow read, write: if true;
+    // Allow users to upload grievance photos to a folder matching their UID.
+    // Allow public read access for all files so they can be displayed in the app.
+    match /grievances/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow users to upload their own profile pictures.
+    match /users/{userId}/profile.jpg {
+        allow read: if true;
+        allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

@@ -1,4 +1,3 @@
-
 import type { Timestamp, GeoPoint } from "firebase/firestore";
 
 export interface Grievance {
@@ -15,6 +14,8 @@ export interface Grievance {
 export interface UserProfile {
     id: string;
     name: string;
+    email: string;
     imageUrl: string;
     grievanceCount: number;
+    isAdmin?: boolean;
 }
