@@ -51,13 +51,7 @@ export function UserNav() {
   };
 
   if (!user) {
-    return (
-       <Button asChild>
-          <Link href="/">
-            Get Started
-          </Link>
-        </Button>
-    )
+    return null;
   }
 
   const isEmailVerified = user.emailVerified;
