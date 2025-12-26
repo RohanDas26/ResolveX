@@ -46,16 +46,6 @@ export default function IntegrationGuidePage() {
                             <li>Configure the extension to watch the <code className="bg-muted px-1.5 py-0.5 rounded-sm font-mono text-sm">grievances</code> collection.</li>
                             <li>The extension will automatically create a BigQuery table and keep it synced.</li>
                         </ol>
-                         <div className="p-4 border-2 border-dashed rounded-lg flex flex-col items-center mt-4">
-                            <p className="font-semibold mb-2">Visual Representation:</p>
-                             <Image 
-                                src="https://firebasestorage.googleapis.com/v0/b/studio-687393081-9652d.appspot.com/o/assets%2Ffirestore-to-bigquery.png?alt=media&token=891316b1-0c67-4252-942f-fac1434199b5" 
-                                alt="Diagram showing Firestore streaming to BigQuery"
-                                width={800}
-                                height={250}
-                                className="rounded-md object-contain"
-                            />
-                        </div>
                     </div>
                 </StepCard>
 
@@ -77,16 +67,6 @@ export default function IntegrationGuidePage() {
                             <li>Choose your project, the dataset created by the extension, and the `grievances` table.</li>
                             <li>You can now build charts, graphs, and heatmaps using your live data.</li>
                         </ol>
-                        <div className="p-4 border-2 border-dashed rounded-lg flex flex-col items-center mt-4">
-                           <p className="font-semibold mb-2">Visual Representation:</p>
-                             <Image 
-                                src="https://firebasestorage.googleapis.com/v0/b/studio-687393081-9652d.appspot.com/o/assets%2Fbigquery-to-looker.png?alt=media&token=240974e3-3b25-4c09-906d-255d6142e0cf" 
-                                alt="Diagram showing BigQuery connecting to Looker Studio"
-                                width={800}
-                                height={250}
-                                className="rounded-md object-contain"
-                            />
-                        </div>
                     </div>
                 </StepCard>
 
