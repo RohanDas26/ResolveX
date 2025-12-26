@@ -110,7 +110,6 @@ const getManeuverIcon = (maneuver: string | undefined) => {
 export default function RoutePlanner() {
     const map = useMap();
     const routesLibrary = useMapsLibrary('routes');
-    const geometryLibrary = useMapsLibrary('geometry');
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -166,7 +165,7 @@ export default function RoutePlanner() {
         destinationLoc: google.maps.LatLng,
         mode: 'fastest' | 'avoid_issues'
     ): Promise<{ route: google.maps.DirectionsRoute, issues: Grievance[] } | null> => {
-        if (!directionsService || !geometryLibrary) return null;
+        if (!directionsService) return null;
 
         const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
         
@@ -174,8 +173,17 @@ export default function RoutePlanner() {
             origin: originLoc,
             destination: destinationLoc,
             travelMode: google.maps.TravelMode.DRIVING,
-            provideRouteAlternatives: true
         };
+
+        // If safest route is selected, add waypoints to avoid issues
+        if (mode === 'avoid_issues' && openGrievances.length > 0) {
+            request.avoid = ['tolls', 'highways']; // Example, can be more specific
+            request.waypoints = openGrievances.map(g => ({
+                location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
+                stopover: false, // This makes it a point to avoid, not a stop
+            }));
+        }
+
 
         try {
             const response = await directionsService.route(request);
@@ -184,41 +192,16 @@ export default function RoutePlanner() {
                 return null;
             }
 
-            // Score all routes
-            const scoredRoutes = response.routes.map(route => {
-                const issues = openGrievances.filter(g => {
-                    const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                    return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: route.overview_path }), 0.005); // ~500m tolerance
-                });
-                return {
-                    route,
-                    issues,
-                    issueCount: issues.length,
-                    travelTime: route.legs[0].duration?.value || Infinity
-                };
-            });
+            const chosenRoute = response.routes[0]; // The API returns the best route based on the request
 
-            let chosenRoute;
-            if (mode === 'fastest') {
-                chosenRoute = scoredRoutes.reduce((fastest, current) => current.travelTime < fastest.travelTime ? current : fastest);
-            } else { // 'avoid_issues'
-                 // Prioritize routes with 0 issues first, then by time.
-                 const zeroIssueRoutes = scoredRoutes.filter(r => r.issueCount === 0);
-                 if (zeroIssueRoutes.length > 0) {
-                     chosenRoute = zeroIssueRoutes.reduce((fastest, current) => current.travelTime < fastest.travelTime ? current : fastest);
-                 } else {
-                     // If all routes have issues, pick the one with the fewest issues.
-                     // If there's a tie in issue count, pick the fastest among them.
-                     chosenRoute = scoredRoutes.sort((a, b) => {
-                        if (a.issueCount !== b.issueCount) {
-                            return a.issueCount - b.issueCount;
-                        }
-                        return a.travelTime - b.travelTime;
-                     })[0];
-                 }
-            }
+            // After getting the route, check which issues are still on it (for display)
+            const issues = openGrievances.filter(g => {
+                const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
+                // Check if the issue is very close to the polyline of the route
+                 return google.maps.geometry.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: chosenRoute.overview_path }), 0.001); // ~100m tolerance
+            });
             
-            return { route: chosenRoute.route, issues: chosenRoute.issues };
+            return { route: chosenRoute, issues: issues };
         
         } catch (error) {
              toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
@@ -384,7 +367,7 @@ export default function RoutePlanner() {
                     
                     {issuesOnRoute.map(issue => (
                          <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
-                           <div className="p-1 bg-amber-500 rounded-full shadow-lg animate-pulse">
+                           <div className="p-1 bg-amber-500 rounded-full shadow-lg">
                              <AlertTriangle className="h-4 w-4 text-white" />
                            </div>
                          </AdvancedMarker>
@@ -393,4 +376,5 @@ export default function RoutePlanner() {
             </div>
         </div>
     );
-}
+
+    
