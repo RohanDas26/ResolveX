@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowRight } from "lucide-react";
 import { Icons } from "@/components/icons";
+import StarTrail from "@/components/star-trail";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function AuthPage() {
 
   return (
     <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden">
+      <StarTrail />
       
       {!showAuthForms ? (
         <div className="z-10 text-center animate-fade-in-up">
@@ -128,7 +130,6 @@ export default function AuthPage() {
         </div>
       )}
       
-      {/* Background Glows that follow the cursor */}
        <div 
         className="pointer-events-none absolute -inset-px transition-all duration-300"
         style={{
