@@ -2,30 +2,44 @@
 "use client";
 
 import GrievanceMap from "@/components/grievance-map";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query } from "firebase/firestore";
-import type { Grievance } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
+import { type Grievance } from "@/lib/types";
+import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { useUser } from "@/firebase";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
 const DETAIL_ZOOM = 15;
 
+// A simple in-memory store for our demo data
+const grievanceStore = {
+  grievances: [...DEMO_GRIEVANCES],
+  add: (grievance: Grievance) => {
+    grievanceStore.grievances.unshift(grievance);
+  },
+  get: () => {
+    return grievanceStore.grievances;
+  }
+};
+
 export default function Home() {
-  const firestore = useFirestore();
   const searchParams = useSearchParams();
+  const [grievances, setGrievances] = useState<Grievance[] | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState(TELANGANA_CENTER);
   const [mapZoom, setMapZoom] = useState(INITIAL_ZOOM);
+  const { isUserLoading } = useUser();
+  const [isLoading, setIsLoading] = useState(true);
 
-  const grievancesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, "grievances"));
-  }, [firestore]);
-
-  const { data: grievances, isLoading } = useCollection<Grievance>(grievancesQuery);
+  useEffect(() => {
+    // Simulate loading data
+    setIsLoading(true);
+    const data = grievanceStore.get();
+    setGrievances(data);
+    setIsLoading(false);
+  }, []);
 
   const selectedGrievance = useMemo(() => {
     return grievances?.find(g => g.id === selectedGrievanceId) || null;
@@ -57,20 +71,26 @@ export default function Home() {
         setMapCenter({ lat: grievance.location.latitude, lng: grievance.location.longitude });
         setMapZoom(DETAIL_ZOOM);
       }
-    } else {
-        // Optional: Reset zoom when deselecting
-        // setMapCenter(TELANGANA_CENTER);
-        // setMapZoom(INITIAL_ZOOM);
     }
   }
 
-  if (isLoading) {
+  if (isLoading || isUserLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="ml-4 text-lg">Loading Live Grievance Data...</p>
       </div>
     );
+  }
+  
+  // This is a shared state that can be updated from the submit page.
+  if (typeof window !== 'undefined') {
+    // @ts-ignore
+    window.addGrievance = (grievance: Grievance) => {
+      grievanceStore.add(grievance);
+      // This is a bit of a hack to force a re-render
+      setGrievances([...grievanceStore.get()]);
+    };
   }
 
   return (

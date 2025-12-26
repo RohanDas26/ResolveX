@@ -6,9 +6,10 @@ import type { Grievance, UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, doc, updateDoc } from "firebase/firestore";
 import { useSearchParams } from 'next/navigation'
+import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { doc, updateDoc, collection, query, where } from "firebase/firestore";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 
 function AdminDashboardContent() {
   const { toast } = useToast();
@@ -17,6 +18,7 @@ function AdminDashboardContent() {
 
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
+  const [grievances, setGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
 
   // Set selected grievance from URL query param on initial load
   useEffect(() => {
@@ -26,13 +28,21 @@ function AdminDashboardContent() {
     }
   }, [searchParams]);
 
-  const grievancesQuery = useMemoFirebase(() => {
+  const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "grievances"));
+    return query(collection(firestore, 'users'));
   }, [firestore]);
-
-  const { data: grievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
   
+  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+
+  const topReporters = useMemo(() => {
+      if (!users) return [];
+      return [...users]
+          .sort((a, b) => b.grievanceCount - a.grievanceCount)
+          .slice(0, 5);
+  }, [users]);
+
+
   const filteredGrievances = useMemo(() => {
     if (!grievances) return [];
     if (!filter) return grievances;
@@ -43,23 +53,12 @@ function AdminDashboardContent() {
     return grievances?.find(g => g.id === selectedGrievanceId) || null;
   }, [grievances, selectedGrievanceId]);
 
-  const handleUpdateGrievanceStatus = async (id: string, status: Grievance['status']) => {
-    if (!firestore) return;
-    const grievanceRef = doc(firestore, 'grievances', id);
-    try {
-      await updateDoc(grievanceRef, { status });
-      toast({
-        title: "Status Updated",
-        description: `Grievance status changed to ${status}.`,
-      });
-    } catch (error: any) {
-      console.error("Error updating status:", error);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error.message || "Could not update grievance status.",
-      });
-    }
+  const handleUpdateGrievanceStatus = (id: string, status: Grievance['status']) => {
+    setGrievances(prev => prev.map(g => g.id === id ? { ...g, status } : g));
+    toast({
+      title: "Status Updated (Demo)",
+      description: `Grievance status changed to ${status}. This is a local update.`,
+    });
   };
   
   const handleSelectGrievance = (id: string | null) => {
@@ -70,7 +69,8 @@ function AdminDashboardContent() {
     <div className="flex h-[calc(100vh-4rem)]">
       <AdminSidebar 
         grievances={filteredGrievances}
-        isLoading={grievancesLoading}
+        isLoading={false}
+        topReporters={topReporters}
         activeFilter={filter}
         onFilterChange={setFilter}
         onUpdateGrievanceStatus={handleUpdateGrievanceStatus}
@@ -79,7 +79,7 @@ function AdminDashboardContent() {
       />
       <AdminMap 
         grievances={filteredGrievances}
-        isLoading={grievancesLoading}
+        isLoading={false}
         onMarkerClick={handleSelectGrievance}
         selectedGrievanceId={selectedGrievanceId}
       />

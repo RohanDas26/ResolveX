@@ -21,6 +21,7 @@ import { Skeleton } from "../ui/skeleton";
 interface AdminSidebarProps {
     grievances: Grievance[] | null;
     isLoading: boolean;
+    topReporters: UserProfile[] | null;
     activeFilter: string | null;
     onFilterChange: (filter: string | null) => void;
     onUpdateGrievanceStatus: (id: string, status: Grievance['status']) => void;
@@ -46,6 +47,7 @@ const ClientTime = ({ date }: { date: Date | undefined }) => {
 export default function AdminSidebar({ 
     grievances, 
     isLoading, 
+    topReporters,
     activeFilter, 
     onFilterChange,
     onUpdateGrievanceStatus,
@@ -144,7 +146,7 @@ export default function AdminSidebar({
                             <CardTitle>Top Reporters</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Leaderboard isLoading={isLoading} />
+                            <Leaderboard users={topReporters} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 </div>

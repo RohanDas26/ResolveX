@@ -13,9 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle } from "lucide-react";
-import { useFirestore, useUser } from "@/firebase";
-import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction } from "firebase/firestore";
-import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { useUser } from "@/firebase";
+import { GeoPoint, Timestamp } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -38,12 +37,12 @@ const formSchema = z.object({
 function SubmitPageContent() {
     const { toast } = useToast();
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const firestore = useFirestore();
     const { user, profile, isUserLoading } = useUser();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -56,11 +55,11 @@ function SubmitPageContent() {
     const handleGetCurrentLocation = () => {
         setLocation(null);
         setLocationError(null);
-        setIsLoading(true);
+        setIsGettingLocation(true);
 
         if (!navigator.geolocation) {
             setLocationError("Geolocation is not supported by your browser.");
-            setIsLoading(false);
+            setIsGettingLocation(false);
             return;
         }
 
@@ -71,11 +70,11 @@ function SubmitPageContent() {
                     lng: position.coords.longitude,
                 });
                 setLocationError(null);
-                setIsLoading(false);
+                setIsGettingLocation(false);
             },
             () => {
                 setLocationError("Unable to retrieve your location. Please enable location permissions for this site.");
-                setIsLoading(false);
+                setIsGettingLocation(false);
             }
         );
     };
@@ -89,63 +88,38 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
             return;
         }
-        
-        setIsLoading(true);
-        
-        if (!firestore) {
-            toast({ variant: "destructive", title: "Error", description: "Database not initialized." });
-            setIsLoading(false);
+        if (!photoPreview) {
+             toast({ variant: "destructive", title: "Photo Missing", description: "Please upload a photo of the issue." });
             return;
         }
-
-        const imageFile = values.photo[0];
-        const storage = getStorage();
-        const grievanceId = uuidv4();
-        const userId = user.uid;
         
-        // Optimistically navigate
-        router.push(`/?id=${grievanceId}`);
-        toast({ title: "Submitting your grievance...", description: "Your report will appear on the map shortly." });
-
-        try {
-            const imageRef = ref(storage, `grievances/${userId}/${grievanceId}-${imageFile.name}`);
-            const uploadTask = await uploadBytes(imageRef, imageFile);
-            const imageUrl = await getDownloadURL(uploadTask.ref);
-
-            const grievanceData = {
-                id: grievanceId,
-                userId: userId,
-                userName: profile.name,
-                description: values.description,
-                imageUrl: imageUrl,
-                location: new GeoPoint(location.lat, location.lng),
-                status: "Submitted",
-                createdAt: Timestamp.now(),
-            };
-            
-            const grievanceDocRef = doc(firestore, "grievances", grievanceId);
-            const userDocRef = doc(firestore, "users", userId);
-
-            // Non-blocking transaction
-            runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userDocRef);
-
-                if (userDoc.exists()) {
-                    const newCount = (userDoc.data().grievanceCount || 0) + 1;
-                    transaction.update(userDocRef, { grievanceCount: newCount });
-                }
-                transaction.set(grievanceDocRef, grievanceData);
-            }).then(() => {
-                 toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
-            }).catch((error) => {
-                console.error("Transaction error:", error);
-                toast({ variant: "destructive", title: "Database Error", description: "Could not save grievance data. Please try again." });
-            });
-
-        } catch (error: any) {
-            console.error("Submission error:", error);
-            toast({ variant: "destructive", title: "Submission Failed", description: error.message || "An unexpected error occurred. Please try again." });
+        setIsSubmitting(true);
+        
+        const grievanceId = uuidv4();
+        
+        const newGrievance = {
+            id: grievanceId,
+            userId: user.uid,
+            userName: profile.name,
+            description: values.description,
+            imageUrl: photoPreview, // Use the preview URL for the demo
+            location: new GeoPoint(location.lat, location.lng),
+            status: "Submitted" as const,
+            createdAt: Timestamp.now(),
+            riskScore: Math.floor(Math.random() * 80) + 10,
+            aiNotes: "This is a newly submitted grievance and has not been analyzed yet.",
+        };
+        
+        // This is a temporary solution to pass data between pages on the client
+        // In a real app, this would be handled by a state management library or server-side logic
+        if (typeof window !== 'undefined' && (window as any).addGrievance) {
+            (window as any).addGrievance(newGrievance);
         }
+
+        toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
+
+        // Optimistically navigate to the map, highlighting the new pin
+        router.push(`/?id=${grievanceId}`);
     }
 
     const handleFile = (file: File) => {
@@ -274,8 +248,8 @@ function SubmitPageContent() {
                         />
                         
                         <div className="space-y-4">
-                            <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation} disabled={isLoading}>
-                                {isLoading && !location ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
+                            <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation} disabled={isGettingLocation}>
+                                {isGettingLocation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
                                 Get Current Location
                             </Button>
                             {location && (
@@ -298,9 +272,9 @@ function SubmitPageContent() {
                             )}
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isLoading || !location}>
-                            {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                            {isLoading ? "Submitting..." : "Submit Grievance"}
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location}>
+                            {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isSubmitting ? "Submitting..." : "Submit Grievance"}
                         </Button>
                     </form>
                 </Form>

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Leaderboard from '@/components/leaderboard';
+import { DEMO_GRIEVANCES } from '@/lib/demo-data'; // Using demo data
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -26,20 +27,18 @@ const getBadge = (grievanceCount: number) => {
 };
 
 export default function ProfilePage() {
-    const firestore = useFirestore();
     const { user: authUser, profile, isUserLoading, isProfileLoading } = useUser();
 
-    const grievancesQuery = useMemoFirebase(() => {
-        if (!firestore || !authUser) return null;
-        return query(collection(firestore, 'grievances'), where('userId', '==', authUser.uid));
-    }, [firestore, authUser]);
+    // Use demo grievances and filter them for the current mock user
+    const userGrievances = useMemo(() => {
+        if (!authUser) return [];
+        return DEMO_GRIEVANCES.filter(g => g.userId === authUser.uid);
+    }, [authUser]);
 
-    const { data: userGrievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
-
-    const grievanceCount = useMemo(() => profile?.grievanceCount ?? 0, [profile]);
+    const grievanceCount = useMemo(() => userGrievances.length, [userGrievances]);
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
-    const isLoading = isUserLoading || isProfileLoading || grievancesLoading;
+    const isLoading = isUserLoading || isProfileLoading;
 
     if (isLoading) {
         return (
@@ -77,7 +76,7 @@ export default function ProfilePage() {
                             <CardTitle>Leaderboard</CardTitle>
                         </CardHeader>
                         <CardContent>
-                           <Leaderboard />
+                           <Leaderboard users={null} isLoading={true} />
                         </CardContent>
                     </Card>
                 </div>

@@ -2,28 +2,18 @@
 "use client";
 
 import { useMemo } from 'react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Skeleton } from './ui/skeleton';
 import { Trophy } from 'lucide-react';
 
 interface LeaderboardProps {
+    users: UserProfile[] | null;
     isLoading?: boolean;
 }
 
-export default function Leaderboard({ isLoading: initialLoading }: LeaderboardProps) {
-    const firestore = useFirestore();
-
-    const usersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, "users"), orderBy("grievanceCount", "desc"), limit(5));
-    }, [firestore]);
-
-    const { data: users, isLoading: fetchedLoading } = useCollection<UserProfile>(usersQuery);
-
-    const isLoading = initialLoading ?? fetchedLoading;
+export default function Leaderboard({ users, isLoading: initialLoading }: LeaderboardProps) {
+    const isLoading = initialLoading ?? !users;
 
     if (isLoading) {
         return (

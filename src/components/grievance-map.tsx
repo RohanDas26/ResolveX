@@ -2,7 +2,7 @@
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
-import { useState, useCallback, useMemo, ReactNode, useEffect } from "react";
+import { useState, useCallback, useMemo, ReactNode } from "react";
 import { type Grievance } from "@/lib/types";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
