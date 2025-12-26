@@ -1,14 +1,16 @@
+
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Icons } from "./icons";
-import { PlusCircle, Map, ShieldCheck, User } from "lucide-react";
+import { PlusCircle, Map, ShieldCheck, User, Ticket } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/", label: "Live Map", icon: Map },
+  { href: "/tickets", label: "My Tickets", icon: Ticket },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/admin", label: "Admin", icon: ShieldCheck },
 ];
