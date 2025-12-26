@@ -163,14 +163,16 @@ export default function RoutePlanner() {
     }
     
     const countIssuesOnRoute = (route: google.maps.DirectionsRoute, openGrievances: Grievance[]) => {
-        if (!geometryLibrary) return openGrievances.length;
+        if (!geometryLibrary) return 0;
         
-        const routePolyline = new google.maps.Polyline({ path: route.overview_path });
+        const routePath = route.overview_path;
         
-        return openGrievances.filter(g => {
+        const onRoute = openGrievances.filter(g => {
             const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-            return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, routePolyline, 0.001); // Tolerance of ~100 meters
-        }).length;
+            // Check if the location is within ~50 meters of the polyline
+            return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: routePath }), 1e-3);
+        });
+        return onRoute;
     };
     
     const findRoute = async () => {
@@ -191,7 +193,7 @@ export default function RoutePlanner() {
             origin: originLocation,
             destination: destinationLocation,
             travelMode: google.maps.TravelMode.DRIVING,
-            provideRouteAlternatives: true, // Request multiple routes
+            provideRouteAlternatives: true,
         };
 
         try {
@@ -205,58 +207,49 @@ export default function RoutePlanner() {
             setDirectionsResult(response);
             const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
 
-            let bestRoute: google.maps.DirectionsRoute;
+            // --- New Logic ---
+            const routesWithAnalysis = response.routes.map(route => {
+                const issues = countIssuesOnRoute(route, openGrievances);
+                return {
+                    route,
+                    issues,
+                    issueCount: issues.length,
+                    duration: route.legs[0]?.duration?.value || Infinity,
+                };
+            });
+            
+            // Fastest route is the one with the minimum duration
+            const fastestRouteData = [...routesWithAnalysis].sort((a, b) => a.duration - b.duration)[0];
+            
+            // Safest route is the one with the minimum issue count
+            const safestRouteData = [...routesWithAnalysis].sort((a, b) => a.issueCount - b.issueCount)[0];
 
-            if (routePreference === 'avoid_issues' && response.routes.length > 1) {
-                // Score each route by the number of issues on it
-                const routesWithScores = response.routes.map(route => ({
-                    route: route,
-                    issueCount: countIssuesOnRoute(route, openGrievances),
-                }));
-
-                // Find the route with the minimum number of issues
-                routesWithScores.sort((a, b) => a.issueCount - b.issueCount);
-                bestRoute = routesWithScores[0].route;
-
-                if (routesWithScores[0].issueCount < routesWithScores.find(r => r.route === response.routes[0])!.issueCount) {
+            let chosenRouteData;
+            if (routePreference === 'fastest') {
+                chosenRouteData = fastestRouteData;
+                 toast({
+                    title: "Fastest Route Selected",
+                    description: `Duration: ${chosenRouteData.route.legs[0].duration?.text}. Issues on route: ${chosenRouteData.issueCount}.`,
+                });
+            } else { // 'avoid_issues'
+                chosenRouteData = safestRouteData;
+                if (safestRouteData.issueCount < fastestRouteData.issueCount) {
                      toast({
-                        title: "Safer Route Found!",
-                        description: "A route with fewer reported issues has been selected.",
+                        title: "Safest Route Selected!",
+                        description: `This route has ${safestRouteData.issueCount} issues, compared to ${fastestRouteData.issueCount} on the fastest route.`,
                         variant: 'default',
                         className: 'bg-green-600 border-green-600 text-white'
                     });
+                } else {
+                     toast({
+                        title: "Safest Route Selected",
+                        description: `Found route with ${safestRouteData.issueCount} issues.`,
+                    });
                 }
-
-            } else {
-                // Default to the fastest (primary) route
-                bestRoute = response.routes[0];
             }
             
-            setSelectedRoute(bestRoute);
-
-            // Final check for issues on the chosen route to display them
-            const finalIssuesOnRoute = openGrievances.filter(g => {
-                if (!geometryLibrary) return false;
-                const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                const routePolyline = new google.maps.Polyline({ path: bestRoute.overview_path });
-                return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, routePolyline, 0.001);
-            });
-
-            setIssuesOnRoute(finalIssuesOnRoute);
-
-            if (routePreference === 'fastest' && finalIssuesOnRoute.length > 0) {
-                toast({
-                    title: "Issues on Fastest Route",
-                    description: `FYI: The fastest route has ${finalIssuesOnRoute.length} reported issue(s).`,
-                    variant: 'destructive'
-                });
-            } else if (finalIssuesOnRoute.length === 0) {
-                 toast({
-                    title: "Route Appears Clear!",
-                    description: `No open grievances were found along your selected route.`,
-                });
-            }
-
+            setSelectedRoute(chosenRouteData.route);
+            setIssuesOnRoute(chosenRouteData.issues);
 
         } catch (e) {
             console.error("Directions request failed", e);
@@ -370,6 +363,14 @@ export default function RoutePlanner() {
                 >
                     {origin && (origin as any).geometry && <AdvancedMarker position={(origin as any).geometry.location}><Pin background={'#4caf50'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
                     {destination && (destination as any).geometry && <AdvancedMarker position={(destination as any).geometry.location}><Pin background={'#f44336'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
+                    
+                    {directionsResult && directionsResult.routes.map((route, index) => {
+                        if (route !== selectedRoute) {
+                           return <RoutePolyline key={index} route={route} color={'#808080'} />
+                        }
+                        return null;
+                    })}
+
                     {selectedRoute && <RoutePolyline route={selectedRoute} color={routeColor} />}
                     
                     {issuesOnRoute.map(issue => (
@@ -383,8 +384,6 @@ export default function RoutePlanner() {
             </div>
         </div>
     );
-
-    
 }
 
     
