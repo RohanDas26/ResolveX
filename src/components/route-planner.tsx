@@ -174,19 +174,8 @@ export default function RoutePlanner() {
             origin: originLoc,
             destination: destinationLoc,
             travelMode: google.maps.TravelMode.DRIVING,
+            provideRouteAlternatives: true // Always request alternatives
         };
-
-        if (mode === 'avoid_issues') {
-            request.provideRouteAlternatives = true;
-            // Explicitly tell the API to avoid the grievance locations
-            const waypointsToAvoid: google.maps.DirectionsWaypoint[] = openGrievances.map(g => ({
-                location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
-                stopover: false,
-            }));
-            // @ts-ignore - The 'avoid' property on waypoints is not in all type definitions yet
-            request.waypoints = waypointsToAvoid.map(wp => ({ ...wp, avoid: true }));
-        }
-
 
         try {
             const response = await directionsService.route(request);
@@ -195,24 +184,39 @@ export default function RoutePlanner() {
                 return null;
             }
 
-            // In 'avoid_issues' mode, we've already asked Google for the best route avoiding points.
-            // We just take the first result it gives us.
-            if (mode === 'avoid_issues') {
-                const safestRoute = response.routes[0];
-                 const issues = openGrievances.filter(g => {
+            // Score all routes
+            const scoredRoutes = response.routes.map(route => {
+                const issues = openGrievances.filter(g => {
                     const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                    return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: safestRoute.overview_path }), 0.005); // ~500m tolerance
+                    return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: route.overview_path }), 0.005); // ~500m tolerance
                 });
-                return { route: safestRoute, issues: issues };
-            }
-
-            // For 'fastest' mode, we just get the primary route and check for issues.
-            const fastestRoute = response.routes[0];
-            const issuesOnFastest = openGrievances.filter(g => {
-                const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: fastestRoute.overview_path }), 0.005);
+                return {
+                    route,
+                    issues,
+                    issueCount: issues.length,
+                    travelTime: route.legs[0].duration?.value || Infinity
+                };
             });
-            return { route: fastestRoute, issues: issuesOnFastest };
+
+
+            let chosenRoute;
+            if (mode === 'fastest') {
+                // Find the route with the minimum travel time
+                chosenRoute = scoredRoutes.reduce((fastest, current) => {
+                    return current.travelTime < fastest.travelTime ? current : fastest;
+                });
+            } else { // 'avoid_issues'
+                // Find the minimum number of issues on any route
+                const minIssues = Math.min(...scoredRoutes.map(r => r.issueCount));
+                // Filter to only routes that have that minimum number of issues
+                const safestCandidates = scoredRoutes.filter(r => r.issueCount === minIssues);
+                // From that safest group, pick the fastest one
+                chosenRoute = safestCandidates.reduce((fastest, current) => {
+                    return current.travelTime < fastest.travelTime ? current : fastest;
+                });
+            }
+            
+            return { route: chosenRoute.route, issues: chosenRoute.issues };
         
         } catch (error) {
              toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
@@ -388,3 +392,5 @@ export default function RoutePlanner() {
         </div>
     );
 }
+
+    
