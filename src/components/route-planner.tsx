@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Milestone, LocateFixed, Loader2, Info, Navigation, Clock, Forward } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
+import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 
 // Helper component for Google Places Autocomplete
 function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value }: { onPlaceChanged: (place: google.maps.places.PlaceResult) => void, placeholder: string, onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void, value: string }) {
@@ -67,7 +68,7 @@ export default function RoutePlanner() {
     const [destination, setDestination] = useState<LocationValue | null>(null);
     const [originText, setOriginText] = useState('');
     const [destinationText, setDestinationText] = useState('');
-    const [allGrievances] = useState<Grievance[]>([]);
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
 
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
@@ -161,6 +162,8 @@ export default function RoutePlanner() {
             const newDirectionsResult: google.maps.DirectionsResult = {
                 // @ts-ignore
                 routes: [result.route],
+                geocoded_waypoints: [],
+                request: {} as google.maps.DirectionsRequest,
             };
             setDirectionsResult(newDirectionsResult);
             setIssuesOnRoute(result.issues);
@@ -288,4 +291,5 @@ export default function RoutePlanner() {
             </div>
         </div>
     );
-}
+
+    
