@@ -27,7 +27,7 @@ export default function AdminSidebar({ grievances, users, isLoading, activeFilte
         <div className="w-full max-w-sm p-4 border-r border-border/60 overflow-y-auto animate-fade-in-left">
             <ScrollArea className="h-full pr-4 -mr-4">
                 <div className="space-y-6">
-                     <Card>
+                     <Card className="bg-card/50 backdrop-blur-sm">
                         <CardHeader>
                             <CardTitle className="text-lg">Admin Tools</CardTitle>
                         </CardHeader>
@@ -49,7 +49,7 @@ export default function AdminSidebar({ grievances, users, isLoading, activeFilte
                         activeFilter={activeFilter} 
                         onFilterChange={onFilterChange} 
                     />
-                    <Card>
+                    <Card className="bg-card/50 backdrop-blur-sm">
                         <CardHeader>
                             <CardTitle>Top Reporters</CardTitle>
                         </CardHeader>
