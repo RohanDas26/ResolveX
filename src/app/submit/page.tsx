@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
 import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction } from "firebase/firestore";
@@ -42,6 +42,7 @@ function SubmitPageContent() {
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
     const firestore = useFirestore();
     const { user, profile, isUserLoading } = useUser();
 
@@ -144,20 +145,41 @@ function SubmitPageContent() {
         } catch (error: any) {
             console.error("Submission error:", error);
             toast({ variant: "destructive", title: "Submission Failed", description: error.message || "An unexpected error occurred. Please try again." });
-            // Since we navigated away, we can't easily reset the loading state here.
-            // The user is already on the map page.
         }
     }
 
-     const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFile = (file: File) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPhotoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        // Create a FileList to satisfy the form schema
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        form.setValue("photo", dataTransfer.files);
+        // Manually trigger validation for the photo field
+        form.trigger("photo");
+    };
+
+    const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPhotoPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-            form.setValue("photo", event.target.files);
+            handleFile(file);
+        }
+    };
+    
+    const handleDrag = (e: DragEvent<HTMLDivElement>, isDragging: boolean) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(isDragging);
+    };
+
+    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+        handleDrag(e, false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            handleFile(file);
         }
     };
     
@@ -196,30 +218,54 @@ function SubmitPageContent() {
                          <FormField
                             control={form.control}
                             name="photo"
-                            render={({ field: { value, ...rest } }) => (
+                            render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Upload a photo</FormLabel>
                                 <FormControl>
-                                  <div className="relative flex justify-center w-full h-48 px-6 pt-5 pb-6 border-2 border-dashed rounded-md border-input hover:border-primary transition-colors">
-                                      {photoPreview ? (
-                                        <Image src={photoPreview} alt="Photo preview" layout="fill" objectFit="contain" className="rounded-md" />
-                                      ) : (
-                                        <div className="space-y-1 text-center">
-                                            <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground" />
-                                            <div className="flex text-sm text-muted-foreground">
-                                                <label
-                                                    htmlFor="file-upload"
-                                                    className="relative font-medium bg-transparent rounded-md cursor-pointer text-primary hover:text-primary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring"
+                                    <div
+                                        className={cn(
+                                            "relative flex justify-center w-full h-48 px-6 pt-5 pb-6 border-2 border-dashed rounded-md border-input group",
+                                            "transition-colors",
+                                            isDragging && "border-primary bg-accent/20"
+                                        )}
+                                        onDragEnter={(e) => handleDrag(e, true)}
+                                        onDragLeave={(e) => handleDrag(e, false)}
+                                        onDragOver={(e) => handleDrag(e, true)}
+                                        onDrop={handleDrop}
+                                    >
+                                        {photoPreview ? (
+                                            <>
+                                                <Image src={photoPreview} alt="Photo preview" layout="fill" objectFit="contain" className="rounded-md" />
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="absolute top-2 right-2 z-10"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        setPhotoPreview(null);
+                                                        form.setValue("photo", null);
+                                                    }}
                                                 >
-                                                    <span>Upload a file</span>
-                                                    <Input id="file-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} {...rest} />
-                                                </label>
-                                                <p className="pl-1">or drag and drop</p>
+                                                    Remove
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <div className="space-y-1 text-center pointer-events-none">
+                                                <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground" />
+                                                <div className="flex text-sm text-muted-foreground">
+                                                    <label
+                                                        htmlFor="file-upload"
+                                                        className="relative font-medium bg-transparent rounded-md cursor-pointer text-primary hover:text-primary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring pointer-events-auto"
+                                                    >
+                                                        <span>Upload a file</span>
+                                                        <Input id="file-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} />
+                                                    </label>
+                                                    <p className="pl-1">or drag and drop</p>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to 5MB</p>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
-                                        </div>
-                                      )}
-                                  </div>
+                                        )}
+                                    </div>
                                 </FormControl>
                                 <FormDescription>A clear photo helps resolve the issue faster.</FormDescription>
                                 <FormMessage />
