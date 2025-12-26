@@ -10,6 +10,8 @@ function StarTrail() {
     if (!starTrail) return;
 
     const createStar = () => {
+      if (document.querySelectorAll('.star').length > 200) return;
+
       const star = document.createElement('div');
       star.classList.add('star');
       const size = Math.random() * 2 + 1;
