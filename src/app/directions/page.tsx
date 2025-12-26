@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, Milestone, Map as MapIcon, LocateFixed } from 'lucide-react';
+import { AlertTriangle, Milestone, MapPin as MapIcon, LocateFixed } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -76,7 +76,9 @@ function Directions() {
 
     useEffect(() => {
         if (!directionsRenderer) return;
-        directionsRenderer.setDirections(directionsResult);
+        if (directionsResult) {
+            directionsRenderer.setDirections(directionsResult);
+        }
     }, [directionsRenderer, directionsResult]);
 
 
@@ -262,3 +264,5 @@ export default function DirectionsPage() {
         </div>
     );
 }
+
+    
