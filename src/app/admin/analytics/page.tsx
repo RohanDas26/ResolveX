@@ -7,8 +7,8 @@ import { collection, query } from "firebase/firestore";
 import type { Grievance } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { format, subDays, isWithinInterval } from "date-fns";
-import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight } from "lucide-react";
+import { format, subDays, isWithinInterval, differenceInDays } from "date-fns";
+import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight, Lightbulb, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -30,20 +30,47 @@ function categorizeGrievance(description: string): string {
 }
 
 function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
-    const insight = useMemo(() => {
+    const insights = useMemo(() => {
         if (!grievances || grievances.length === 0) {
-            return "No grievance data available to generate insights.";
+            return { topCategory: null, emergingHotspot: null, resolutionTime: null };
         }
 
-        const totalComplaints = grievances.length;
-        const klhComplaints = grievances.filter(g => 
-            g.location.latitude > 17.3 && g.location.latitude < 17.5 &&
-            g.location.longitude > 78.4 && g.location.longitude < 78.6
-        ).length;
+        const categoryMap: { [key: string]: number } = {};
+        grievances.forEach(g => {
+            const category = categorizeGrievance(g.description);
+            categoryMap[category] = (categoryMap[category] || 0) + 1;
+        });
+        const topCategory = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0];
 
-        const klhPercentage = totalComplaints > 0 ? ((klhComplaints / totalComplaints) * 100).toFixed(0) : 0;
+        const recentGrievances = grievances.filter(g => {
+            const grievanceDate = g.createdAt.toDate();
+            const sevenDaysAgo = subDays(new Date(), 7);
+            return grievanceDate > sevenDaysAgo;
+        });
+
+        const hotspotCenter = DEMO_CENTERS.find(c => c.name === "Gajularamaram Industrial Area");
+        let emergingHotspot = null;
+        if (hotspotCenter) {
+            const { lat, lng, radiusKm } = hotspotCenter;
+            const radiusDeg = radiusKm / 111.32;
+            const recentHotspotGrievances = recentGrievances.filter(g => 
+                Math.sqrt(Math.pow(g.location.latitude - lat, 2) + Math.pow(g.location.longitude - lng, 2)) < radiusDeg
+            ).length;
+            if (recentHotspotGrievances > 3) { // Threshold for being a "hotspot"
+                emergingHotspot = hotspotCenter.name;
+            }
+        }
         
-        return `KLH = ${klhPercentage}% complaints`;
+        const submittedGrievances = grievances.filter(g => g.status === 'Submitted');
+        let resolutionTime: number | null = null;
+        if (submittedGrievances.length > 0) {
+            const totalDays = submittedGrievances.reduce((acc, g) => {
+                return acc + differenceInDays(new Date(), g.createdAt.toDate());
+            }, 0);
+            resolutionTime = Math.round(totalDays / submittedGrievances.length);
+        }
+        
+        return { topCategory, emergingHotspot, resolutionTime };
 
     }, [grievances]);
 
@@ -51,11 +78,39 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
         <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <CardHeader>
                 <CardTitle className="flex items-center"><Zap className="mr-2 h-5 w-5 text-primary" /> Gemini on BigQuery</CardTitle>
-                <CardDescription>Automatic analysis of grievance trends.</CardDescription>
+                <CardDescription>Automatic analysis of real-time grievance trends.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <p className="text-lg font-semibold">{insight}</p>
-                <p className="text-sm text-muted-foreground mt-2">*Insight generated based on geo-location of complaints.</p>
+            <CardContent className="space-y-4">
+                 {insights.topCategory ? (
+                    <div className="flex items-start gap-3">
+                         <div className="p-2 bg-primary/10 rounded-full"><Lightbulb className="h-5 w-5 text-primary" /></div>
+                        <div>
+                            <h4 className="font-semibold">Top Issue</h4>
+                            <p className="text-sm text-muted-foreground">{insights.topCategory[0]} reports are the most frequent, making up {((insights.topCategory[1] / (grievances?.length || 1)) * 100).toFixed(0)}% of all issues.</p>
+                        </div>
+                    </div>
+                ) : <p className="text-sm text-muted-foreground">Not enough data for trend analysis.</p>}
+
+                {insights.emergingHotspot ? (
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-500/10 rounded-full"><AlertTriangle className="h-5 w-5 text-amber-500" /></div>
+                        <div>
+                            <h4 className="font-semibold">Emerging Hotspot</h4>
+                            <p className="text-sm text-muted-foreground">A spike in reports has been detected in the <span className="font-bold text-amber-500">{insights.emergingHotspot}</span> area this week.</p>
+                        </div>
+                    </div>
+                ) : <p className="text-sm text-muted-foreground">No new hotspots detected this week.</p>}
+                
+                {insights.resolutionTime !== null ? (
+                    <div className="flex items-start gap-3">
+                         <div className="p-2 bg-green-500/10 rounded-full"><Clock className="h-5 w-5 text-green-500" /></div>
+                        <div>
+                            <h4 className="font-semibold">Avg. Time Open</h4>
+                            <p className="text-sm text-muted-foreground">Currently, new grievances remain open for an average of <span className="font-bold text-green-500">{insights.resolutionTime} days</span> before being resolved.</p>
+                        </div>
+                    </div>
+                ) : <p className="text-sm text-muted-foreground">No open grievances to analyze.</p>}
+
             </CardContent>
         </Card>
     );
@@ -66,14 +121,22 @@ function ImpactSimulator() {
     const [issuesToResolve, setIssuesToResolve] = useState(15);
     const [simulationData, setSimulationData] = useState<any>(null);
 
+    // This state is now initialized inside useEffect to avoid hydration errors
+    const [grievances, setGrievances] = useState<Grievance[] | null>(null);
     useEffect(() => {
+        setGrievances(DEMO_GRIEVANCES);
+    }, []);
+
+    useEffect(() => {
+        if (!grievances) return;
+
         const center = DEMO_CENTERS.find(c => c.name === selectedArea);
         if (!center) return;
 
         const { lat, lng, radiusKm } = center;
         const radiusDeg = radiusKm / 111.32;
 
-        const areaGrievances = DEMO_GRIEVANCES.filter(g => 
+        const areaGrievances = grievances.filter(g => 
             Math.sqrt(Math.pow(g.location.latitude - lat, 2) + Math.pow(g.location.longitude - lng, 2)) < radiusDeg
         );
 
@@ -104,7 +167,7 @@ function ImpactSimulator() {
             projectedRisk: Math.round(projectedRisk),
             projectedComplaints,
         });
-    }, [selectedArea, issuesToResolve]);
+    }, [selectedArea, issuesToResolve, grievances]);
 
     if (!simulationData) return (
         <Card className="animate-fade-in-up flex items-center justify-center min-h-[400px]" style={{ animationDelay: '400ms' }}>
@@ -193,6 +256,7 @@ export default function AnalyticsPage() {
     const { data: grievances, isLoading } = useCollection<Grievance>(grievancesQuery);
 
     const statusData = useMemo(() => {
+        if (!grievances) return [{ status: "Submitted", count: 0 }, { status: "In Progress", count: 0 }, { status: "Resolved", count: 0 }];
         const counts: { [key: string]: number } = { Submitted: 0, "In Progress": 0, Resolved: 0 };
         grievances?.forEach(g => {
             if (g.status in counts) {
@@ -208,21 +272,24 @@ export default function AnalyticsPage() {
             return { date: format(date, "MMM dd"), count: 0 };
         });
 
-        grievances?.forEach(g => {
-             if (g.createdAt && 'seconds' in g.createdAt) {
-                const grievanceDate = new Date(g.createdAt.seconds * 1000);
-                const dayStr = format(grievanceDate, "MMM dd");
-                const dayData = last30Days.find(d => d.date === dayStr);
-                if (dayData) {
-                    dayData.count++;
+        if (grievances) {
+            grievances.forEach(g => {
+                if (g.createdAt && 'seconds' in g.createdAt) {
+                    const grievanceDate = new Date(g.createdAt.seconds * 1000);
+                    const dayStr = format(grievanceDate, "MMM dd");
+                    const dayData = last30Days.find(d => d.date === dayStr);
+                    if (dayData) {
+                        dayData.count++;
+                    }
                 }
-            }
-        });
+            });
+        }
 
         return last30Days;
     }, [grievances]);
 
     const categoryData = useMemo(() => {
+        if (!grievances) return [];
         const categoryMap: { [key: string]: number } = {};
         grievances?.forEach(g => {
             const category = categorizeGrievance(g.description);
@@ -244,7 +311,7 @@ export default function AnalyticsPage() {
             <h1 className="text-3xl font-bold tracking-tight animate-fade-in-up">Grievance Analytics</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <AIInsights grievances={grievances} />
+                    <AIInsights grievances={grievances ?? DEMO_GRIEVANCES} />
                     <ImpactSimulator />
                 </div>
                 <Card className="animate-fade-in-up">
