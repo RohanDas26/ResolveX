@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Map, useMap, useMapsLibrary, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import type { Grievance } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Milestone, LocateFixed, Loader2, Info } from 'lucide-react';
-import { DEMO_GRIEVANCES } from '@/lib/demo-data';
+import { AlertTriangle, Milestone, LocateFixed, Loader2, Info, Navigation, Clock, Forward } from 'lucide-react';
+import { ScrollArea } from './ui/scroll-area';
 
 // Helper component for Google Places Autocomplete
 function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value }: { onPlaceChanged: (place: google.maps.places.PlaceResult) => void, placeholder: string, onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void, value: string }) {
@@ -55,7 +55,7 @@ function RoutePolyline({ route, color }: { route: google.maps.DirectionsRoute | 
     return null;
 }
 
-export default function RoutePlanner({ allGrievances }: { allGrievances: Grievance[] }) {
+export default function RoutePlanner() {
     const map = useMap();
     const routesLibrary = useMapsLibrary('routes');
     const geometryLibrary = useMapsLibrary('geometry');
@@ -67,6 +67,7 @@ export default function RoutePlanner({ allGrievances }: { allGrievances: Grievan
     const [destination, setDestination] = useState<LocationValue | null>(null);
     const [originText, setOriginText] = useState('');
     const [destinationText, setDestinationText] = useState('');
+    const [allGrievances] = useState<Grievance[]>([]);
 
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
@@ -157,11 +158,9 @@ export default function RoutePlanner({ allGrievances }: { allGrievances: Grievan
         const result = await getSmartRoute(originLocation, destinationLocation, routePreference);
         
         if (result) {
-            // The DirectionsResult needs a full object, but we only need one route for rendering
             const newDirectionsResult: google.maps.DirectionsResult = {
                 // @ts-ignore
                 routes: [result.route],
-                // Other properties can be added if needed, but are not necessary for the polyline
             };
             setDirectionsResult(newDirectionsResult);
             setIssuesOnRoute(result.issues);
@@ -177,6 +176,11 @@ export default function RoutePlanner({ allGrievances }: { allGrievances: Grievan
                     title: "FYI: Issues on Route",
                     description: `Fastest route has ${result.issues.length} issue(s). To find a safer path, select 'Avoid Issues'.`,
                 });
+            } else if (result.issues.length === 0) {
+                toast({
+                    title: "Route Clear!",
+                    description: `No open grievances found on your selected route.`,
+                });
             }
         }
         setIsLoading(false);
@@ -186,60 +190,102 @@ export default function RoutePlanner({ allGrievances }: { allGrievances: Grievan
     const routeColor = routePreference === 'fastest' ? '#3b82f6' : '#22c55e'; // blue or green
 
     return (
-        <>
-            <Card className="w-full max-w-md m-4 border-0 md:border md:shadow-lg z-10 animate-fade-in-left absolute left-0 top-0 bg-background/80 backdrop-blur-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Milestone /> Smart Navigator</CardTitle>
-                    <CardDescription>Find the best route for your journey.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>Origin</Label>
-                        <div className="flex gap-2">
-                            <PlaceAutocomplete onPlaceChanged={p => {setOrigin(p); setOriginText(p.formatted_address || p.name || '')}} placeholder="Enter origin" value={originText} onInputChange={e => setOriginText(e.target.value)} />
-                            <Button variant="outline" size="icon" onClick={handleUseMyLocation}><LocateFixed/></Button>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Destination</Label>
-                        <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} />
-                    </div>
-                    <RadioGroup value={routePreference} onValueChange={(v: 'fastest' | 'avoid_issues') => setRoutePreference(v)}>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="fastest" id="fastest" />
-                            <Label htmlFor="fastest">Fastest (ignore issues)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="avoid_issues" id="avoid_issues" />
-                            <Label htmlFor="avoid_issues">Fastest (avoid issues)</Label>
-                        </div>
-                    </RadioGroup>
-                    <Button onClick={handleFindRoute} className="w-full" disabled={isLoading}>
-                        {isLoading && <Loader2 className="animate-spin mr-2"/>}
-                        Find Route
-                    </Button>
-                </CardContent>
-            </Card>
-
-            {selectedRoute && (
-                <Card className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-sm z-10 animate-fade-in-up bg-background/80 backdrop-blur-sm">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Route Summary</CardTitle>
+        <div className="flex h-[calc(100vh-4rem)] w-full">
+            <div className="w-full max-w-md flex flex-col border-r border-border">
+                <Card className="border-0 border-b rounded-none shadow-none">
+                     <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Navigation /> Smart Navigator</CardTitle>
+                        <CardDescription>Find the best route for your journey, avoiding reported issues.</CardDescription>
                     </CardHeader>
-                    <CardContent className="text-sm space-y-2">
-                        <p><strong>Distance:</strong> {selectedRoute.legs[0].distance?.text}</p>
-                        <p><strong>Duration:</strong> {selectedRoute.legs[0].duration?.text}</p>
-                        <div className="flex items-center gap-2">
-                            <strong>Issues on route:</strong>
-                            <span className={`font-bold ${issuesOnRoute.length > 0 ? 'text-amber-500' : 'text-green-500'}`}>{issuesOnRoute.length}</span>
-                            {issuesOnRoute.length > 0 && <AlertTriangle className="text-amber-500 h-4 w-4"/>}
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Origin</Label>
+                            <div className="flex gap-2">
+                                <PlaceAutocomplete onPlaceChanged={p => {setOrigin(p); setOriginText(p.formatted_address || p.name || '')}} placeholder="Enter origin" value={originText} onInputChange={e => setOriginText(e.target.value)} />
+                                <Button variant="outline" size="icon" onClick={handleUseMyLocation}><LocateFixed/></Button>
+                            </div>
                         </div>
+                        <div className="space-y-2">
+                            <Label>Destination</Label>
+                            <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} />
+                        </div>
+                        <RadioGroup value={routePreference} onValueChange={(v: 'fastest' | 'avoid_issues') => setRoutePreference(v)}>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="fastest" id="fastest" />
+                                <Label htmlFor="fastest">Fastest (ignore issues)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="avoid_issues" id="avoid_issues" />
+                                <Label htmlFor="avoid_issues">Safest (avoid issues)</Label>
+                            </div>
+                        </RadioGroup>
+                        <Button onClick={handleFindRoute} className="w-full" disabled={isLoading}>
+                            {isLoading && <Loader2 className="animate-spin mr-2"/>}
+                            Find Route
+                        </Button>
                     </CardContent>
                 </Card>
-            )}
 
-            {selectedRoute && <RoutePolyline route={selectedRoute} color={routeColor} />}
-        </>
+                <ScrollArea className="flex-1">
+                    {selectedRoute ? (
+                        <div className="p-4 space-y-4">
+                            <Card>
+                                <CardHeader className="p-4">
+                                     <CardTitle className="text-lg">Route Summary</CardTitle>
+                                </CardHeader>
+                                <CardContent className="text-sm space-y-2 p-4 pt-0">
+                                    <p><strong>Distance:</strong> {selectedRoute.legs[0].distance?.text}</p>
+                                    <p><strong>Duration:</strong> {selectedRoute.legs[0].duration?.text}</p>
+                                    <div className="flex items-center gap-2">
+                                        <strong>Issues on route:</strong>
+                                        <span className={`font-bold ${issuesOnRoute.length > 0 ? 'text-amber-500' : 'text-green-500'}`}>{issuesOnRoute.length}</span>
+                                        {issuesOnRoute.length > 0 && <AlertTriangle className="text-amber-500 h-4 w-4"/>}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <h3 className="text-lg font-semibold mt-4">Turn-by-turn Directions</h3>
+                            <div className="space-y-3">
+                                {selectedRoute.legs[0].steps.map((step, index) => (
+                                    <div key={index} className="flex gap-4 items-start p-2 rounded-md hover:bg-muted">
+                                        <div className="pt-1">
+                                             <Forward className="h-5 w-5 text-primary"/>
+                                        </div>
+                                        <div>
+                                            <div dangerouslySetInnerHTML={{ __html: step.instructions || '' }} className="font-semibold" />
+                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                <span>{step.distance?.text}</span>
+                                                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{step.duration?.text}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                        </div>
+                    ) : (
+                         <div className="p-8 text-center text-muted-foreground">
+                            <Info className="h-8 w-8 mx-auto mb-2" />
+                            <p>Enter an origin and destination to see your route.</p>
+                        </div>
+                    )}
+                </ScrollArea>
+
+            </div>
+             <div className="flex-1 relative">
+                <Map
+                    defaultCenter={{ lat: 17.3850, lng: 78.4867 }}
+                    defaultZoom={12}
+                    mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
+                    gestureHandling={'greedy'}
+                    disableDefaultUI={true}
+                    className="absolute top-0 left-0 h-full w-full bg-muted"
+                >
+                    {origin && (origin as any).geometry && <AdvancedMarker position={(origin as any).geometry.location}><Pin background={'#4caf50'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
+                    {destination && (destination as any).geometry && <AdvancedMarker position={(destination as any).geometry.location}><Pin background={'#f44336'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
+                    {selectedRoute && <RoutePolyline route={selectedRoute} color={routeColor} />}
+                </Map>
+            </div>
+        </div>
     );
 }
-
