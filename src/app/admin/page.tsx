@@ -1,33 +1,38 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
-import type { Grievance } from "@/lib/types";
+import { useMemo, useState, useEffect } from "react";
+import type { Grievance, UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { UserProfile } from "@/lib/types";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, doc, updateDoc } from "firebase/firestore";
+import { useSearchParams } from 'next/navigation'
 
 function AdminDashboardContent() {
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const searchParams = useSearchParams()
+
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
 
-  const grievances = DEMO_GRIEVANCES; // Use demo data
+  // Set selected grievance from URL query param on initial load
+  useEffect(() => {
+    const grievanceId = searchParams.get('id');
+    if (grievanceId) {
+      setSelectedGrievanceId(grievanceId);
+    }
+  }, [searchParams]);
+
+  const grievancesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, "grievances"));
+  }, [firestore]);
+
+  const { data: grievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
   
-  const grievancesLoading = false;
-  const usersLoading = false;
-
-  // Use a static list of top users to prevent hydration errors.
-  const allUsers: UserProfile[] = [
-    { id: 'user-demo-20', name: 'Manoj', email: 'manoj@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Manoj', grievanceCount: 36 },
-    { id: 'user-demo-19', name: 'Kavita', email: 'kavita@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Kavita', grievanceCount: 29 },
-    { id: 'user-demo-18', name: 'Rajesh', email: 'rajesh@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Rajesh', grievanceCount: 23 },
-    { id: 'user-demo-17', name: 'Sunita', email: 'sunita@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Sunita', grievanceCount: 18 },
-    { id: 'user-demo-16', name: 'Amit', email: 'amit@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Amit', grievanceCount: 14 }
-  ];
-
   const filteredGrievances = useMemo(() => {
     if (!grievances) return [];
     if (!filter) return grievances;
@@ -35,16 +40,26 @@ function AdminDashboardContent() {
   }, [grievances, filter]);
 
   const selectedGrievance = useMemo(() => {
-    return grievances.find(g => g.id === selectedGrievanceId) || null;
+    return grievances?.find(g => g.id === selectedGrievanceId) || null;
   }, [grievances, selectedGrievanceId]);
 
-  const handleUpdateGrievanceStatus = (id: string, status: Grievance['status']) => {
-    // This is a demo, so we can't update the status.
-    // In a real app, you would call a Firestore update function here.
-    toast({
-      title: "Action Disabled in Demo",
-      description: "Grievance status cannot be updated using demo data.",
-    });
+  const handleUpdateGrievanceStatus = async (id: string, status: Grievance['status']) => {
+    if (!firestore) return;
+    const grievanceRef = doc(firestore, 'grievances', id);
+    try {
+      await updateDoc(grievanceRef, { status });
+      toast({
+        title: "Status Updated",
+        description: `Grievance status changed to ${status}.`,
+      });
+    } catch (error: any) {
+      console.error("Error updating status:", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Could not update grievance status.",
+      });
+    }
   };
   
   const handleSelectGrievance = (id: string | null) => {
@@ -55,8 +70,7 @@ function AdminDashboardContent() {
     <div className="flex h-[calc(100vh-4rem)]">
       <AdminSidebar 
         grievances={filteredGrievances}
-        users={allUsers}
-        isLoading={grievancesLoading || usersLoading}
+        isLoading={grievancesLoading}
         activeFilter={filter}
         onFilterChange={setFilter}
         onUpdateGrievanceStatus={handleUpdateGrievanceStatus}
@@ -74,6 +88,5 @@ function AdminDashboardContent() {
 }
 
 export default function AdminPage() {
-    
     return <AdminDashboardContent />;
 }

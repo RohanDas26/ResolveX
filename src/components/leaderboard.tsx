@@ -10,29 +10,20 @@ import { Skeleton } from './ui/skeleton';
 import { Trophy } from 'lucide-react';
 
 interface LeaderboardProps {
-    users?: UserProfile[] | null;
     isLoading?: boolean;
 }
 
-export default function Leaderboard({ users: initialUsers, isLoading: initialLoading }: LeaderboardProps) {
+export default function Leaderboard({ isLoading: initialLoading }: LeaderboardProps) {
     const firestore = useFirestore();
 
     const usersQuery = useMemoFirebase(() => {
-        if (initialUsers || !firestore) return null;
-        return query(collection(firestore, "users"), orderBy("grievanceCount", "desc"), limit(10));
-    }, [firestore, initialUsers]);
+        if (!firestore) return null;
+        return query(collection(firestore, "users"), orderBy("grievanceCount", "desc"), limit(5));
+    }, [firestore]);
 
-    const { data: fetchedUsers, isLoading: fetchedLoading } = useCollection<UserProfile>(usersQuery);
+    const { data: users, isLoading: fetchedLoading } = useCollection<UserProfile>(usersQuery);
 
-    const users = useMemo(() => initialUsers || fetchedUsers, [initialUsers, fetchedUsers]);
     const isLoading = initialLoading ?? fetchedLoading;
-
-    const sortedUsers = useMemo(() => {
-        if (!users) return [];
-        // Make a mutable copy and sort
-        return [...users].sort((a, b) => (b.grievanceCount ?? 0) - (a.grievanceCount ?? 0));
-    }, [users]);
-
 
     if (isLoading) {
         return (
@@ -52,7 +43,7 @@ export default function Leaderboard({ users: initialUsers, isLoading: initialLoa
 
     return (
         <div className="space-y-4">
-            {sortedUsers && sortedUsers.map((user, index) => (
+            {users && users.map((user, index) => (
                 <div key={user.id} className="flex items-center gap-4 animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
                     <span className="font-bold text-lg w-6 text-center">{index + 1}</span>
                     <Avatar className="h-10 w-10">
@@ -66,6 +57,9 @@ export default function Leaderboard({ users: initialUsers, isLoading: initialLoa
                     {index === 0 && <Trophy className="h-6 w-6 text-amber-400" />}
                 </div>
             ))}
+             {(!users || users.length === 0) && !isLoading && (
+                 <p className="text-sm text-muted-foreground text-center py-4">No user data available.</p>
+             )}
         </div>
     );
 }

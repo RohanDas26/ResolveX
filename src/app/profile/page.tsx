@@ -3,15 +3,14 @@
 
 import { useMemo } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
-import { Grievance, UserProfile } from '@/lib/types';
+import { collection, query, where } from 'firebase/firestore';
+import { Grievance } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDoc } from '@/firebase/firestore/use-doc';
+import Leaderboard from '@/components/leaderboard';
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -78,7 +77,7 @@ export default function ProfilePage() {
                             <CardTitle>Leaderboard</CardTitle>
                         </CardHeader>
                         <CardContent>
-                           <p className="text-sm text-muted-foreground">The leaderboard is now available on the admin page.</p>
+                           <Leaderboard />
                         </CardContent>
                     </Card>
                 </div>

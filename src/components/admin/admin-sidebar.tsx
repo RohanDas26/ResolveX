@@ -14,10 +14,12 @@ import GrievanceDetails from "./grievance-details";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "../ui/badge";
 import { useEffect, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Zap, CheckCircle, Clock } from "lucide-react";
+import { Skeleton } from "../ui/skeleton";
 
 interface AdminSidebarProps {
     grievances: Grievance[] | null;
-    users: UserProfile[] | null;
     isLoading: boolean;
     activeFilter: string | null;
     onFilterChange: (filter: string | null) => void;
@@ -26,14 +28,14 @@ interface AdminSidebarProps {
     onSelectGrievance: (id: string | null) => void;
 }
 
-const ClientTime = ({ date }: { date: Date }) => {
+const ClientTime = ({ date }: { date: Date | undefined }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-    if (!isMounted) {
+    if (!isMounted || !date) {
         return null; // Or a loader/placeholder
     }
 
@@ -43,25 +45,41 @@ const ClientTime = ({ date }: { date: Date }) => {
 
 export default function AdminSidebar({ 
     grievances, 
-    users, 
     isLoading, 
     activeFilter, 
-    onFilterChange, 
+    onFilterChange,
+    onUpdateGrievanceStatus,
     selectedGrievance, 
     onSelectGrievance
 }: AdminSidebarProps) {
     const pathname = usePathname();
+    const [newStatus, setNewStatus] = useState<Grievance['status'] | null>(null);
+
+    useEffect(() => {
+        if (selectedGrievance) {
+            setNewStatus(selectedGrievance.status);
+        } else {
+            setNewStatus(null);
+        }
+    }, [selectedGrievance]);
     
     if (selectedGrievance) {
         return (
-            <div className="w-full max-w-sm p-4 border-r border-border/60 animate-fade-in-left">
-                <div className="flex justify-between items-center mb-4">
+            <div className="w-full max-w-sm p-4 border-r border-border/60 animate-fade-in-left flex flex-col">
+                <div className="flex justify-between items-center mb-4 shrink-0">
                     <h2 className="text-lg font-bold">Grievance Details</h2>
                     <Button variant="ghost" size="icon" onClick={() => onSelectGrievance(null)}>
                         <X className="h-4 w-4" />
                     </Button>
                 </div>
-                <GrievanceDetails grievance={selectedGrievance} />
+                 <ScrollArea className="h-full pr-4 -mr-4">
+                    <GrievanceDetails 
+                        grievance={selectedGrievance} 
+                        onUpdateGrievanceStatus={onUpdateGrievanceStatus} 
+                        newStatus={newStatus}
+                        setNewStatus={setNewStatus}
+                    />
+                </ScrollArea>
             </div>
         )
     }
@@ -99,12 +117,19 @@ export default function AdminSidebar({
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4 max-h-64 overflow-y-auto">
+                                {isLoading && (
+                                    <div className="space-y-4">
+                                        <Skeleton className="h-12 w-full" />
+                                        <Skeleton className="h-12 w-full" />
+                                        <Skeleton className="h-12 w-full" />
+                                    </div>
+                                )}
                                 {grievances?.map(g => (
                                     <button key={g.id} onClick={() => onSelectGrievance(g.id)} className="w-full text-left p-2 rounded-md hover:bg-muted transition-colors">
                                         <p className="font-semibold truncate">{g.description}</p>
                                         <div className="flex justify-between items-center">
                                             <p className="text-sm text-muted-foreground">
-                                                <ClientTime date={g.createdAt.toDate()} />
+                                                <ClientTime date={g.createdAt?.toDate()} />
                                             </p>
                                             <Badge variant={g.status === 'Resolved' ? 'default' : g.status === 'In Progress' ? 'secondary' : 'destructive'} className="shrink-0">{g.status}</Badge>
                                         </div>
@@ -119,7 +144,7 @@ export default function AdminSidebar({
                             <CardTitle>Top Reporters</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Leaderboard users={users} isLoading={isLoading} />
+                            <Leaderboard isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 </div>

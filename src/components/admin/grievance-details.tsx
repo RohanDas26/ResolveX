@@ -13,9 +13,12 @@ import { Progress } from "../ui/progress";
 
 interface GrievanceDetailsProps {
     grievance: Grievance;
+    onUpdateGrievanceStatus: (id: string, status: Grievance['status']) => void;
+    newStatus: Grievance['status'] | null;
+    setNewStatus: (status: Grievance['status'] | null) => void;
 }
 
-export default function GrievanceDetails({ grievance }: GrievanceDetailsProps) {
+export default function GrievanceDetails({ grievance, onUpdateGrievanceStatus, newStatus, setNewStatus }: GrievanceDetailsProps) {
 
     const getStatusVariant = (status: Grievance['status']): "default" | "secondary" | "destructive" => {
         switch(status) {
@@ -45,7 +48,7 @@ export default function GrievanceDetails({ grievance }: GrievanceDetailsProps) {
                     <CardTitle className="text-lg">{grievance.description}</CardTitle>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-muted-foreground mt-4">
                         <div className="flex items-center gap-2"><User /><span>{grievance.userName}</span></div>
-                        <div className="flex items-center gap-2"><Calendar /><span>{format(grievance.createdAt.toDate(), "PP")}</span></div>
+                        <div className="flex items-center gap-2"><Calendar /><span>{grievance.createdAt ? format(grievance.createdAt.toDate(), "PP") : 'N/A'}</span></div>
                         <div className="flex items-center gap-2 col-span-2"><MapPin /><span>{grievance.location.latitude.toFixed(4)}, {grievance.location.longitude.toFixed(4)}</span></div>
                     </div>
                 </CardContent>
@@ -60,7 +63,7 @@ export default function GrievanceDetails({ grievance }: GrievanceDetailsProps) {
                         <span>Current Status:</span>
                         <Badge variant={getStatusVariant(grievance.status)}>{grievance.status}</Badge>
                     </div>
-                    <Select defaultValue={grievance.status}>
+                    <Select value={newStatus || grievance.status} onValueChange={(v) => setNewStatus(v as Grievance['status'])}>
                         <SelectTrigger>
                             <SelectValue placeholder="Update status" />
                         </SelectTrigger>
@@ -70,7 +73,9 @@ export default function GrievanceDetails({ grievance }: GrievanceDetailsProps) {
                             <SelectItem value="Resolved"><CheckCircle className="mr-2 h-4 w-4" />Resolved</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button className="w-full" disabled>Update Status (Demo)</Button>
+                    <Button className="w-full" onClick={() => newStatus && onUpdateGrievanceStatus(grievance.id, newStatus)} disabled={newStatus === grievance.status}>
+                        Update Status
+                    </Button>
                 </CardContent>
             </Card>
 

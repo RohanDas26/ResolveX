@@ -121,7 +121,7 @@ function SubmitPageContent() {
 
 
             toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
-            router.push("/");
+            router.push(`/?id=${grievanceId}`);
 
         } catch (error: any) {
             console.error("Submission error:", error);
