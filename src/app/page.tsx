@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,19 @@ export default function AuthPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthForms, setShowAuthForms] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
   
   const handleAuthAction = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +44,18 @@ export default function AuthPage() {
   return (
     <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden">
       <StarTrail />
+       <div
+        className="pointer-events-none fixed inset-0 z-30 transition duration-300"
+        style={{
+          background: `radial-gradient(300px at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--primary) / 0.15), transparent 80%)`,
+        }}
+      />
+      <div
+        className="pointer-events-none fixed inset-0 z-30 transition duration-300"
+        style={{
+          background: `radial-gradient(300px at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--accent) / 0.15), transparent 80%)`,
+        }}
+      />
       
       {!showAuthForms ? (
         <div className="z-10 text-center animate-fade-in-up">
