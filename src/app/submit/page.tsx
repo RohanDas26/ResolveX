@@ -18,22 +18,10 @@ import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction } from "fi
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-
-
-// Bounding box for Telangana
-const TELANGANA_BOUNDS = {
-  lat: { min: 15.8, max: 19.9 },
-  lng: { min: 77.2, max: 81.8 },
-};
-
-const getRandomLocation = () => {
-    const lat = Math.random() * (TELANGANA_BOUNDS.lat.max - TELANGANA_BOUNDS.lat.min) + TELANGANA_BOUNDS.lat.min;
-    const lng = Math.random() * (TELANGANA_BOUNDS.lng.max - TELANGANA_BOUNDS.lng.min) + TELANGANA_BOUNDS.lng.min;
-    return { lat, lng };
-}
 
 const formSchema = z.object({
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500, { message: "Description must be 500 characters or less." }),
@@ -51,13 +39,9 @@ function SubmitPageContent() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [locationError, setLocationError] = useState<string | null>(null);
     const firestore = useFirestore();
     const { user, profile, isUserLoading } = useUser();
-
-    useEffect(() => {
-        // Set a random location within Telangana when the component mounts
-        setLocation(getRandomLocation());
-    }, []);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -66,9 +50,36 @@ function SubmitPageContent() {
         },
     });
 
+    const handleGetCurrentLocation = () => {
+        setLocation(null);
+        setLocationError(null);
+        setIsLoading(true);
+
+        if (!navigator.geolocation) {
+            setLocationError("Geolocation is not supported by your browser.");
+            setIsLoading(false);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                });
+                setLocationError(null);
+                setIsLoading(false);
+            },
+            () => {
+                setLocationError("Unable to retrieve your location. Please enable location permissions for this site.");
+                setIsLoading(false);
+            }
+        );
+    };
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
         if (!location) {
-            toast({ variant: "destructive", title: "Location unavailable", description: "Could not generate a random location." });
+            toast({ variant: "destructive", title: "Location Missing", description: "Please get your current location before submitting." });
             return;
         }
         if (!user || !profile) {
@@ -77,21 +88,26 @@ function SubmitPageContent() {
         }
         
         setIsLoading(true);
-        try {
-            if (!firestore) {
-              throw new Error("Firestore is not initialized");
-            }
+        
+        if (!firestore) {
+            toast({ variant: "destructive", title: "Error", description: "Database not initialized." });
+            setIsLoading(false);
+            return;
+        }
 
-            const imageFile = values.photo[0];
-            const storage = getStorage();
-            const grievanceId = uuidv4();
-            
-            const userId = user.uid;
-            
+        const imageFile = values.photo[0];
+        const storage = getStorage();
+        const grievanceId = uuidv4();
+        const userId = user.uid;
+        
+        // Optimistically navigate
+        router.push(`/?id=${grievanceId}`);
+        toast({ title: "Submitting your grievance...", description: "Your report will appear on the map shortly." });
+
+        try {
             const imageRef = ref(storage, `grievances/${userId}/${grievanceId}-${imageFile.name}`);
-            
-            await uploadBytes(imageRef, imageFile);
-            const imageUrl = await getDownloadURL(imageRef);
+            const uploadTask = await uploadBytes(imageRef, imageFile);
+            const imageUrl = await getDownloadURL(uploadTask.ref);
 
             const grievanceData = {
                 id: grievanceId,
@@ -107,27 +123,27 @@ function SubmitPageContent() {
             const grievanceDocRef = doc(firestore, "grievances", grievanceId);
             const userDocRef = doc(firestore, "users", userId);
 
-            // Use a transaction to ensure atomicity
-            await runTransaction(firestore, async (transaction) => {
+            // Non-blocking transaction
+            runTransaction(firestore, async (transaction) => {
                 const userDoc = await transaction.get(userDocRef);
 
                 if (userDoc.exists()) {
                     const newCount = (userDoc.data().grievanceCount || 0) + 1;
                     transaction.update(userDocRef, { grievanceCount: newCount });
                 }
-                // If user doc doesn't exist, we don't create it, just post the grievance
                 transaction.set(grievanceDocRef, grievanceData);
+            }).then(() => {
+                 toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
+            }).catch((error) => {
+                console.error("Transaction error:", error);
+                toast({ variant: "destructive", title: "Database Error", description: "Could not save grievance data. Please try again." });
             });
-
-
-            toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
-            router.push(`/?id=${grievanceId}`);
 
         } catch (error: any) {
             console.error("Submission error:", error);
             toast({ variant: "destructive", title: "Submission Failed", description: error.message || "An unexpected error occurred. Please try again." });
-        } finally {
-            setIsLoading(false);
+            // Since we navigated away, we can't easily reset the loading state here.
+            // The user is already on the map page.
         }
     }
     
@@ -144,7 +160,7 @@ function SubmitPageContent() {
             <CardHeader>
                 <CardTitle className="text-3xl font-bold tracking-tight">Submit a New Grievance</CardTitle>
                 <CardDescription>
-                    Fill out the form below to report a civic issue. A random location in Telangana will be attached.
+                    Fill out the form below to report a civic issue. Your current location will be attached.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -193,15 +209,29 @@ function SubmitPageContent() {
                             )}
                         />
                         
-                        <div className={cn("flex items-center p-3 rounded-md transition-all", 
-                            location ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground animate-pulse')}>
-                          
-                          {location ? <MapPin className="mr-3 h-5 w-5 text-primary" /> : <Loader2 className="mr-3 h-5 w-5 animate-spin" />}
-                          
-                          <div className="text-sm">
-                            {location ? <span>Random location generated: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span> : 
-                             <span>Generating random location...</span>}
-                          </div>
+                        <div className="space-y-4">
+                            <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation} disabled={isLoading}>
+                                {isLoading && !location ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
+                                Get Current Location
+                            </Button>
+                            {location && (
+                                <Alert>
+                                    <CheckCircle className="h-4 w-4" />
+                                    <AlertTitle>Location Acquired!</AlertTitle>
+                                    <AlertDescription>
+                                        Coordinates: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                            {locationError && (
+                                <Alert variant="destructive">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertTitle>Location Error</AlertTitle>
+                                    <AlertDescription>
+                                        {locationError}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                         </div>
 
                         <Button type="submit" size="lg" className="w-full font-semibold" disabled={isLoading || !location}>
@@ -222,3 +252,5 @@ export default function SubmitPage() {
         </div>
     );
 }
+
+    

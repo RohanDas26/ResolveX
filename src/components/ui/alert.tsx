@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { CheckCircle, AlertCircle } from 'lucide-react'; // Import icons
 
 import { cn } from "@/lib/utils"
 
@@ -56,4 +57,6 @@ const AlertDescription = React.forwardRef<
 ))
 AlertDescription.displayName = "AlertDescription"
 
-export { Alert, AlertTitle, AlertDescription }
+export { Alert, AlertTitle, AlertDescription, CheckCircle, AlertCircle }
+
+    
