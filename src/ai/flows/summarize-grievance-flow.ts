@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI flow to process user-submitted grievance descriptions.
@@ -35,7 +34,7 @@ Your task is to:
 1. Rewrite the description to be clear, professional, and detailed. Convert keywords and broken phrases into a full, coherent sentence.
 2. Classify the grievance into one of the following categories: Pothole, Streetlight, Garbage, Water, Sidewalk, Vendor, Debris, Other.
 
-User input: "{{{prompt}}}"
+User input: {{{prompt}}}
 `,
 });
 
@@ -50,5 +49,3 @@ const summarizeGrievanceFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
