@@ -2,18 +2,16 @@
 "use client";
 
 import { useMemo } from 'react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Grievance, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, MapPin, CheckCircle, Clock } from 'lucide-react';
+import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDoc } from '@/firebase/firestore/use-doc';
-
-const MOCK_USER_ID = 'user_student_1';
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -30,50 +28,29 @@ const getBadge = (grievanceCount: number) => {
 
 export default function ProfilePage() {
     const firestore = useFirestore();
-    
-    const userDocRef = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return doc(firestore, 'users', MOCK_USER_ID);
-    }, [firestore]);
+    const { user: authUser, profile, isUserLoading, isProfileLoading } = useUser();
 
     const grievancesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, 'grievances'), where('userId', '==', MOCK_USER_ID));
-    }, [firestore]);
+        if (!firestore || !authUser) return null;
+        return query(collection(firestore, 'grievances'), where('userId', '==', authUser.uid));
+    }, [firestore, authUser]);
 
-    const { data: user, isLoading: userLoading } = useDoc<UserProfile>(userDocRef);
     const { data: userGrievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
 
-    const grievanceCount = useMemo(() => user?.grievanceCount ?? 0, [user]);
+    const grievanceCount = useMemo(() => profile?.grievanceCount ?? 0, [profile]);
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
-    const isLoading = userLoading || grievancesLoading;
+    const isLoading = isUserLoading || isProfileLoading || grievancesLoading;
 
     if (isLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="md:col-span-1 space-y-8">
-                        <Card>
-                            <CardHeader className="flex flex-col items-center text-center">
-                                <Skeleton className="w-24 h-24 rounded-full mb-4" />
-                                <Skeleton className="h-8 w-40 mb-2" />
-                                <Skeleton className="h-5 w-32" />
-                            </CardHeader>
-                        </Card>
-                    </div>
-                    <div className="md:col-span-2 space-y-4">
-                        <h2 className="text-2xl font-bold mb-4">Your Reported Grievances</h2>
-                        <Skeleton className="h-28 w-full" />
-                        <Skeleton className="h-28 w-full" />
-                        <Skeleton className="h-28 w-full" />
-                    </div>
-                </div>
+            <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
     }
     
-    if (!user) return <div className="container mx-auto px-4 py-8"><p>Could not load user profile. The database might need to be seeded.</p></div>;
+    if (!profile || !authUser) return <div className="container mx-auto px-4 py-8"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -83,10 +60,10 @@ export default function ProfilePage() {
                     <Card className="animate-fade-in-up">
                         <CardHeader className="flex flex-col items-center text-center">
                             <Avatar className="w-24 h-24 mb-4 border-4 border-primary/50">
-                                <AvatarImage src={user.imageUrl} alt={user.name} />
-                                <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+                                <AvatarImage src={profile.imageUrl} alt={profile.name} />
+                                <AvatarFallback>{profile.name?.[0]}</AvatarFallback>
                             </Avatar>
-                            <CardTitle className="text-2xl">{user.name}</CardTitle>
+                            <CardTitle className="text-2xl">{profile.name}</CardTitle>
                             <CardDescription>Grievances Reported: {grievanceCount}</CardDescription>
                             {badge && (
                                 <div className="flex items-center gap-2 mt-4 animate-fade-in-up">

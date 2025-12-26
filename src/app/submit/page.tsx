@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, UploadCloud } from "lucide-react";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction } from "firebase/firestore";
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
@@ -22,8 +22,6 @@ import { cn } from "@/lib/utils";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-const MOCK_USER_ID = "user_student_1";
-const MOCK_USER_NAME = "Alex Doe";
 
 // Bounding box for Telangana
 const TELANGANA_BOUNDS = {
@@ -54,6 +52,7 @@ function SubmitPageContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const firestore = useFirestore();
+    const { user, profile, isUserLoading } = useUser();
 
     useEffect(() => {
         // Set a random location within Telangana when the component mounts
@@ -72,6 +71,10 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Location unavailable", description: "Could not generate a random location." });
             return;
         }
+        if (!user || !profile) {
+            toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
+            return;
+        }
         
         setIsLoading(true);
         try {
@@ -83,7 +86,7 @@ function SubmitPageContent() {
             const storage = getStorage();
             const grievanceId = uuidv4();
             
-            const userId = MOCK_USER_ID;
+            const userId = user.uid;
             
             const imageRef = ref(storage, `grievances/${userId}/${grievanceId}-${imageFile.name}`);
             
@@ -93,7 +96,7 @@ function SubmitPageContent() {
             const grievanceData = {
                 id: grievanceId,
                 userId: userId,
-                userName: MOCK_USER_NAME,
+                userName: profile.name,
                 description: values.description,
                 imageUrl: imageUrl,
                 location: new GeoPoint(location.lat, location.lng),
@@ -126,6 +129,14 @@ function SubmitPageContent() {
         } finally {
             setIsLoading(false);
         }
+    }
+    
+    if (isUserLoading) {
+        return (
+             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        )
     }
 
     return (

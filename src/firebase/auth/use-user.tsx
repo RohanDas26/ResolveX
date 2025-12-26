@@ -1,15 +1,19 @@
 
 'use client';
-import { User } from 'firebase/auth';
+import { User, onAuthStateChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
+import { useAuth, useFirestore, useMemoFirebase } from '..';
+import { useEffect, useState } from 'react';
+import { doc } from 'firebase/firestore';
+import { useDoc } from '../firestore/use-doc';
 
-// This is a mock user state since authentication has been removed.
-// It provides a consistent structure for components that previously used the real hook.
+const MOCK_USER_ID = 'user_student_1';
+
 const mockUser: User = {
-  uid: 'user_student_1',
+  uid: MOCK_USER_ID,
   email: 'alex.doe@example.com',
   displayName: 'Alex Doe',
-  photoURL: 'https://api.dicebear.com/8.x/bottts/svg?seed=alex',
+  photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`,
   emailVerified: true,
   isAnonymous: false,
   metadata: {},
@@ -23,15 +27,6 @@ const mockUser: User = {
   toJSON: () => ({}),
 };
 
-const mockProfile: UserProfile = {
-    id: 'user_student_1',
-    name: 'Alex Doe',
-    email: 'alex.doe@example.com',
-    imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=alex',
-    grievanceCount: 0,
-    isAdmin: false,
-};
-
 
 interface AuthState {
   user: User | null;
@@ -42,18 +37,39 @@ interface AuthState {
   isProfileLoading: boolean;
 }
 
-// Mock implementation of useUser (previously useAuthState)
+// This hook now provides a real auth state that includes a mock user.
+// In a real app, you would replace the mock user with the result of onAuthStateChanged.
 export function useUser(): AuthState {
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const [authState, setAuthState] = useState<{ user: User | null; isLoading: boolean; error: Error | null; claims: any | null }>({
+    user: null,
+    isLoading: true,
+    error: null,
+    claims: null,
+  });
+
+  // For this demo, we'll always use a mock user, but the structure is here for real auth.
+   useEffect(() => {
+    setAuthState({ user: mockUser, isLoading: false, error: null, claims: { isAdmin: false }});
+  }, []);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !authState.user) return null;
+    return doc(firestore, 'users', authState.user.uid);
+  }, [firestore, authState.user]);
+
+  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
   return {
-    user: mockUser,
-    claims: { isAdmin: false },
-    isUserLoading: false,
-    userError: null,
-    profile: mockProfile,
-    isProfileLoading: false
+    user: authState.user,
+    claims: authState.claims,
+    isUserLoading: authState.isLoading,
+    userError: authState.error,
+    profile,
+    isProfileLoading,
   };
 }
 
 // Keep useAuthState for any components that might still reference it.
 export const useAuthState = useUser;
-
