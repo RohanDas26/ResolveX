@@ -2,14 +2,14 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { Map, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import type { Grievance } from '@/lib/types';
 import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, Map, Milestone } from 'lucide-react';
+import { AlertTriangle, Milestone, Map as MapIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 
@@ -162,7 +162,7 @@ function Directions() {
                             </ScrollArea>
                         ) : (
                              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4 bg-muted rounded-md">
-                                <Map className="h-10 w-10 mb-2"/>
+                                <MapIcon className="h-10 w-10 mb-2"/>
                                 <p>Your route will be displayed here once you enter an origin and destination.</p>
                             </div>
                         )}
