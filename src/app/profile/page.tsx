@@ -43,13 +43,18 @@ export default function ProfilePage() {
         if (!isUserLoading) {
             if (authUser) {
                 // Find the demo profile for the logged-in user, or create a default one
-                const demoProfile = DEMO_USERS.find(u => u.id === authUser.uid) || {
-                    id: authUser.uid,
-                    name: authUser.displayName || 'New User',
-                    email: authUser.email || '',
-                    imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`,
-                    grievanceCount: 0,
-                };
+                let demoProfile = DEMO_USERS.find(u => u.id === authUser.uid);
+
+                if (!demoProfile) {
+                    demoProfile = {
+                        id: authUser.uid,
+                        name: authUser.displayName || 'New User',
+                        email: authUser.email || '',
+                        imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`, // Generate avatar
+                        grievanceCount: 0,
+                    };
+                }
+                
                 setProfile(demoProfile);
                 
                 // Filter demo grievances for this user
@@ -115,7 +120,7 @@ export default function ProfilePage() {
                         <CardHeader className="flex flex-col items-center text-center">
                             <Avatar className="w-24 h-24 mb-4 border-4 border-primary/50">
                                 <AvatarImage src={profile.imageUrl} alt={profile.name} />
-                                <AvatarFallback>{profile.name?.[0]}</AvatarFallback>
+                                <AvatarFallback>{profile.name?.[0].toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{profile.name}</CardTitle>
                             <CardDescription>Grievances Reported: {grievanceCount}</CardDescription>

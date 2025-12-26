@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 export function UserNav() {
-  const { user, profile } = useUser();
+  const { user, profile: userProfile } = useUser();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -55,6 +55,14 @@ export function UserNav() {
   }
 
   const isEmailVerified = user.emailVerified;
+  // Use profile from useUser hook, but generate an avatar if it's missing
+  const profile = userProfile || {
+    id: user.uid,
+    name: user.displayName || user.email || 'User',
+    imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`,
+    grievanceCount: 0,
+  }
+
   const userName = profile?.name || user.email;
   const userImage = profile?.imageUrl;
   const userFallback = userName?.[0].toUpperCase() || 'U';
