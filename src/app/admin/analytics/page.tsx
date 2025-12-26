@@ -102,7 +102,7 @@ function QRCodeGenerator() {
                     quality: 0.9,
                     margin: 1,
                     color: {
-                        dark: "#0F0F1A", // HSL 240 10% 3.9%
+                        dark: "#0F0F1A",
                         light: "#FFFFFF"
                     }
                 });
