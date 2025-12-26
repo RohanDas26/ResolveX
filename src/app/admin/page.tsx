@@ -57,7 +57,7 @@ function AdminDashboardContent() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] animate-fade-in">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] animate-fade-in">
       <AdminSidebar 
         grievances={filteredGrievances}
         isLoading={false}
@@ -68,12 +68,14 @@ function AdminDashboardContent() {
         selectedGrievance={selectedGrievance}
         onSelectGrievance={handleSelectGrievance}
       />
-      <AdminMap 
-        grievances={filteredGrievances}
-        isLoading={false}
-        onMarkerClick={handleSelectGrievance}
-        selectedGrievanceId={selectedGrievanceId}
-      />
+      <div className="flex-1 h-full w-full md:h-auto">
+        <AdminMap 
+          grievances={filteredGrievances}
+          isLoading={false}
+          onMarkerClick={handleSelectGrievance}
+          selectedGrievanceId={selectedGrievanceId}
+        />
+      </div>
     </div>
   );
 }

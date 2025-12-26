@@ -87,7 +87,7 @@ export default function AdminMap({ grievances, isLoading, onMarkerClick, selecte
     }, [grievances]);
 
     return (
-        <div className="flex-1 relative animate-fade-in">
+        <div className="w-full h-full relative animate-fade-in">
             {isLoading ? (
                 <div className="w-full h-full flex items-center justify-center bg-muted/50">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />

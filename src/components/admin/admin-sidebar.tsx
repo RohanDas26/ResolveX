@@ -67,7 +67,7 @@ export default function AdminSidebar({
     
     if (selectedGrievance) {
         return (
-            <div className="w-full max-w-sm p-4 border-r border-border/60 animate-fade-in-left flex flex-col">
+            <div className="w-full md:max-w-sm p-4 border-r border-border/60 animate-fade-in-left flex flex-col h-full md:h-auto">
                 <div className="flex justify-between items-center mb-4 shrink-0">
                     <h2 className="text-lg font-bold">Grievance Details</h2>
                     <Button variant="ghost" size="icon" onClick={() => onSelectGrievance(null)}>
@@ -87,7 +87,7 @@ export default function AdminSidebar({
     }
 
     return (
-        <div className="w-full max-w-sm p-4 border-r border-border/60 animate-fade-in-left">
+        <div className="w-full md:max-w-sm p-4 border-b md:border-b-0 md:border-r border-border/60 animate-fade-in-left h-full md:h-auto">
             <ScrollArea className="h-full pr-4 -mr-4">
                 <div className="space-y-6">
                      <Card className="bg-card/50 backdrop-blur-sm">
