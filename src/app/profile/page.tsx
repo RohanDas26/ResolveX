@@ -4,14 +4,14 @@
 import { useMemo } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { Grievance } from '@/lib/types';
+import { Grievance, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Leaderboard from '@/components/leaderboard';
-import { DEMO_GRIEVANCES } from '@/lib/demo-data'; // Using demo data
+import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -39,6 +39,11 @@ export default function ProfilePage() {
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
     const isLoading = isUserLoading || isProfileLoading;
+    
+    const leaderboardUsers = useMemo(() => {
+        return [...DEMO_USERS]
+            .sort((a, b) => b.grievanceCount - a.grievanceCount);
+    }, []);
 
     if (isLoading) {
         return (
@@ -76,7 +81,7 @@ export default function ProfilePage() {
                             <CardTitle>Leaderboard</CardTitle>
                         </CardHeader>
                         <CardContent>
-                           <Leaderboard users={null} isLoading={true} />
+                           <Leaderboard users={leaderboardUsers} isLoading={false} />
                         </CardContent>
                     </Card>
                 </div>

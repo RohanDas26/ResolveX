@@ -7,13 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
 import { useSearchParams } from 'next/navigation'
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
 import { doc, updateDoc, collection, query, where } from "firebase/firestore";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 
 function AdminDashboardContent() {
   const { toast } = useToast();
-  const firestore = useFirestore();
   const searchParams = useSearchParams()
 
   const [filter, setFilter] = useState<string | null>(null);
@@ -28,19 +27,12 @@ function AdminDashboardContent() {
     }
   }, [searchParams]);
 
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'users'));
-  }, [firestore]);
-  
-  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
-
   const topReporters = useMemo(() => {
-      if (!users) return [];
-      return [...users]
+      // Use the static demo users and sort them by grievance count.
+      return [...DEMO_USERS]
           .sort((a, b) => b.grievanceCount - a.grievanceCount)
           .slice(0, 5);
-  }, [users]);
+  }, []);
 
 
   const filteredGrievances = useMemo(() => {

@@ -18,7 +18,7 @@ export interface Grievance {
 export interface UserProfile {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     imageUrl: string;
     grievanceCount: number;
     isAdmin?: boolean;

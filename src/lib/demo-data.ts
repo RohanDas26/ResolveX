@@ -1,5 +1,5 @@
 
-import type { Grievance } from "./types";
+import type { Grievance, UserProfile } from "./types";
 import { GeoPoint, Timestamp } from "firebase/firestore";
 
 /**
@@ -110,11 +110,24 @@ const descriptions = [
   "Illegal dumping of construction waste in residential layout.",
 ];
 
-const userNames = [
-  "Alex Doe", "Priya", "Rohan", "Anika", "Vikram", "Sneha", "Arjun", "Neha", 
-  "Karthik", "Ishita", "Rahul", "Divya", "Aditya", "Pooja", "Sanjay", "Meera",
-  "Amit", "Sunita", "Rajesh", "Kavita", "Manoj"
+export const DEMO_USERS: UserProfile[] = [
+    { id: 'user-demo-3', name: 'Rohan', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=rohan`, grievanceCount: 36 },
+    { id: 'user-demo-1', name: 'Priya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=priya`, grievanceCount: 29 },
+    { id: 'user-demo-4', name: 'Anika', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=anika`, grievanceCount: 25 },
+    { id: 'user-demo-2', name: 'Vikram', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=vikram`, grievanceCount: 22 },
+    { id: 'user_student_1', name: 'Alex Doe', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`, grievanceCount: 18 },
+    { id: 'user-demo-6', name: 'Sneha', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=sneha`, grievanceCount: 15 },
+    { id: 'user-demo-8', name: 'Arjun', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=arjun`, grievanceCount: 12 },
+    { id: 'user-demo-5', name: 'Neha', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=neha`, grievanceCount: 10 },
+    { id: 'user-demo-7', name: 'Karthik', imageUrl: `https://api.dicebear.com/8x/bottts/svg?seed=karthik`, grievanceCount: 8 },
+    { id: 'user-demo-9', name: 'Ishita', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=ishita`, grievanceCount: 5 },
+    { id: 'user-demo-10', name: 'Rahul', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=rahul`, grievanceCount: 3 },
+    { id: 'user-demo-11', name: 'Divya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=divya`, grievanceCount: 2 },
+    { id: 'user-demo-12', name: 'Aditya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=aditya`, grievanceCount: 1 },
 ];
+
+
+const userNames = DEMO_USERS.map(u => u.name);
 
 const statuses: Grievance["status"][] = ["Submitted", "In Progress", "Resolved"];
 
@@ -144,10 +157,9 @@ const riskFactors: { [key: string]: { base: number, note: string } } = {
 // Create a weighted list of users to make some report more than others
 const createWeightedUserList = () => {
     const weightedList: number[] = [];
-    userNames.forEach((_, index) => {
-        // Give users with lower indexes more "weight" - they will appear more often
-        const weight = Math.ceil(Math.pow(userNames.length - index, 2) / 10);
-        for(let i = 0; i < weight; i++) {
+    DEMO_USERS.forEach((user, index) => {
+        // Use the pre-defined grievanceCount to create the weighted list
+        for(let i = 0; i < user.grievanceCount; i++) {
             weightedList.push(index);
         }
     });
@@ -164,8 +176,7 @@ const getPinColor = (status: Grievance["status"]) => {
   }
 };
 
-// A few reports specifically for our mock user "Alex Doe" (user_student_1)
-const MY_DEMO_REPORTS = [
+const MY_DEMO_REPORTS: Grievance[] = [
     { id: 'demo-901', userId: 'user_student_1', userName: 'Alex Doe', description: 'Broken swings in the main park, unsafe for kids.', location: new GeoPoint(17.44, 78.34), imageUrl: 'https://picsum.photos/seed/park-swing/400/300', status: 'Submitted' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)), riskScore: 60, aiNotes: 'Potential injury hazard for children. Moderate priority.'},
     { id: 'demo-902', userId: 'user_student_1', userName: 'Alex Doe', description: 'Streetlight flickering constantly on College Ave.', location: new GeoPoint(17.42, 78.48), imageUrl: 'https://picsum.photos/seed/flicker-light/400/300', status: 'In Progress' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)), riskScore: 35, aiNotes: 'Causes visibility issues, potential traffic hazard at night.' },
     { id: 'demo-903', userId: 'user_student_1', userName: 'Alex Doe', description: 'Overflowing drain near the bus stop.', location: new GeoPoint(17.39, 78.47), imageUrl: 'https://picsum.photos/seed/drain-overflow/400/300', status: 'Submitted' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)), riskScore: 70, aiNotes: 'Public health concern due to stagnant water and smell.' },
@@ -185,8 +196,8 @@ const generateRandomGrievance = (
   const description = descriptions[idIndex % descriptions.length];
   
   // Select a user based on the weighted list for more realistic counts
-  const userIndex = weightedUserIndexes[Math.floor(Math.random() * weightedUserIndexes.length)];
-  const userName = userNames[userIndex];
+  const userIndex = weightedUserIndexes[idIndex % weightedUserIndexes.length];
+  const user = DEMO_USERS[userIndex];
   
   const imageSeed = imageSeeds[idIndex % imageSeeds.length];
 
@@ -196,8 +207,8 @@ const generateRandomGrievance = (
 
   return {
     id: `demo-${idIndex}`,
-    userId: userName === 'Alex Doe' ? 'user_student_1' : `user-demo-${userIndex + 1}`,
-    userName,
+    userId: user.id,
+    userName: user.name,
     description,
     location: new GeoPoint(randomLocation.lat, randomLocation.lng),
     imageUrl: `https://picsum.photos/seed/${imageSeed}-${idIndex}/400/300`,
@@ -212,7 +223,7 @@ const generateRandomGrievance = (
 const DEMO_COUNT = 250;
 
 const OTHER_DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = Array.from(
-  { length: DEMO_COUNT },
+  { length: DEMO_COUNT - MY_DEMO_REPORTS.length },
   (_, i) => generateRandomGrievance(i + 1)
 );
 
