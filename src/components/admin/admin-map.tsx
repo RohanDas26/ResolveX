@@ -1,13 +1,49 @@
+
 "use client";
 
 import GrievanceMap from "@/components/grievance-map";
 import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import type { Grievance } from "@/lib/types";
+import { useGoogleMap } from "@vis.gl/react-google-maps";
 
 interface AdminMapProps {
     grievances: Grievance[] | null;
     isLoading: boolean;
+}
+
+function HeatmapLayer({ grievances }: { grievances: Grievance[] | null }) {
+    const map = useGoogleMap();
+  
+    useMemo(() => {
+      if (!map || !window.google || !grievances) return;
+  
+      // Check if visualization library is loaded
+      if (!google.maps.visualization) {
+        console.error("Google Maps visualization library not loaded.");
+        return;
+      }
+  
+      const heatmapData = grievances.map(g => ({
+        location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
+        weight: 1 // You could adjust weight based on some metric
+      }));
+  
+      const heatmap = new google.maps.visualization.HeatmapLayer({
+        data: heatmapData,
+        map: map,
+      });
+
+      heatmap.set('radius', 20);
+      heatmap.set('opacity', 0.6);
+  
+      // Clean up the heatmap when the component unmounts or data changes
+      return () => {
+        heatmap.setMap(null);
+      };
+    }, [map, grievances]);
+  
+    return null; // This component does not render anything itself
 }
 
 export default function AdminMap({ grievances, isLoading }: AdminMapProps) {
@@ -36,7 +72,9 @@ export default function AdminMap({ grievances, isLoading }: AdminMapProps) {
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </div>
             ) : (
-                <GrievanceMap grievances={grievancesWithPins} />
+                <GrievanceMap grievances={grievancesWithPins}>
+                    <HeatmapLayer grievances={grievances} />
+                </GrievanceMap>
             )}
         </div>
     );

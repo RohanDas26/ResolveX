@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import type { Grievance } from "@/lib/types";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, doc, updateDoc } from "firebase/firestore";
 
 import AdminSidebar from "@/components/admin/admin-sidebar";
@@ -11,7 +11,6 @@ import AdminMap from "@/components/admin/admin-map";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/lib/types";
 import { Loader2 } from "lucide-react";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
 
@@ -30,22 +29,15 @@ function AdminDashboardContent() {
     return query(collection(firestore, "users"));
   }, [firestore]);
 
-  const { data: liveGrievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  const { data: grievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
   const { data: allUsers, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-  const allGrievances = useMemo(() => {
-    // Combine demo data with live data, preventing duplicates
-    const grievanceMap = new Map();
-    DEMO_GRIEVANCES.forEach(g => grievanceMap.set(g.id, g));
-    liveGrievances?.forEach(g => grievanceMap.set(g.id, g));
-    return Array.from(grievanceMap.values());
-  }, [liveGrievances]);
 
   const filteredGrievances = useMemo(() => {
-    if (!allGrievances) return [];
-    if (!filter) return allGrievances;
-    return allGrievances.filter(g => g.description.toLowerCase().includes(filter.toLowerCase()));
-  }, [allGrievances, filter]);
+    if (!grievances) return [];
+    if (!filter) return grievances;
+    return grievances.filter(g => g.description.toLowerCase().includes(filter.toLowerCase()));
+  }, [grievances, filter]);
 
   const handleUpdateGrievanceStatus = async (id: string, status: Grievance['status']) => {
     if (!firestore) return;

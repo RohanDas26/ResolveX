@@ -1,3 +1,4 @@
+
 "use client";
 
 import { APIProvider } from "@vis.gl/react-google-maps";
@@ -18,7 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   
   return (
     <FirebaseClientProvider>
-      <APIProvider apiKey={apiKey}>
+      <APIProvider apiKey={apiKey} libraries={['visualization']}>
         {children}
       </APIProvider>
     </FirebaseClientProvider>

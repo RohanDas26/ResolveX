@@ -2,11 +2,10 @@
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, ReactNode } from "react";
 import { collection, query } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "./ui/badge";
@@ -17,9 +16,10 @@ type GrievanceWithPinColor = Grievance & { pinColor?: string };
 
 interface GrievanceMapProps {
   grievances?: GrievanceWithPinColor[] | null;
+  children?: ReactNode;
 }
 
-export default function GrievanceMap({ grievances: initialGrievances }: GrievanceMapProps) {
+export default function GrievanceMap({ grievances: initialGrievances, children }: GrievanceMapProps) {
   const firestore = useFirestore();
   const grievancesQuery = useMemoFirebase(() => {
     if (initialGrievances || !firestore) return null;
@@ -107,6 +107,7 @@ export default function GrievanceMap({ grievances: initialGrievances }: Grievanc
           </div>
         </InfoWindow>
       )}
+      {children}
     </Map>
   );
 }
