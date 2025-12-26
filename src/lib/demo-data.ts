@@ -9,8 +9,14 @@ import { GeoPoint, Timestamp } from "firebase/firestore";
 
 const CENTERS = [
   {
+    name: "KLH University Campus",
+    lat: 17.3946,
+    lng: 78.3324,
+    radiusKm: 2, // High density cluster
+  },
+  {
     name: "Hyderabad",
-    lat: 17.385,  // adjust to your campus if you want
+    lat: 17.385,
     lng: 78.486,
     radiusKm: 15,
   },
@@ -108,6 +114,8 @@ const descriptions = [
   "Damaged speed breaker causing vehicles to lose control.",
   "Public toilet in very unhygienic condition and unusable.",
   "Illegal dumping of construction waste in residential layout.",
+  "Broken streetlight on the road to the girls' hostel.",
+  "Deep pothole right at the main KLH gate, very dangerous.",
 ];
 
 let initialUsers: Omit<UserProfile, 'grievanceCount'>[] = [
@@ -167,6 +175,16 @@ const MY_DEMO_REPORTS: Grievance[] = [
     { id: 'demo-903', userId: 'user_student_1', userName: 'Alex Doe', description: 'Overflowing drain near the bus stop.', location: new GeoPoint(17.39, 78.47), imageUrl: 'https://picsum.photos/seed/drain-overflow/400/300', status: 'Submitted' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)), riskScore: 70, aiNotes: 'Public health concern due to stagnant water and smell.' },
 ];
 
+
+const KLH_GATE_CLUSTER: Grievance[] = [
+  { id: 'klh-pothole-1', userId: 'user-demo-1', userName: 'Priya', description: 'Another bad pothole near KLH gate. Just saw a scooter almost fall.', location: new GeoPoint(17.3948, 78.3325), imageUrl: 'https://picsum.photos/seed/klh-pothole-1/400/300', status: 'Submitted', createdAt: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)), riskScore: 85, aiNotes: 'High-risk pothole at a major entry/exit point. High traffic area. Recommend immediate attention.' },
+  { id: 'klh-pothole-2', userId: 'user-demo-2', userName: 'Vikram', description: 'This is the third pothole on the road leading to KLH gate.', location: new GeoPoint(17.3950, 78.3320), imageUrl: 'https://picsum.photos/seed/klh-pothole-2/400/300', status: 'Submitted', createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)), riskScore: 80, aiNotes: 'Multiple potholes reported in this area, indicating road degradation. The cluster poses a significant risk.' },
+  { id: 'klh-pothole-3', userId: 'user-demo-3', userName: 'Rohan', description: 'Huge pothole at the turn towards KLH. Very hard to see at night.', location: new GeoPoint(17.3941, 78.3330), imageUrl: 'https://picsum.photos/seed/klh-pothole-3/400/300', status: 'Submitted', createdAt: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)), riskScore: 90, aiNotes: 'Critical hazard due to location on a turn and poor visibility. High probability of accidents.' },
+  { id: 'klh-streetlight-1', userId: 'user-demo-4', userName: 'Anika', description: 'Streetlight out on the main road to KLH campus.', location: new GeoPoint(17.3955, 78.3315), imageUrl: 'https://picsum.photos/seed/klh-light-1/400/300', status: 'In Progress', createdAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)), riskScore: 45, aiNotes: 'Increases risk in an area with known road hazards (potholes). Should be fixed to improve night safety.' },
+  { id: 'klh-garbage-1', userId: 'user-demo-5', userName: 'Neha', description: 'Garbage dumped on the corner near KLH bus stop.', location: new GeoPoint(17.3935, 78.3340), imageUrl: 'https://picsum.photos/seed/klh-garbage-1/400/300', status: 'Resolved', createdAt: Timestamp.fromDate(new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)), riskScore: 30, aiNotes: 'Sanitation issue. Was resolved quickly.' },
+];
+
+
 const DEMO_COUNT = 250;
 
 // To create a more realistic distribution, we'll assign grievances to users.
@@ -185,7 +203,7 @@ Object.entries(userReportCounts).forEach(([userId, count]) => {
 });
 
 const OTHER_DEMO_GRIEVANCES: Grievance[] = Array.from(
-  { length: DEMO_COUNT - MY_DEMO_REPORTS.length },
+  { length: DEMO_COUNT - MY_DEMO_REPORTS.length - KLH_GATE_CLUSTER.length },
   (_, i) => {
     const randomLocation = getClusterLocation();
     const randomDate = new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000);
@@ -217,7 +235,7 @@ const OTHER_DEMO_GRIEVANCES: Grievance[] = Array.from(
 );
 
 // Combine all grievances
-export const ALL_GRIEVANCES: Grievance[] = [ ...MY_DEMO_REPORTS, ...OTHER_DEMO_GRIEVANCES ];
+export const ALL_GRIEVANCES: Grievance[] = [ ...MY_DEMO_REPORTS, ...KLH_GATE_CLUSTER, ...OTHER_DEMO_GRIEVANCES ];
 
 // Now, calculate the counts for each user from the single source of truth
 const grievanceCounts = ALL_GRIEVANCES.reduce((acc, grievance) => {
