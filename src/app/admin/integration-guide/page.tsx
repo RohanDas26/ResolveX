@@ -1,7 +1,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Database, BarChart, FileText, CheckCircle } from "lucide-react";
+import { ArrowRight, Database, BarChart, CheckCircle } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 const StepCard = ({ icon, title, description, children }: { icon: React.ReactNode, title: string, description: string, children?: React.ReactNode }) => (
     <Card className="animate-fade-in-up">
@@ -45,7 +46,7 @@ export default function IntegrationGuidePage() {
                             <li>Configure the extension to watch the <code className="bg-muted px-1.5 py-0.5 rounded-sm font-mono text-sm">grievances</code> collection.</li>
                             <li>The extension will automatically create a BigQuery table and keep it synced.</li>
                         </ol>
-                         <div className="p-4 border-2 border-dashed rounded-lg flex flex-col items-center">
+                         <div className="p-4 border-2 border-dashed rounded-lg flex flex-col items-center mt-4">
                             <p className="font-semibold mb-2">Visual Representation:</p>
                              <Image 
                                 src="https://storage.googleapis.com/static.invertase.io/assets/studio/guides/firestore-to-bigquery.png" 
@@ -76,7 +77,7 @@ export default function IntegrationGuidePage() {
                             <li>Choose your project, the dataset created by the extension, and the `grievances` table.</li>
                             <li>You can now build charts, graphs, and heatmaps using your live data.</li>
                         </ol>
-                        <div className="p-4 border-2 border-dashed rounded-lg flex flex-col items-center">
+                        <div className="p-4 border-2 border-dashed rounded-lg flex flex-col items-center mt-4">
                            <p className="font-semibold mb-2">Visual Representation:</p>
                              <Image 
                                 src="https://storage.googleapis.com/static.invertase.io/assets/studio/guides/bigquery-to-looker.png" 
