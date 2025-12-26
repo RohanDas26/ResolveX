@@ -8,26 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { type Grievance } from '@/lib/types';
-
-// Access the global store
-// @ts-ignore
-const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : null;
+import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 
 export default function TicketsPage() {
     const { user: authUser, isUserLoading } = useUser();
-    const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
-
-    useEffect(() => {
-        // Access the store only on the client side
-        if (grievanceStore) {
-            setAllGrievances(grievanceStore.get());
-            const handleUpdate = () => {
-                setAllGrievances([...grievanceStore.get()]);
-            };
-            const unsubscribe = grievanceStore.subscribe(handleUpdate);
-            return () => unsubscribe();
-        }
-    }, []);
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
 
     const userGrievances = useMemo(() => {
         if (!authUser) return [];

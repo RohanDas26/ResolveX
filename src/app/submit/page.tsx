@@ -21,44 +21,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import { summarizeGrievance } from "@/ai/flows/summarize-grievance-flow";
 import { Badge } from "@/components/ui/badge";
-import type { Grievance } from "@/lib/types";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
-
-
-// A simple in-memory store for our demo data, attached to the window for global access
-if (typeof window !== 'undefined') {
-    // @ts-ignore
-    if (!window.grievanceStore) {
-        // @ts-ignore
-        window.grievanceStore = {
-            grievances: [...DEMO_GRIEVANCES],
-            listeners: new Set(),
-            add(grievance: Grievance) {
-                // @ts-ignore
-                this.grievances.unshift(grievance);
-                // @ts-ignore
-                this.notify();
-            },
-            get() {
-                // @ts-ignore
-                return this.grievances;
-            },
-            subscribe(listener: () => void) {
-                // @ts-ignore
-                this.listeners.add(listener);
-                return () => {
-                    // @ts-ignore
-                    this.listeners.delete(listener);
-                };
-            },
-            notify() {
-                // @ts-ignore
-                this.listeners.forEach(listener => listener());
-            }
-        };
-    }
-}
-
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -167,38 +129,27 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
             return;
         }
-        if (!photoPreview) {
-             toast({ variant: "destructive", title: "Photo Missing", description: "Please upload a photo of the issue." });
-            return;
-        }
         
         setIsSubmitting(true);
         
+        // In a real app, you would now upload the photo to a service like Firebase Storage
+        // and then save the grievance data to Firestore.
+        
+        // For this demo, we'll just simulate the process.
+        
         const grievanceId = uuidv4();
         
-        const newGrievance = {
-            id: grievanceId,
-            userId: user.uid,
-            userName: user.displayName || 'Anonymous',
-            description: values.description,
-            imageUrl: photoPreview, // Use the preview URL for the demo
-            location: new GeoPoint(location.lat, location.lng),
-            status: "Submitted" as const,
-            createdAt: Timestamp.now(),
-            riskScore: Math.floor(Math.random() * 80) + 10,
-            aiNotes: "This is a newly submitted grievance and has not been analyzed yet.",
-        };
-        
-        // This is a temporary solution to pass data between pages on the client
-        // In a real app, this would be handled by a state management library or server-side logic
-        if (typeof window !== 'undefined' && (window as any).grievanceStore) {
-            (window as any).grievanceStore.add(newGrievance);
-        }
+        // We are not adding the new grievance to any state here.
+        // We will just show a success message and navigate.
+        // The new grievance will NOT appear in the app as we are using static demo data.
 
-        toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now visible on the map." });
+        setTimeout(() => {
+            setIsSubmitting(false);
+            toast({ title: "Grievance Submitted! (Demo)", description: "Thank you for your report. In a real app, this would be saved." });
 
-        // Optimistically navigate to the map, highlighting the new pin
-        router.push(`/map?id=${grievanceId}`);
+            // Navigate to the map, optionally highlighting the location (though the pin won't exist in demo data)
+            router.push(`/map?id=${grievanceId}`);
+        }, 1500); // Simulate network delay
     }
 
     const handleFile = (file: File) => {

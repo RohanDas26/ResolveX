@@ -4,18 +4,15 @@
 import GrievanceMap from "@/components/grievance-map";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { type Grievance } from "@/lib/types";
 import { useUser } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
+import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
 const DETAIL_ZOOM = 15;
-
-// Access the global store
-// @ts-ignore
-const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : null;
 
 function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null }) {
     const map = useMap();
@@ -43,28 +40,17 @@ export default function MapPage() {
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
   const [isLoading, setIsLoading] = useState(true);
-
-  // This flag ensures the initial zoom effect runs only once
-  const initialEffectRan = useRef(false);
   
   useEffect(() => {
-    // Access store only on the client
-    if (grievanceStore) {
-        setGrievances(grievanceStore.get());
-        const handleUpdate = () => {
-            setGrievances([...grievanceStore.get()]);
-        };
-        const unsubscribe = grievanceStore.subscribe(handleUpdate);
-        setIsLoading(false);
-        return () => unsubscribe();
-    }
+    // This is a temporary solution to simulate fetching data on the client
+    setGrievances(DEMO_GRIEVANCES);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
-    if (grievanceIdFromUrl && !initialEffectRan.current) {
+    if (grievanceIdFromUrl) {
         setSelectedGrievanceId(grievanceIdFromUrl);
-        initialEffectRan.current = true;
     }
   }, [searchParams]);
   
