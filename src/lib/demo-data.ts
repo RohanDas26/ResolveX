@@ -15,6 +15,12 @@ const CENTERS = [
     radiusKm: 2, // High density cluster
   },
   {
+    name: "Gajularamaram Industrial Area",
+    lat: 17.5473,
+    lng: 78.4048,
+    radiusKm: 3,
+  },
+  {
     name: "Hyderabad",
     lat: 17.385,
     lng: 78.486,
@@ -182,6 +188,15 @@ const KLH_GATE_CLUSTER: Grievance[] = [
   { id: 'klh-pothole-3', userId: 'user-demo-3', userName: 'Rohan', description: 'Huge pothole at the turn towards KLH. Very hard to see at night.', location: new GeoPoint(17.3941, 78.3330), imageUrl: 'https://picsum.photos/seed/klh-pothole-3/400/300', status: 'Submitted', createdAt: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)), riskScore: 90, aiNotes: 'Critical hazard due to location on a turn and poor visibility. High probability of accidents.' },
   { id: 'klh-streetlight-1', userId: 'user-demo-4', userName: 'Anika', description: 'Streetlight out on the main road to KLH campus.', location: new GeoPoint(17.3955, 78.3315), imageUrl: 'https://picsum.photos/seed/klh-light-1/400/300', status: 'In Progress', createdAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)), riskScore: 45, aiNotes: 'Increases risk in an area with known road hazards (potholes). Should be fixed to improve night safety.' },
   { id: 'klh-garbage-1', userId: 'user-demo-5', userName: 'Neha', description: 'Garbage dumped on the corner near KLH bus stop.', location: new GeoPoint(17.3935, 78.3340), imageUrl: 'https://picsum.photos/seed/klh-garbage-1/400/300', status: 'Resolved', createdAt: Timestamp.fromDate(new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)), riskScore: 30, aiNotes: 'Sanitation issue. Was resolved quickly.' },
+  { id: 'klh-water-1', userId: 'user-demo-6', userName: 'Sneha', description: 'Water logging near the sports complex after every small rain.', location: new GeoPoint(17.3960, 78.3350), imageUrl: 'https://picsum.photos/seed/klh-water-1/400/300', status: 'Submitted', createdAt: Timestamp.fromDate(new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)), riskScore: 55, aiNotes: 'Recurring drainage issue, potential health hazard and damages infrastructure.' },
+  { id: 'klh-sidewalk-1', userId: 'user-demo-7', userName: 'Karthik', description: 'Sidewalk tiles are broken outside the library, making it hard to walk.', location: new GeoPoint(17.3940, 78.3310), imageUrl: 'https://picsum.photos/seed/klh-sidewalk-1/400/300', status: 'In Progress', createdAt: Timestamp.fromDate(new Date(Date.now() - 12 * 24 * 60 * 60 * 1000)), riskScore: 35, aiNotes: 'Pedestrian safety issue, especially for students rushing to class.' },
+];
+
+const GAJULARAMARAM_CLUSTER: Grievance[] = [
+    { id: 'gaj-road-1', userId: 'user-demo-8', userName: 'Arjun', description: 'Road near ALEAP Industrial Area damaged by heavy truck movement.', location: new GeoPoint(17.5475, 78.4050), imageUrl: 'https://picsum.photos/seed/gaj-road-1/400/300', status: 'Submitted', createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)), riskScore: 70, aiNotes: 'Road degradation from heavy vehicles. High impact on commercial transport. Poses risk to smaller vehicles.' },
+    { id: 'gaj-waste-1', userId: 'user-demo-9', userName: 'Ishita', description: 'Illegal dumping of industrial waste in open plot.', location: new GeoPoint(17.5460, 78.4065), imageUrl: 'https://picsum.photos/seed/gaj-waste-1/400/300', status: 'Submitted', createdAt: Timestamp.fromDate(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)), riskScore: 80, aiNotes: 'Serious environmental and health hazard. Potential for soil and water contamination. Requires immediate verification.' },
+    { id: 'gaj-light-1', userId: 'user-demo-10', userName: 'Rahul', description: 'Poor lighting on the main access road to the industrial area.', location: new GeoPoint(17.5485, 78.4030), imageUrl: 'https://picsum.photos/seed/gaj-light-1/400/300', status: 'In Progress', createdAt: Timestamp.fromDate(new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)), riskScore: 50, aiNotes: 'Security risk for night-shift workers and transport. Increases vulnerability to theft and accidents.' },
+    { id: 'gaj-drain-1', userId: 'user-demo-11', userName: 'Divya', description: 'Clogged drainage channel causing overflow of chemical water.', location: new GeoPoint(17.5455, 78.4045), imageUrl: 'https://picsum.photos/seed/gaj-drain-1/400/300', status: 'Resolved', createdAt: Timestamp.fromDate(new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)), riskScore: 75, aiNotes: 'Contaminated water overflow posed a significant health risk. Issue was escalated and resolved.' },
 ];
 
 
@@ -203,7 +218,7 @@ Object.entries(userReportCounts).forEach(([userId, count]) => {
 });
 
 const OTHER_DEMO_GRIEVANCES: Grievance[] = Array.from(
-  { length: DEMO_COUNT - MY_DEMO_REPORTS.length - KLH_GATE_CLUSTER.length },
+  { length: DEMO_COUNT - MY_DEMO_REPORTS.length - KLH_GATE_CLUSTER.length - GAJULARAMARAM_CLUSTER.length },
   (_, i) => {
     const randomLocation = getClusterLocation();
     const randomDate = new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000);
@@ -235,7 +250,7 @@ const OTHER_DEMO_GRIEVANCES: Grievance[] = Array.from(
 );
 
 // Combine all grievances
-export const ALL_GRIEVANCES: Grievance[] = [ ...MY_DEMO_REPORTS, ...KLH_GATE_CLUSTER, ...OTHER_DEMO_GRIEVANCES ];
+export const ALL_GRIEVANCES: Grievance[] = [ ...MY_DEMO_REPORTS, ...KLH_GATE_CLUSTER, ...GAJULARAMARAM_CLUSTER, ...OTHER_DEMO_GRIEVANCES ];
 
 // Now, calculate the counts for each user from the single source of truth
 const grievanceCounts = ALL_GRIEVANCES.reduce((acc, grievance) => {
