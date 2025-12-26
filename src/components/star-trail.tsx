@@ -13,7 +13,7 @@ export default function StarTrail() {
 
     const createSnowFlake = () => {
       // Allow more flakes on screen for a denser snowfall effect
-      if (document.querySelectorAll('.star').length > 300) return;
+      if (document.querySelectorAll('.star').length > 500) return;
 
       const flake = document.createElement('div');
       flake.classList.add('star'); // We can reuse the 'star' class and its animation
@@ -40,7 +40,7 @@ export default function StarTrail() {
     };
 
     // Create flakes more frequently for a denser effect
-    const interval = setInterval(createSnowFlake, 30);
+    const interval = setInterval(createSnowFlake, 10);
 
     return () => clearInterval(interval);
   }, []);
