@@ -48,7 +48,9 @@ function RoutePolyline({ route, color }: { route: google.maps.DirectionsRoute | 
         polyline.setMap(map);
 
         // Fit map to route bounds
-        map.fitBounds(route.bounds);
+        if (route.bounds) {
+            map.fitBounds(route.bounds);
+        }
 
         return () => polyline.setMap(null);
     }, [map, route, color]);
@@ -68,7 +70,12 @@ export default function RoutePlanner() {
     const [destination, setDestination] = useState<LocationValue | null>(null);
     const [originText, setOriginText] = useState('');
     const [destinationText, setDestinationText] = useState('');
-    const [allGrievances, setAllGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
+    
+    useEffect(() => {
+        // Initialize grievances from demo data on the client side
+        setAllGrievances(DEMO_GRIEVANCES);
+    }, []);
 
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
@@ -114,33 +121,39 @@ export default function RoutePlanner() {
             provideRouteAlternatives: true,
         };
 
-        const response = await directionsService.route(request);
-        if (response.status !== 'OK' || !response.routes) {
-            toast({ variant: "destructive", title: "Route Not Found", description: "Could not find a route for the selected locations."});
-            return null;
-        }
+        try {
+            const response = await directionsService.route(request);
+            if (response.status !== 'OK' || !response.routes || response.routes.length === 0) {
+                toast({ variant: "destructive", title: "Route Not Found", description: "Could not find a route for the selected locations."});
+                return null;
+            }
 
-        const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
+            const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
 
-        const scoredRoutes = response.routes.map(route => {
-            const issues = openGrievances.filter(g => {
-                const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: route.overview_path }), 0.005); // 500m tolerance
+            const scoredRoutes = response.routes.map(route => {
+                const issues = openGrievances.filter(g => {
+                    const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
+                    return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: route.overview_path }), 0.005); // ~500m tolerance
+                });
+                const travelTime = route.legs[0]?.duration?.value || Infinity;
+                const issuePenalty = issues.length * 600; // Increased penalty: 10 minutes per issue
+                const score = travelTime + issuePenalty;
+                return { route, issues, score, travelTime };
             });
-            const travelTime = route.legs[0]?.duration?.value || 0;
-            const issuePenalty = issues.length * 120; // 2-minute penalty per issue
-            const score = travelTime + issuePenalty;
-            return { route, issues, score };
-        });
 
-        if (mode === 'fastest') {
-            const fastest = scoredRoutes.sort((a,b) => a.route.legs[0].duration!.value - b.route.legs[0].duration!.value)[0];
-            return { route: fastest.route, issues: fastest.issues };
-        }
+            if (mode === 'fastest') {
+                const fastest = scoredRoutes.sort((a,b) => a.travelTime - b.travelTime)[0];
+                return { route: fastest.route, issues: fastest.issues };
+            }
+            
+            // mode === 'avoid_issues'
+            const bestRoute = scoredRoutes.sort((a,b) => a.score - b.score)[0];
+            return { route: bestRoute.route, issues: bestRoute.issues };
         
-        // mode === 'avoid_issues'
-        const bestRoute = scoredRoutes.sort((a,b) => a.score - b.score)[0];
-        return { route: bestRoute.route, issues: bestRoute.issues };
+        } catch (error) {
+             toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
+             return null;
+        }
     };
 
     const handleFindRoute = async () => {
@@ -158,9 +171,8 @@ export default function RoutePlanner() {
 
         const result = await getSmartRoute(originLocation, destinationLocation, routePreference);
         
-        if (result) {
+        if (result && result.route) {
             const newDirectionsResult: google.maps.DirectionsResult = {
-                // @ts-ignore
                 routes: [result.route],
                 geocoded_waypoints: [],
                 request: {} as google.maps.DirectionsRequest,
@@ -177,7 +189,7 @@ export default function RoutePlanner() {
             } else if (routePreference === 'fastest' && result.issues.length > 0) {
                  toast({
                     title: "FYI: Issues on Route",
-                    description: `Fastest route has ${result.issues.length} issue(s). To find a safer path, select 'Avoid Issues'.`,
+                    description: `Fastest route has ${result.issues.length} issue(s). To find a safer path, select 'Safest'.`,
                 });
             } else if (result.issues.length === 0) {
                 toast({
@@ -185,6 +197,8 @@ export default function RoutePlanner() {
                     description: `No open grievances found on your selected route.`,
                 });
             }
+        } else {
+            setDirectionsResult(null);
         }
         setIsLoading(false);
     };
@@ -210,7 +224,7 @@ export default function RoutePlanner() {
                         </div>
                         <div className="space-y-2">
                             <Label>Destination</Label>
-                            <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} />
+                             <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} />
                         </div>
                         <RadioGroup value={routePreference} onValueChange={(v: 'fastest' | 'avoid_issues') => setRoutePreference(v)}>
                             <div className="flex items-center space-x-2">
@@ -287,9 +301,17 @@ export default function RoutePlanner() {
                     {origin && (origin as any).geometry && <AdvancedMarker position={(origin as any).geometry.location}><Pin background={'#4caf50'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
                     {destination && (destination as any).geometry && <AdvancedMarker position={(destination as any).geometry.location}><Pin background={'#f44336'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
                     {selectedRoute && <RoutePolyline route={selectedRoute} color={routeColor} />}
+                    
+                    {issuesOnRoute.map(issue => (
+                         <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
+                           <div className="p-1 bg-amber-500 rounded-full shadow-lg">
+                             <AlertTriangle className="h-4 w-4 text-white" />
+                           </div>
+                         </AdvancedMarker>
+                    ))}
                 </Map>
             </div>
         </div>
     );
-
+}
     
