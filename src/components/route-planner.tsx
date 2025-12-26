@@ -15,7 +15,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 
 // Helper component for Google Places Autocomplete
-function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value }: { onPlaceChanged: (place: google.maps.places.PlaceResult) => void, placeholder: string, onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void, value: string }) {
+function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value, disabled }: { onPlaceChanged: (place: google.maps.places.PlaceResult) => void, placeholder: string, onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void, value: string, disabled?: boolean }) {
     const placesLibrary = useMapsLibrary('places');
     const inputRef = useRef<HTMLInputElement>(null);
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
@@ -30,7 +30,7 @@ function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value }
         setAutocomplete(ac);
     }, [placesLibrary, onPlaceChanged]);
 
-    return <Input ref={inputRef} placeholder={placeholder} className="w-full" onChange={onInputChange} value={value} />;
+    return <Input ref={inputRef} placeholder={placeholder} className="w-full" onChange={onInputChange} value={value} disabled={disabled} />;
 }
 
 // Main component to render the calculated route polyline
@@ -63,6 +63,11 @@ export default function RoutePlanner() {
     const routesLibrary = useMapsLibrary('routes');
     const geometryLibrary = useMapsLibrary('geometry');
     const { toast } = useToast();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+      setIsClient(true);
+    }, []);
     
     type LocationValue = google.maps.LatLngLiteral | google.maps.places.PlaceResult;
 
@@ -136,9 +141,7 @@ export default function RoutePlanner() {
                     return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: route.overview_path }), 0.005); // ~500m tolerance
                 });
                 const travelTime = route.legs[0]?.duration?.value || Infinity;
-                const issuePenalty = issues.length * 600; // 10 minutes per issue
-                const score = travelTime + issuePenalty;
-                return { route, issues, score, travelTime };
+                return { route, issues, travelTime, issueCount: issues.length };
             });
 
             if (mode === 'fastest') {
@@ -147,7 +150,13 @@ export default function RoutePlanner() {
             }
             
             // mode === 'avoid_issues'
-            const bestRoute = scoredRoutes.sort((a,b) => a.score - b.score)[0];
+            const bestRoute = scoredRoutes.sort((a,b) => {
+                // Prioritize routes with fewer issues first.
+                if (a.issueCount < b.issueCount) return -1;
+                if (a.issueCount > b.issueCount) return 1;
+                // If issue counts are equal, then choose the faster route.
+                return a.travelTime - b.travelTime;
+            })[0];
             return { route: bestRoute.route, issues: bestRoute.issues };
         
         } catch (error) {
@@ -220,13 +229,21 @@ export default function RoutePlanner() {
                         <div className="space-y-2">
                             <Label>Origin</Label>
                             <div className="flex gap-2">
-                               <PlaceAutocomplete onPlaceChanged={p => {setOrigin(p); setOriginText(p.formatted_address || p.name || '')}} placeholder="Enter origin" value={originText} onInputChange={e => setOriginText(e.target.value)} />
+                              {isClient ? (
+                                <PlaceAutocomplete onPlaceChanged={p => {setOrigin(p); setOriginText(p.formatted_address || p.name || '')}} placeholder="Enter origin" value={originText} onInputChange={e => setOriginText(e.target.value)} />
+                               ) : (
+                                <Input placeholder="Enter origin" disabled />
+                               )}
                                 <Button variant="outline" size="icon" onClick={handleUseMyLocation}><LocateFixed/></Button>
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Destination</Label>
-                             <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} />
+                            {isClient ? (
+                              <PlaceAutocomplete onPlaceChanged={p => {setDestination(p); setDestinationText(p.formatted_address || p.name || '')}} placeholder="Enter destination" value={destinationText} onInputChange={e => setDestinationText(e.target.value)} />
+                            ) : (
+                              <Input placeholder="Enter destination" disabled />
+                            )}
                         </div>
                         <RadioGroup value={routePreference} onValueChange={(v: 'fastest' | 'avoid_issues') => setRoutePreference(v)}>
                             <div className="flex items-center space-x-2">
@@ -316,3 +333,5 @@ export default function RoutePlanner() {
         </div>
     );
 }
+
+    
