@@ -19,9 +19,9 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
 
-    // Authenticated users can read all grievances for map display.
+    // ANYONE can read all grievances for map display.
     match /grievances/{grievanceId} {
-        allow read: if request.auth != null;
+        allow read: if true;
         // Only authenticated users can create grievances and must own them.
         allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
         // Only admins can update the status of a grievance.
