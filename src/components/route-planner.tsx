@@ -77,32 +77,33 @@ function RoutePolyline({ route, color }: { route: google.maps.DirectionsRoute | 
 
 // Helper to get an icon for a maneuver
 const getManeuverIcon = (maneuver: string | undefined) => {
-    if (!maneuver) return <Forward />;
+    if (!maneuver) return <Forward className="h-5 w-5"/>;
     
     const maneuverMap: { [key: string]: React.ReactNode } = {
-        'turn-sharp-left': <Undo2 className="transform -scale-x-100" />,
-        'uturn-left': <Undo2 className="transform -scale-x-100" />,
-        'turn-slight-left': <ArrowLeft />,
-        'merge': <Merge />,
-        'roundabout-left': <CircleDot />,
-        'roundabout-right': <CircleDot />,
-        'uturn-right': <Undo2 />,
-        'turn-slight-right': <ArrowRight />,
-        'straight': <ArrowUp />,
-        'turn-left': <ArrowLeft />,
-        'turn-right': <ArrowRight />,
-        'fork-left': <Waypoints />,
-        'fork-right': <Waypoints className="transform -scale-x-100" />,
-        'ramp-left': <ArrowLeft />,
-        'ramp-right': <ArrowRight />,
-        'turn-sharp-right': <Undo2 />,
-        'ferry': <Milestone />,
-        'ferry-train': <Milestone />,
-        'destination': <Flag />,
+        'turn-sharp-left': <Undo2 className="h-5 w-5 transform -scale-x-100" />,
+        'uturn-left': <Undo2 className="h-5 w-5 transform -scale-x-100" />,
+        'turn-slight-left': <ArrowLeft className="h-5 w-5" />,
+        'merge': <Merge className="h-5 w-5" />,
+        'roundabout-left': <CircleDot className="h-5 w-5" />,
+        'roundabout-right': <CircleDot className="h-5 w-5" />,
+        'uturn-right': <Undo2 className="h-5 w-5" />,
+        'turn-slight-right': <ArrowRight className="h-5 w-5" />,
+        'straight': <ArrowUp className="h-5 w-5" />,
+        'turn-left': <ArrowLeft className="h-5 w-5" />,
+        'turn-right': <ArrowRight className="h-5 w-5" />,
+        'fork-left': <Waypoints className="h-5 w-5" />,
+        'fork-right': <Waypoints className="h-5 w-5 transform -scale-x-100" />,
+        'ramp-left': <ArrowLeft className="h-5 w-5" />,
+        'ramp-right': <ArrowRight className="h-5 w-5" />,
+        'turn-sharp-right': <Undo2 className="h-5 w-5" />,
+        'ferry': <Milestone className="h-5 w-5" />,
+        'ferry-train': <Milestone className="h-5 w-5" />,
+        'destination-left': <Flag className="h-5 w-5" />,
+        'destination-right': <Flag className="h-5 w-5" />,
     };
 
     const key = Object.keys(maneuverMap).find(k => maneuver.includes(k));
-    return key ? maneuverMap[key] : <Forward />;
+    return key ? maneuverMap[key] : <Forward className="h-5 w-5" />;
 };
 
 
@@ -198,23 +199,21 @@ export default function RoutePlanner() {
             }
             
             // mode === 'avoid_issues'
-            const bestRoute = scoredRoutes.sort((a,b) => {
-                 // Prioritize routes with zero issues above all else.
+            const bestRoute = scoredRoutes.sort((a, b) => {
+                // If one route is clear and the other isn't, the clear one wins
                 if (a.issueCount === 0 && b.issueCount > 0) return -1;
                 if (b.issueCount === 0 && a.issueCount > 0) return 1;
 
-                // If both have issues (or both are clear), prefer the one with fewer issues.
-                if (a.issueCount !== b.issueCount) {
-                    return a.issueCount - b.issueCount;
-                }
-                
-                // If issue counts are the same, then choose the faster route.
-                return a.travelTime - b.travelTime;
+                // A much heavier penalty for issues to force different routes
+                const scoreA = a.travelTime + a.issueCount * 1200; // 20-minute penalty per issue
+                const scoreB = b.travelTime + b.issueCount * 1200;
+
+                return scoreA - scoreB;
             })[0];
             return { route: bestRoute.route, issues: bestRoute.issues };
         
         } catch (error) {
-             toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
+             toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while findin`g the route."});
              return null;
         }
     };
@@ -387,7 +386,5 @@ export default function RoutePlanner() {
         </div>
     );
 }
-
-    
 
     
