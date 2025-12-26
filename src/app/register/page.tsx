@@ -19,7 +19,7 @@ import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } 
 import { doc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
@@ -29,7 +29,7 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -73,8 +73,6 @@ export default function RegisterPage() {
         description: "A verification email has been sent to your address. Please verify to login.",
       });
 
-      // It's good practice to sign the user out after registration and email verification is sent
-      // so they have to login after verifying.
       await auth.signOut();
 
     } catch (error: any) {
@@ -90,25 +88,22 @@ export default function RegisterPage() {
 
   if (isSuccess) {
     return (
-        <div className="container flex items-center justify-center py-12">
-            <Card className="w-full max-w-sm text-center">
-                <CardHeader className="items-center">
-                    <MailCheck className="h-12 w-12 text-primary"/>
-                    <CardTitle className="text-2xl mt-4">Check your email</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">We've sent a verification link to your email address. Please click the link to activate your account.</p>
-                    <Button asChild className="mt-6 w-full">
-                        <Link href="/login">Back to Login</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
+        <Card className="w-full max-w-sm text-center">
+            <CardHeader className="items-center">
+                <MailCheck className="h-12 w-12 text-primary"/>
+                <CardTitle className="text-2xl mt-4">Check your email</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">We've sent a verification link to your email address. Please click the link to activate your account.</p>
+                <Button asChild className="mt-6 w-full">
+                    <Link href="/login">Back to Login</Link>
+                </Button>
+            </CardContent>
+        </Card>
     );
   }
 
   return (
-    <div className="container flex items-center justify-center py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Register</CardTitle>
@@ -172,6 +167,20 @@ export default function RegisterPage() {
           </div>
         </CardContent>
       </Card>
+  );
+}
+
+
+export default function RegisterPage() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  return (
+    <div className="container flex items-center justify-center py-12">
+      {isClient ? <RegisterForm /> : null}
     </div>
   );
 }
