@@ -3,6 +3,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuthState, AuthState } from './use-user';
 import { useAuth } from '../provider';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 // Create the context with an undefined initial value
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -21,6 +22,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={authState}>
+      <FirebaseErrorListener />
       {children}
     </AuthContext.Provider>
   );
