@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useMap, useMapsLibrary, useDirectionsService } from '@vis.gl/react-google-maps';
+import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import type { Grievance } from '@/lib/types';
 import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,15 +55,14 @@ function Directions() {
 
     const [origin, setOrigin] = useState<google.maps.places.PlaceResult | null>(null);
     const [destination, setDestination] = useState<google.maps.places.PlaceResult | null>(null);
-    const [directionsRequest, setDirectionsRequest] = useState<google.maps.DirectionsRequest | null>(null);
+    const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
     const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
     const [avoidedGrievances, setAvoidedGrievances] = useState<Grievance[]>([]);
 
-    const directionsService = useDirectionsService();
-
     useEffect(() => {
         if (!routesLibrary || !map) return;
+        setDirectionsService(new routesLibrary.DirectionsService());
         setDirectionsRenderer(new routesLibrary.DirectionsRenderer({ map }));
     }, [routesLibrary, map]);
 
@@ -74,7 +73,7 @@ function Directions() {
 
 
     const handleFindRoute = () => {
-        if (!origin || !destination || !origin.geometry?.location || !destination.geometry?.location) {
+        if (!origin || !destination || !origin.geometry?.location || !destination.geometry?.location || !directionsService) {
             alert("Please select both an origin and a destination.");
             return;
         }
@@ -83,24 +82,13 @@ function Directions() {
             g => g.status === 'Submitted' || g.status === 'In Progress'
         );
 
-        const waypoints: google.maps.DirectionsWaypoint[] = activeGrievances.map(g => ({
-            location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
-            stopover: false
-        }));
-
         const request: google.maps.DirectionsRequest = {
             origin: origin.geometry.location,
             destination: destination.geometry.location,
             travelMode: google.maps.TravelMode.DRIVING,
         };
         
-        setDirectionsRequest(request);
-    };
-
-    useEffect(() => {
-        if (!directionsService || !directionsRequest) return;
-        
-        directionsService.route(directionsRequest, (result, status) => {
+        directionsService.route(request, (result, status) => {
             if (status === google.maps.DirectionsStatus.OK && result) {
                 setDirectionsResult(result);
                 
@@ -117,8 +105,7 @@ function Directions() {
                 alert(`Failed to get directions: ${status}. The route might be too complex or impossible with the given avoidances.`);
             }
         });
-
-    }, [directionsService, directionsRequest, geometryLibrary]);
+    };
     
 
     return (
