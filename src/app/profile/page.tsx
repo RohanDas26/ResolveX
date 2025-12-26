@@ -19,10 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // Access the global store
 // @ts-ignore
-const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : {
-    get: () => [],
-    subscribe: () => () => {},
-};
+const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : null;
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -40,14 +37,17 @@ const getBadge = (grievanceCount: number) => {
 export default function ProfilePage() {
     const { user: authUser, profile, isUserLoading, isProfileLoading } = useUser();
     const { toast } = useToast();
-    const [allGrievances, setAllGrievances] = useState<Grievance[]>(grievanceStore.get());
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
 
     useEffect(() => {
-        const handleUpdate = () => {
-            setAllGrievances([...grievanceStore.get()]);
-        };
-        const unsubscribe = grievanceStore.subscribe(handleUpdate);
-        return () => unsubscribe();
+        if (grievanceStore) {
+            setAllGrievances(grievanceStore.get());
+            const handleUpdate = () => {
+                setAllGrievances([...grievanceStore.get()]);
+            };
+            const unsubscribe = grievanceStore.subscribe(handleUpdate);
+            return () => unsubscribe();
+        }
     }, []);
 
     const userGrievances = useMemo(() => {
@@ -171,5 +171,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    

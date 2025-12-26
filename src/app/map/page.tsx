@@ -49,12 +49,7 @@ if (typeof window !== 'undefined') {
 }
 
 // @ts-ignore
-const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : {
-    grievances: [...DEMO_GRIEVANCES],
-    get: () => DEMO_GRIEVANCES,
-    add: () => {},
-    subscribe: () => () => {},
-};
+const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : null;
 
 function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null }) {
     const map = useMap();
@@ -78,20 +73,25 @@ function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null 
 
 export default function MapPage() {
   const searchParams = useSearchParams();
-  const [grievances, setGrievances] = useState<Grievance[] | null>(grievanceStore.get());
+  const [grievances, setGrievances] = useState<Grievance[] | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // This flag ensures the initial zoom effect runs only once
   const initialEffectRan = useRef(false);
   
   useEffect(() => {
-    const handleUpdate = () => {
-        setGrievances([...grievanceStore.get()]);
-    };
-    const unsubscribe = grievanceStore.subscribe(handleUpdate);
-    return () => unsubscribe();
+    // Access store only on the client
+    if (grievanceStore) {
+        setGrievances(grievanceStore.get());
+        const handleUpdate = () => {
+            setGrievances([...grievanceStore.get()]);
+        };
+        const unsubscribe = grievanceStore.subscribe(handleUpdate);
+        setIsLoading(false);
+        return () => unsubscribe();
+    }
   }, []);
 
   useEffect(() => {

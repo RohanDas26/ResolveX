@@ -11,21 +11,22 @@ import { type Grievance } from '@/lib/types';
 
 // Access the global store
 // @ts-ignore
-const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : {
-    get: () => [],
-    subscribe: () => () => {},
-};
+const grievanceStore = typeof window !== 'undefined' ? window.grievanceStore : null;
 
 export default function TicketsPage() {
     const { user: authUser, isUserLoading } = useUser();
-    const [allGrievances, setAllGrievances] = useState<Grievance[]>(grievanceStore.get());
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
 
     useEffect(() => {
-        const handleUpdate = () => {
-            setAllGrievances([...grievanceStore.get()]);
-        };
-        const unsubscribe = grievanceStore.subscribe(handleUpdate);
-        return () => unsubscribe();
+        // Access the store only on the client side
+        if (grievanceStore) {
+            setAllGrievances(grievanceStore.get());
+            const handleUpdate = () => {
+                setAllGrievances([...grievanceStore.get()]);
+            };
+            const unsubscribe = grievanceStore.subscribe(handleUpdate);
+            return () => unsubscribe();
+        }
     }, []);
 
     const userGrievances = useMemo(() => {
