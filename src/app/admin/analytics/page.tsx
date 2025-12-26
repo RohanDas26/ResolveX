@@ -2,18 +2,17 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query } from "firebase/firestore";
 import type { Grievance } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { format, subDays, isWithinInterval, differenceInDays } from "date-fns";
+import { format, subDays } from "date-fns";
 import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight, Lightbulb, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { DEMO_GRIEVANCES as ALL_DEMO_GRIEVANCES, DEMO_CENTERS } from "@/lib/demo-data";
 import { Label } from "@/components/ui/label";
+import { differenceInDays } from "date-fns";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
 
@@ -306,19 +305,20 @@ function ImpactSimulator() {
 
 
 export default function AnalyticsPage() {
-    const firestore = useFirestore();
+    const [grievances, setGrievances] = useState<Grievance[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const grievancesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, "grievances"));
-    }, [firestore]);
-
-    const { data: grievances, isLoading } = useCollection<Grievance>(grievancesQuery);
+    useEffect(() => {
+        // Use demo data on the client side to avoid security rule violations
+        // and hydration errors.
+        setGrievances(ALL_DEMO_GRIEVANCES);
+        setIsLoading(false);
+    }, []);
 
     const statusData = useMemo(() => {
-        const data = grievances ?? ALL_DEMO_GRIEVANCES;
+        if (!grievances) return [];
         const counts: { [key: string]: number } = { Submitted: 0, "In Progress": 0, Resolved: 0 };
-        data?.forEach(g => {
+        grievances.forEach(g => {
             if (g.status in counts) {
                 counts[g.status]++;
             }
@@ -332,25 +332,26 @@ export default function AnalyticsPage() {
             return { date: format(date, "MMM dd"), count: 0 };
         });
 
-        const data = grievances ?? ALL_DEMO_GRIEVANCES;
-        data.forEach(g => {
-            if (g.createdAt && 'seconds' in g.createdAt) {
-                const grievanceDate = new Date(g.createdAt.seconds * 1000);
-                const dayStr = format(grievanceDate, "MMM dd");
-                const dayData = last30Days.find(d => d.date === dayStr);
-                if (dayData) {
-                    dayData.count++;
+        if (grievances) {
+            grievances.forEach(g => {
+                if (g.createdAt && 'seconds' in g.createdAt) {
+                    const grievanceDate = new Date(g.createdAt.seconds * 1000);
+                    const dayStr = format(grievanceDate, "MMM dd");
+                    const dayData = last30Days.find(d => d.date === dayStr);
+                    if (dayData) {
+                        dayData.count++;
+                    }
                 }
-            }
-        });
+            });
+        }
 
         return last30Days;
     }, [grievances]);
 
     const categoryData = useMemo(() => {
-        const data = grievances ?? ALL_DEMO_GRIEVANCES;
+        if (!grievances) return [];
         const categoryMap: { [key: string]: number } = {};
-        data?.forEach(g => {
+        grievances.forEach(g => {
             const category = categorizeGrievance(g.description);
             categoryMap[category] = (categoryMap[category] || 0) + 1;
         });
@@ -432,7 +433,5 @@ export default function AnalyticsPage() {
         </div>
     );
 }
-
-    
 
     
