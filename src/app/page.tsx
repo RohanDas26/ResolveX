@@ -9,7 +9,6 @@ import { type Grievance } from "@/lib/types";
 import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 import { useUser } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
-import RoutePlanner from "@/components/route-planner";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
@@ -101,7 +100,6 @@ export default function Home() {
 
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full">
-       <RoutePlanner allGrievances={grievances || []} />
       <GrievanceMap 
         grievances={grievances} 
         onMarkerClick={handleMarkerClick}
