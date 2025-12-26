@@ -1,25 +1,31 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, ShieldAlert } from "lucide-react";
 import GrievanceMap from "@/components/grievance-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, Wrench, Info } from "lucide-react";
+import { Lightbulb, Wrench, Info, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { summarizePriorities } from "@/ai/flows/summarize-priorities-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
-import { collection, query, where, Query } from "firebase/firestore";
+import { collection, query, where, Query, writeBatch } from "firebase/firestore";
+import { dummyGrievances } from "@/lib/dummy-data";
+import { v4 as uuidv4 } from 'uuid';
+import { doc } from 'firebase/firestore';
+import { useToast } from "@/hooks/use-toast";
+
 
 function AdminDashboardContent() {
   const firestore = useFirestore();
   const [filter, setFilter] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const { toast } = useToast();
 
   const grievancesQuery = useMemoFirebase(() => {
     let q: Query = query(collection(firestore, "grievances"));
@@ -37,6 +43,7 @@ function AdminDashboardContent() {
   
   useEffect(() => {
     if (grievances && grievances.length > 0) {
+      setIsSummaryLoading(true);
       const grievanceDescriptions = grievances.map(g => g.description);
       summarizePriorities({grievances: grievanceDescriptions})
         .then(result => setSummary(result.summary))
@@ -50,6 +57,43 @@ function AdminDashboardContent() {
         setSummary("No grievances to summarize.");
     }
   }, [grievances, grievancesLoading]);
+
+  const seedDatabase = async () => {
+    if (!firestore) return;
+    setIsSeeding(true);
+    try {
+      const batch = writeBatch(firestore);
+      const grievancesCol = collection(firestore, "grievances");
+      
+      dummyGrievances.forEach(grievanceData => {
+        const grievanceId = uuidv4();
+        const docRef = doc(grievancesCol, grievanceId);
+        const completeGrievance = {
+          ...grievanceData,
+          id: grievanceId,
+          userId: 'dummy_user',
+          userName: 'Dummy User'
+        };
+        batch.set(docRef, completeGrievance);
+      });
+
+      await batch.commit();
+      toast({
+        title: "Database Seeded!",
+        description: "Dummy grievance data has been added."
+      })
+    } catch (error) {
+      console.error("Error seeding database: ", error);
+      toast({
+        variant: "destructive",
+        title: "Seeding Failed",
+        description: "Could not add dummy data to the database."
+      })
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
 
   const getPinColor = (status: Grievance['status']) => {
     switch(status) {
@@ -104,6 +148,17 @@ function AdminDashboardContent() {
                   <Lightbulb className="mr-2 h-4 w-4"/> Streetlights
               </Button>
           </CardContent>
+        </Card>
+        <Card className="mt-4">
+            <CardHeader>
+                <CardTitle>Database</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Button onClick={seedDatabase} disabled={isSeeding} className="w-full">
+                    {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Database className="mr-2 h-4 w-4"/>}
+                    {isSeeding ? 'Seeding...' : 'Seed Dummy Data'}
+                </Button>
+            </CardContent>
         </Card>
       </div>
       <div className="flex-1 relative">
