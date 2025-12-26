@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { Icons } from "./icons";
-import { LogOut, LayoutDashboard, PlusCircle, MapPin, Loader2, Shield } from "lucide-react";
+import { LogOut, LayoutDashboard, PlusCircle, MapPin, Loader2, Shield, LogIn } from "lucide-react";
 
 const ADMIN_EMAIL = "admin@klh.edu.in";
 
@@ -74,11 +74,11 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Button asChild variant="ghost">
-                <Link href="/login">Login</Link>
-              </Button>
               <Button asChild>
-                <Link href="/register">Register</Link>
+                <Link href="/login">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
+                </Link>
               </Button>
             </>
           )}

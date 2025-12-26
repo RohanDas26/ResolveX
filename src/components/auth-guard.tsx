@@ -22,17 +22,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         </div>
     );
   }
-  
-  if (!user.emailVerified) {
-    router.replace('/login');
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
-        <div className="text-center">
-            <p className="text-lg">Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
 
   return <>{children}</>;
 }
