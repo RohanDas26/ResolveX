@@ -7,7 +7,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <div className="relative flex flex-col min-h-screen">
       <StarTrail />
       <div className="p-4">
-        <div className="relative w-full bg-background/80 backdrop-blur-sm rounded-md border border-border">
+        <div className="relative w-full bg-transparent rounded-md border-0">
           <Header />
           <main>{children}</main>
         </div>
