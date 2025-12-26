@@ -83,7 +83,7 @@ function SubmitPageContent() {
     const [locationError, setLocationError] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const { user, profile, isUserLoading } = useUser();
+    const { user, isUserLoading } = useUser();
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
 
@@ -179,7 +179,7 @@ function SubmitPageContent() {
         const newGrievance = {
             id: grievanceId,
             userId: user.uid,
-            userName: profile?.name || 'Anonymous',
+            userName: user.displayName || 'Anonymous',
             description: values.description,
             imageUrl: photoPreview, // Use the preview URL for the demo
             location: new GeoPoint(location.lat, location.lng),
