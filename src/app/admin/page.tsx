@@ -36,7 +36,10 @@ function AdminDashboardContent() {
 
     const sortedUsers = Array.from(userMap.values()).sort((a, b) => b.count - a.count);
     
-    return sortedUsers.map(u => ({
+    // Take only the top 5 reporters
+    const top5Users = sortedUsers.slice(0, 5);
+
+    return top5Users.map(u => ({
         id: u.id,
         name: u.name,
         email: `${u.name.toLowerCase().replace(' ', '.')}@demo.com`,

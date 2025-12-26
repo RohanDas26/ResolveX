@@ -111,41 +111,17 @@ const descriptions = [
 ];
 
 const userNames = [
-  "Priya",
-  "Rohan",
-  "Anika",
-  "Vikram",
-  "Sneha",
-  "Arjun",
-  "Neha",
-  "Karthik",
-  "Ishita",
-  "Rahul",
-  "Divya",
-  "Aditya",
-  "Pooja",
-  "Sanjay",
-  "Meera",
+  "Priya", "Rohan", "Anika", "Vikram", "Sneha", "Arjun", "Neha", 
+  "Karthik", "Ishita", "Rahul", "Divya", "Aditya", "Pooja", "Sanjay", "Meera",
+  "Amit", "Sunita", "Rajesh", "Kavita", "Manoj"
 ];
 
 const statuses: Grievance["status"][] = ["Submitted", "In Progress", "Resolved"];
 
 const imageSeeds = [
-  "road",
-  "streetlight",
-  "garbage",
-  "water",
-  "sidewalk",
-  "vendor",
-  "debris",
-  "tree",
-  "manhole",
-  "power",
-  "drainage",
-  "signal",
-  "footpath",
-  "wires",
-  "parking",
+  "road", "streetlight", "garbage", "water", "sidewalk", "vendor",
+  "debris", "tree", "manhole", "power", "drainage", "signal",
+  "footpath", "wires", "parking",
 ];
 
 const riskFactors: { [key: string]: { base: number, note: string } } = {
@@ -162,20 +138,29 @@ const riskFactors: { [key: string]: { base: number, note: string } } = {
     drainage: { base: 55, note: "Public health risk due to stagnant, contaminated water." },
     signal: { base: 70, note: "High risk of major traffic accidents at intersections." },
     parking: { base: 25, note: "Can obstruct traffic or emergency services. Severity depends on the location." },
-    // Default/Other
     default: { base: 20, note: "Initial assessment indicates low risk, but requires manual review for confirmation." }
 };
 
+// Create a weighted list of users to make some report more than others
+const createWeightedUserList = () => {
+    const weightedList: number[] = [];
+    userNames.forEach((_, index) => {
+        // Give users with lower indexes more "weight" - they will appear more often
+        const weight = Math.ceil(Math.pow(userNames.length - index, 2) / 10);
+        for(let i = 0; i < weight; i++) {
+            weightedList.push(index);
+        }
+    });
+    return weightedList;
+}
+const weightedUserIndexes = createWeightedUserList();
 
 const getPinColor = (status: Grievance["status"]) => {
   switch (status) {
-    case "Resolved":
-      return "#22c55e";
-    case "In Progress":
-      return "#f59e0b";
+    case "Resolved": return "#22c55e";
+    case "In Progress": return "#f59e0b";
     case "Submitted":
-    default:
-      return "#ef4444";
+    default: return "#ef4444";
   }
 };
 
@@ -190,19 +175,21 @@ const generateRandomGrievance = (
 
   const status = statuses[idIndex % statuses.length];
   const description = descriptions[idIndex % descriptions.length];
-  const userName = userNames[idIndex % userNames.length];
+  
+  // Select a user based on the weighted list for more realistic counts
+  const userIndex = weightedUserIndexes[Math.floor(Math.random() * weightedUserIndexes.length)];
+  const userName = userNames[userIndex];
+  
   const imageSeed = imageSeeds[idIndex % imageSeeds.length];
 
   const keyword = imageSeeds.find(seed => description.toLowerCase().includes(seed));
-  // Safely get riskData by checking if the keyword exists in riskFactors, otherwise use 'default'.
   const riskData = (keyword && riskFactors[keyword]) ? riskFactors[keyword] : riskFactors.default;
 
-  // Add some randomness to the risk score
   const riskScore = Math.min(100, Math.max(0, riskData.base + Math.floor(Math.random() * 20) - 10));
 
   return {
     id: `demo-${idIndex}`,
-    userId: `user-demo-${(idIndex % 50) + 1}`,
+    userId: `user-demo-${userIndex + 1}`,
     userName,
     description,
     location: new GeoPoint(randomLocation.lat, randomLocation.lng),
