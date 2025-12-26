@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -12,14 +13,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, UploadCloud } from "lucide-react";
-import { useFirestore, useUser } from "@/firebase";
-import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction, getDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { GeoPoint, Timestamp, collection, doc, setDoc, runTransaction } from "firebase/firestore";
 import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+const MOCK_USER_ID = "user_student_1";
+const MOCK_USER_NAME = "Alex Doe";
 
 const formSchema = z.object({
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500, { message: "Description must be 500 characters or less." }),
@@ -39,18 +43,6 @@ function SubmitPageContent() {
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const firestore = useFirestore();
-    const { user: authUser, isUserLoading } = useUser();
-
-    useEffect(() => {
-        if (!isUserLoading && !authUser) {
-            toast({
-                title: 'Authentication Required',
-                description: 'You need to be logged in to submit a grievance.',
-                variant: 'destructive',
-            });
-            router.push('/login');
-        }
-    }, [authUser, isUserLoading, router, toast]);
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -85,10 +77,6 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Location unavailable", description: "Cannot submit without your location." });
             return;
         }
-        if (!authUser) {
-            toast({ variant: "destructive", title: "Not Authenticated", description: "You must be logged in to submit." });
-            return;
-        }
         
         setIsLoading(true);
         try {
@@ -100,7 +88,7 @@ function SubmitPageContent() {
             const storage = getStorage();
             const grievanceId = uuidv4();
             
-            const userId = authUser.uid;
+            const userId = MOCK_USER_ID;
             
             const imageRef = ref(storage, `grievances/${userId}/${grievanceId}-${imageFile.name}`);
             
@@ -110,7 +98,7 @@ function SubmitPageContent() {
             const grievanceData = {
                 id: grievanceId,
                 userId: userId,
-                userName: authUser.displayName || "Anonymous", // Use displayName from auth user
+                userName: MOCK_USER_NAME,
                 description: values.description,
                 imageUrl: imageUrl,
                 location: new GeoPoint(location.lat, location.lng),
@@ -125,20 +113,11 @@ function SubmitPageContent() {
             await runTransaction(firestore, async (transaction) => {
                 const userDoc = await transaction.get(userDocRef);
 
-                if (!userDoc.exists()) {
-                   // This case should ideally not happen if user is created on signup
-                   // But as a fallback, create the user doc
-                    transaction.set(userDocRef, {
-                        id: userId,
-                        name: authUser.displayName,
-                        email: authUser.email,
-                        grievanceCount: 1,
-                        imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${userId}`
-                    });
-                } else {
+                if (userDoc.exists()) {
                     const newCount = (userDoc.data().grievanceCount || 0) + 1;
                     transaction.update(userDocRef, { grievanceCount: newCount });
                 }
+                // If user doc doesn't exist, we don't create it, just post the grievance
                 transaction.set(grievanceDocRef, grievanceData);
             });
 
@@ -224,7 +203,7 @@ function SubmitPageContent() {
                           </div>
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isLoading || !location || !authUser}>
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isLoading || !location}>
                             {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                             {isLoading ? "Submitting..." : "Submit Grievance"}
                         </Button>

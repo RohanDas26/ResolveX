@@ -1,10 +1,11 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User } from 'firebase/auth';
-import { useAuthState } from './auth/use-user';
+import { useUser as useUserHook } from './auth/use-user'; // Renamed to avoid conflict
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -110,4 +111,4 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
   return memoized;
 }
 
-export const useUser = useAuthState;
+export const useUser = useUserHook;

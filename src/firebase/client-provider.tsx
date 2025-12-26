@@ -1,9 +1,9 @@
+
 'use client';
 
 import React, { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import AuthProvider from './auth/auth-provider';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -15,15 +15,14 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     return initializeFirebase();
   }, []); // Empty dependency array ensures this runs only once on mount
 
+  // AuthProvider is removed as it's no longer needed for auth state
   return (
     <FirebaseProvider
       firebaseApp={firebaseServices.firebaseApp}
       auth={firebaseServices.auth}
       firestore={firebaseServices.firestore}
     >
-      <AuthProvider>
-        {children}
-      </AuthProvider>
+      {children}
     </FirebaseProvider>
   );
 }

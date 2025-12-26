@@ -1,7 +1,8 @@
+
 "use client";
 
-import { useEffect, useMemo } from 'react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useMemo } from 'react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Grievance, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,8 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, MapPin, CheckCircle, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
 import { useDoc } from '@/firebase/firestore/use-doc';
+
+const MOCK_USER_ID = 'user_student_1';
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -28,24 +30,16 @@ const getBadge = (grievanceCount: number) => {
 
 export default function ProfilePage() {
     const firestore = useFirestore();
-    const { user: authUser, isUserLoading: authLoading } = useUser(useAuth());
-    const router = useRouter();
-
-    useEffect(() => {
-        if (!authLoading && !authUser) {
-            router.push('/login');
-        }
-    }, [authUser, authLoading, router]);
-
+    
     const userDocRef = useMemoFirebase(() => {
-        if (!firestore || !authUser) return null;
-        return doc(firestore, 'users', authUser.uid);
-    }, [firestore, authUser]);
+        if (!firestore) return null;
+        return doc(firestore, 'users', MOCK_USER_ID);
+    }, [firestore]);
 
     const grievancesQuery = useMemoFirebase(() => {
-        if (!firestore || !authUser) return null;
-        return query(collection(firestore, 'grievances'), where('userId', '==', authUser.uid));
-    }, [firestore, authUser]);
+        if (!firestore) return null;
+        return query(collection(firestore, 'grievances'), where('userId', '==', MOCK_USER_ID));
+    }, [firestore]);
 
     const { data: user, isLoading: userLoading } = useDoc<UserProfile>(userDocRef);
     const { data: userGrievances, isLoading: grievancesLoading } = useCollection<Grievance>(grievancesQuery);
@@ -53,7 +47,7 @@ export default function ProfilePage() {
     const grievanceCount = useMemo(() => user?.grievanceCount ?? 0, [user]);
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
-    const isLoading = authLoading || userLoading || grievancesLoading;
+    const isLoading = userLoading || grievancesLoading;
 
     if (isLoading) {
         return (
@@ -79,7 +73,7 @@ export default function ProfilePage() {
         );
     }
     
-    if (!user) return null; // Or a 'user not found' message
+    if (!user) return <div className="container mx-auto px-4 py-8"><p>Could not load user profile. The database might need to be seeded.</p></div>;
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -102,13 +96,21 @@ export default function ProfilePage() {
                             )}
                         </CardHeader>
                     </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Leaderboard</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <p className="text-sm text-muted-foreground">The leaderboard is now available on the admin page.</p>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* User's Grievances */}
                 <div className="md:col-span-2">
                     <h2 className="text-2xl font-bold mb-4">Your Reported Grievances</h2>
                     <div className="space-y-4">
-                        {userGrievances && userGrievances.map((g, index) => (
+                        {userGrievances && userGrievances.length > 0 ? userGrievances.map((g, index) => (
                              <Card key={g.id} className="flex items-start gap-4 p-4 animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
                                  <div className="w-24 h-24 rounded-md overflow-hidden shrink-0">
                                      <img src={g.imageUrl} alt={g.description} className="w-full h-full object-cover" />
@@ -126,8 +128,9 @@ export default function ProfilePage() {
                                  </div>
                                  <Badge variant={g.status === 'Resolved' ? 'default' : g.status === 'In Progress' ? 'secondary' : 'destructive'} className="shrink-0">{g.status}</Badge>
                              </Card>
-                        ))}
-                        {grievanceCount === 0 && <Card><CardContent className="p-6"><p>You haven&apos;t reported any grievances yet.</p></CardContent></Card>}
+                        )) : (
+                            <Card><CardContent className="p-6"><p>You haven&apos;t reported any grievances yet.</p></CardContent></Card>
+                        )}
                     </div>
                 </div>
             </div>

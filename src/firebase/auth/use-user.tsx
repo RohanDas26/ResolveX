@@ -1,80 +1,59 @@
+
 'use client';
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, onIdTokenChanged, User, Auth } from 'firebase/auth';
-import { doc, onSnapshot, getFirestore } from 'firebase/firestore';
+import { User } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
-import { useFirebaseApp } from '../provider';
+
+// This is a mock user state since authentication has been removed.
+// It provides a consistent structure for components that previously used the real hook.
+const mockUser: User = {
+  uid: 'user_student_1',
+  email: 'alex.doe@example.com',
+  displayName: 'Alex Doe',
+  photoURL: 'https://api.dicebear.com/8.x/bottts/svg?seed=alex',
+  emailVerified: true,
+  isAnonymous: false,
+  metadata: {},
+  providerData: [],
+  providerId: 'password',
+  tenantId: null,
+  delete: async () => {},
+  getIdToken: async () => '',
+  getIdTokenResult: async () => ({} as any),
+  reload: async () => {},
+  toJSON: () => ({}),
+};
+
+const mockProfile: UserProfile = {
+    id: 'user_student_1',
+    name: 'Alex Doe',
+    email: 'alex.doe@example.com',
+    imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=alex',
+    grievanceCount: 0,
+    isAdmin: false,
+};
+
 
 interface AuthState {
   user: User | null;
-  claims: any | null; // Can be typed more strictly
+  claims: any | null;
   isUserLoading: boolean;
   userError: Error | null;
   profile: UserProfile | null;
   isProfileLoading: boolean;
 }
 
-export function useAuthState(auth: Auth): AuthState {
-  const [user, setUser] = useState<User | null>(null);
-  const [claims, setClaims] = useState<any | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
-  const [userError, setUserError] = useState<Error | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState<boolean>(true);
-  
-  const app = useFirebaseApp();
-  const firestore = getFirestore(app);
-
-  useEffect(() => {
-    if (!auth) {
-        setIsUserLoading(false);
-        return;
-    };
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setIsUserLoading(false);
-    }, (error) => {
-      setUserError(error);
-      setIsUserLoading(false);
-    });
-
-    const unsubscribeToken = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        const tokenResult = await user.getIdTokenResult();
-        setClaims(tokenResult.claims);
-      } else {
-        setClaims(null);
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-      unsubscribeToken();
-    };
-  }, [auth]);
-
-  useEffect(() => {
-    if (user && firestore) {
-      setIsProfileLoading(true);
-      const profileRef = doc(firestore, 'users', user.uid);
-      const unsubscribeProfile = onSnapshot(profileRef, (doc) => {
-        if (doc.exists()) {
-          setProfile(doc.data() as UserProfile);
-        } else {
-          setProfile(null);
-        }
-        setIsProfileLoading(false);
-      }, () => {
-        setIsProfileLoading(false);
-      });
-
-      return () => unsubscribeProfile();
-    } else {
-      setProfile(null);
-      setIsProfileLoading(false);
-    }
-  }, [user, firestore]);
-
-  return { user, claims, isUserLoading, userError, profile, isProfileLoading };
+// Mock implementation of useUser (previously useAuthState)
+export function useUser(): AuthState {
+  return {
+    user: mockUser,
+    claims: { isAdmin: false },
+    isUserLoading: false,
+    userError: null,
+    profile: mockProfile,
+    isProfileLoading: false
+  };
 }
+
+// Keep useAuthState for any components that might still reference it.
+export const useAuthState = useUser;
+

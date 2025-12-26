@@ -1,18 +1,16 @@
 
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import type { Grievance } from "@/lib/types";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, doc, updateDoc } from "firebase/firestore";
 
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/lib/types";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 function AdminDashboardContent() {
   const firestore = useFirestore();
@@ -76,38 +74,6 @@ function AdminDashboardContent() {
 }
 
 export default function AdminPage() {
-    const { user, claims, isUserLoading } = useUser();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (!isUserLoading && !user) {
-            router.push('/login');
-        }
-    }, [user, isUserLoading, router]);
-
-    if (isUserLoading) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    if (!claims?.isAdmin) {
-        return (
-            <div className="container mx-auto flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-8">
-                <Card className="w-full max-w-md animate-fade-in-up">
-                    <CardHeader className="items-center text-center">
-                        <ShieldAlert className="h-12 w-12 text-destructive" />
-                        <CardTitle className="text-2xl font-bold">Access Denied</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                        <p>You do not have permission to view this page.</p>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
+    // This page is now public, but in a real app would have auth checks.
     return <AdminDashboardContent />;
 }

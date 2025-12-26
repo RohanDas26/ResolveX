@@ -1,30 +1,17 @@
+
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useAuthState, AuthState } from './use-user';
-import { useAuth } from '../provider';
+import React, { ReactNode } from 'react';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
-// Create the context with an undefined initial value
-const AuthContext = createContext<AuthState | undefined>(undefined);
-
-// Define the provider props
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-/**
- * AuthProvider component that wraps parts of the app needing auth state.
- */
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const auth = useAuth(); // Get the auth instance from the parent FirebaseProvider
-  const authState = useAuthState(auth);
-
+// This is a simplified provider that no longer manages auth state.
+// It can be used to wrap components that might need other Firebase context in the future.
+export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   return (
-    <AuthContext.Provider value={authState}>
+    <>
       <FirebaseErrorListener />
       {children}
-    </AuthContext.Provider>
+    </>
   );
 };
 
