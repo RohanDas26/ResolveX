@@ -4,17 +4,15 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Icons } from "./icons";
-import { PlusCircle, Map, ShieldCheck, User, Ticket, Milestone, LogIn } from "lucide-react";
+import { PlusCircle, Map, Milestone, ShieldCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { UserNav } from "./user-nav";
 
 const navLinks = [
   { href: "/map", label: "Live Map", icon: Map },
   { href: "/directions", label: "Directions", icon: Milestone },
-  { href: "/tickets", label: "My Tickets", icon: Ticket },
-  { href: "/profile", label: "Profile", icon: User },
   { href: "/admin", label: "Admin", icon: ShieldCheck },
-  { href: "/auth", label: "Auth", icon: LogIn },
 ];
 
 export default function HeaderNav() {
@@ -35,7 +33,7 @@ export default function HeaderNav() {
               asChild
               className={cn(
                 "transition-colors",
-                pathname === link.href
+                pathname.startsWith(link.href)
                   ? "text-primary hover:text-primary"
                   : "text-foreground/60 hover:text-foreground"
               )}
@@ -48,13 +46,14 @@ export default function HeaderNav() {
           ))}
         </nav>
       </div>
-      <div className="flex flex-1 items-center justify-end space-x-2">
+      <div className="flex flex-1 items-center justify-end space-x-4">
         <Button asChild>
           <Link href="/submit">
             <PlusCircle className="mr-2 h-4 w-4" />
             New Grievance
           </Link>
         </Button>
+        <UserNav />
       </div>
     </div>
   );
