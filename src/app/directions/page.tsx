@@ -109,12 +109,12 @@ function Directions() {
     
 
     return (
-        <div className="flex h-[calc(100vh-4rem)]">
-            <Card className="w-full max-w-md m-4 border-0 md:border md:shadow-lg z-10 animate-fade-in-left">
+        <>
+            <Card className="w-full max-w-md m-4 border-0 md:border md:shadow-lg z-10 animate-fade-in-left absolute">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Milestone /> Directions</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col h-[calc(100%-4rem)] space-y-4">
+                <CardContent className="flex flex-col h-[calc(100vh-10rem)] space-y-4">
                     <div className="space-y-2">
                         <label htmlFor="origin-input" className="text-sm font-medium">Origin</label>
                         <PlaceAutocomplete onPlaceChanged={setOrigin} placeholder="Enter origin" />
@@ -170,17 +170,15 @@ function Directions() {
                 </CardContent>
             </Card>
 
-            <div className="flex-1 h-full w-full absolute top-0 left-0 -z-10">
-                 {/* The DirectionsRenderer is now managed via useEffect */}
-            </div>
-        </div>
+            {/* The DirectionsRenderer is managed via useEffect and attached to the map instance */}
+        </>
     );
 }
 
 
 export default function DirectionsPage() {
     return (
-        <div className="relative h-full w-full">
+        <div className="relative h-[calc(100vh-4rem)] w-full">
              <Map
                 defaultCenter={{ lat: 17.3850, lng: 78.4867 }}
                 defaultZoom={12}
@@ -188,8 +186,9 @@ export default function DirectionsPage() {
                 gestureHandling={'greedy'}
                 disableDefaultUI={true}
                 className="absolute top-0 left-0 h-full w-full bg-muted"
-             />
-            <Directions />
+             >
+                <Directions />
+             </Map>
         </div>
     );
 }
