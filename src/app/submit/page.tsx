@@ -19,6 +19,7 @@ import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Image from "next/image";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -40,6 +41,7 @@ function SubmitPageContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const firestore = useFirestore();
     const { user, profile, isUserLoading } = useUser();
 
@@ -146,6 +148,18 @@ function SubmitPageContent() {
             // The user is already on the map page.
         }
     }
+
+     const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+            form.setValue("photo", event.target.files);
+        }
+    };
     
     if (isUserLoading) {
         return (
@@ -182,25 +196,29 @@ function SubmitPageContent() {
                          <FormField
                             control={form.control}
                             name="photo"
-                            render={({ field: { onChange, value, ...rest } }) => (
+                            render={({ field: { value, ...rest } }) => (
                             <FormItem>
                                 <FormLabel>Upload a photo</FormLabel>
                                 <FormControl>
                                   <div className="relative flex justify-center w-full h-48 px-6 pt-5 pb-6 border-2 border-dashed rounded-md border-input hover:border-primary transition-colors">
-                                      <div className="space-y-1 text-center">
-                                          <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground" />
-                                          <div className="flex text-sm text-muted-foreground">
-                                              <label
-                                                  htmlFor="file-upload"
-                                                  className="relative font-medium bg-transparent rounded-md cursor-pointer text-primary hover:text-primary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring"
-                                              >
-                                                  <span>Upload a file</span>
-                                                  <Input id="file-upload" type="file" className="sr-only" accept="image/*" onChange={(e) => onChange(e.target.files)} {...rest} />
-                                              </label>
-                                              <p className="pl-1">or drag and drop</p>
-                                          </div>
-                                          <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
-                                      </div>
+                                      {photoPreview ? (
+                                        <Image src={photoPreview} alt="Photo preview" layout="fill" objectFit="contain" className="rounded-md" />
+                                      ) : (
+                                        <div className="space-y-1 text-center">
+                                            <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground" />
+                                            <div className="flex text-sm text-muted-foreground">
+                                                <label
+                                                    htmlFor="file-upload"
+                                                    className="relative font-medium bg-transparent rounded-md cursor-pointer text-primary hover:text-primary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring"
+                                                >
+                                                    <span>Upload a file</span>
+                                                    <Input id="file-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} {...rest} />
+                                                </label>
+                                                <p className="pl-1">or drag and drop</p>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
+                                        </div>
+                                      )}
                                   </div>
                                 </FormControl>
                                 <FormDescription>A clear photo helps resolve the issue faster.</FormDescription>

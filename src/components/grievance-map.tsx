@@ -102,7 +102,7 @@ export default function GrievanceMap({
             <div className="w-full max-w-xs rounded-lg overflow-hidden bg-background text-foreground shadow-xl">
               <div className="relative w-full h-40">
                   <Image
-                      src={selectedGrievedGrievanceMapProps.tsxance.imageUrl}
+                      src={selectedGrievance.imageUrl}
                       alt={selectedGrievance.description}
                       fill
                       className="object-cover"
