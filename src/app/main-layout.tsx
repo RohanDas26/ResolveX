@@ -8,15 +8,24 @@ function StarTrail() {
     const starContainer = document.getElementById('star-trail');
     if (!starContainer) return;
 
-    for (let i = 0; i < 50; i++) {
+    // Clear any existing stars before adding new ones
+    starContainer.innerHTML = '';
+
+    for (let i = 0; i < 70; i++) { // Increased star count for more density
       const star = document.createElement('div');
       star.classList.add('star');
-      const size = Math.random() * 3 + 1;
+      const size = Math.random() * 2 + 0.5; // Smaller stars for a finer feel
       star.style.width = `${size}px`;
       star.style.height = `${size}px`;
       star.style.left = `${Math.random() * 100}%`;
-      star.style.animationDelay = `${Math.random() * 5}s`;
-      star.style.animationDuration = `${Math.random() * 3 + 2}s`;
+
+      // Varying animation durations and delays for a parallax effect
+      const duration = Math.random() * 5 + 3; // 3s to 8s
+      const delay = Math.random() * 5; // 0s to 5s
+      
+      star.style.animationDuration = `${duration}s`;
+      star.style.animationDelay = `-${delay}s`; // Negative delay starts partway through
+
       starContainer.appendChild(star);
     }
   }, []);
