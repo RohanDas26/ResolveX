@@ -19,13 +19,6 @@ export default function AISummary({ grievances, isLoading }: AISummaryProps) {
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // When the underlying list of grievances changes (e.g., due to filtering),
-    // clear the old summary so the user knows to generate a new one.
-    useEffect(() => {
-      setSummary(null);
-      setError(null);
-    }, [grievances]);
-
     const handleGenerateSummary = async () => {
         if (!grievances || grievances.length === 0) {
             setSummary("No grievances to summarize for the current filter.");
