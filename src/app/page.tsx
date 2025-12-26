@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,20 @@ export default function AuthPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthForms, setShowAuthForms] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
 
   const handleAuthAction = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,9 +128,19 @@ export default function AuthPage() {
         </div>
       )}
       
-      {/* Background Glows */}
-      <div className="absolute top-1/4 left-0 w-full h-full sm:w-1/2 sm:h-1/2 bg-primary/10 rounded-full blur-[150px] -z-10 animate-pulse" style={{ animationDuration: '6s' }}></div>
-      <div className="absolute bottom-1/4 right-0 w-full h-full sm:w-1/2 sm:h-1/2 bg-accent/10 rounded-full blur-[150px] -z-10 animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
+      {/* Background Glows that follow the cursor */}
+       <div 
+        className="pointer-events-none absolute -inset-px transition-all duration-300"
+        style={{
+            background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--primary) / 0.15), transparent 80%)`,
+        }}
+      />
+       <div 
+        className="pointer-events-none absolute -inset-px transition-all duration-300"
+        style={{
+            background: `radial-gradient(800px at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--accent) / 0.15), transparent 80%)`,
+        }}
+      />
     </div>
   );
 }
