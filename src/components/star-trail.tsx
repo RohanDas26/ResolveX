@@ -8,31 +8,39 @@ export default function StarTrail() {
     const starTrail = document.getElementById('star-trail');
     if (!starTrail) return;
 
-    // Don't create stars if the element already has them from a previous render
+    // Don't create flakes if the element already has them from a previous render
     if (starTrail.childElementCount > 0) return;
 
-    const createStar = () => {
-      if (document.querySelectorAll('.star').length > 200) return;
+    const createSnowFlake = () => {
+      // Allow more flakes on screen for a denser snowfall effect
+      if (document.querySelectorAll('.star').length > 300) return;
 
-      const star = document.createElement('div');
-      star.classList.add('star');
-      const size = Math.random() * 2 + 1;
-      star.style.width = `${size}px`;
-      star.style.height = `${size}px`;
-      star.style.left = `${Math.random() * 100}%`;
-      star.style.top = '-10px';
-      const duration = Math.random() * 5 + 5; // 5 to 10 seconds
-      star.style.animationDuration = `${duration}s`;
-      star.style.opacity = `${Math.random() * 0.5 + 0.3}`;
+      const flake = document.createElement('div');
+      flake.classList.add('star'); // We can reuse the 'star' class and its animation
+      
+      // Make flakes smaller and more uniform
+      const size = Math.random() * 1.5 + 0.5; 
+      flake.style.width = `${size}px`;
+      flake.style.height = `${size}px`;
+      flake.style.left = `${Math.random() * 100}%`;
+      flake.style.top = '-10px';
+      
+      // Adjust fall speed to feel more like snow
+      const duration = Math.random() * 8 + 6; // 6 to 14 seconds
+      flake.style.animationDuration = `${duration}s`;
+      
+      // Adjust opacity for a softer, snowy look
+      flake.style.opacity = `${Math.random() * 0.6 + 0.4}`;
 
-      starTrail.appendChild(star);
+      starTrail.appendChild(flake);
 
       setTimeout(() => {
-        star.remove();
+        flake.remove();
       }, duration * 1000);
     };
 
-    const interval = setInterval(createStar, 50);
+    // Create flakes more frequently for a denser effect
+    const interval = setInterval(createSnowFlake, 30);
 
     return () => clearInterval(interval);
   }, []);
