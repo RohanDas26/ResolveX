@@ -9,6 +9,7 @@ export interface Grievance {
   imageUrl: string;
   status: "Submitted" | "In Progress" | "Resolved";
   createdAt: Timestamp;
+  pinColor?: string;
 }
 
 export interface UserProfile {
