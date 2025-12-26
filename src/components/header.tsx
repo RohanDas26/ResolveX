@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { Icons } from "./icons";
-import { LogOut, LayoutDashboard, PlusCircle, MapPin, Loader2 } from "lucide-react";
+import { LogOut, LayoutDashboard, PlusCircle, MapPin, Loader2, Shield } from "lucide-react";
+
+const ADMIN_EMAIL = "admin@klh.edu.in";
 
 export default function Header() {
   const { user, isUserLoading: loading } = useUser();
@@ -45,6 +47,14 @@ export default function Header() {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : user ? (
             <>
+              {user.email === ADMIN_EMAIL && (
+                <Button variant="ghost" asChild>
+                  <Link href="/admin">
+                    <Shield className="mr-2 h-4 w-4"/>
+                    Admin Dashboard
+                  </Link>
+                </Button>
+              )}
               <Button variant="ghost" asChild>
                 <Link href="/dashboard">
                   <LayoutDashboard className="mr-2 h-4 w-4"/>

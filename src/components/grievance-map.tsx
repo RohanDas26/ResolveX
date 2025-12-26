@@ -1,8 +1,7 @@
-
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { collection, query } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
@@ -12,10 +11,21 @@ import { formatDistanceToNow } from "date-fns";
 
 const KLH_HYD_COORDS = { lat: 17.3033, lng: 78.5833 };
 
-export default function GrievanceMap() {
+type GrievanceWithPinColor = Grievance & { pinColor?: string };
+
+interface GrievanceMapProps {
+  grievances?: GrievanceWithPinColor[] | null;
+}
+
+export default function GrievanceMap({ grievances: initialGrievances }: GrievanceMapProps) {
   const firestore = useFirestore();
-  const grievancesQuery = useMemoFirebase(() => query(collection(firestore, "grievances")), [firestore]);
-  const { data: grievances } = useCollection<Grievance>(grievancesQuery);
+  const grievancesQuery = useMemoFirebase(() => {
+    if (initialGrievances) return null;
+    return query(collection(firestore, "grievances"));
+  }, [firestore, initialGrievances]);
+  
+  const { data: fetchedGrievances } = useCollection<Grievance>(grievancesQuery);
+  const grievances = useMemo(() => initialGrievances || fetchedGrievances, [initialGrievances, fetchedGrievances]);
   
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
 
@@ -48,7 +58,7 @@ export default function GrievanceMap() {
           onClick={() => handleMarkerClick(grievance.id)}
         >
           <Pin
-            background={"#9D4EDD"}
+            background={grievance.pinColor || "#9D4EDD"}
             borderColor={"#48BFE3"}
             glyphColor={"#FFFFFF"}
           />
