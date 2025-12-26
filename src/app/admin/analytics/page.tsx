@@ -33,41 +33,15 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
             return "No grievance data available to generate insights.";
         }
 
-        const now = new Date();
-        const last7Days = { start: subDays(now, 7), end: now };
-        const prev7Days = { start: subDays(now, 14), end: subDays(now, 7) };
-
-        const potholeReportsThisWeek = grievances.filter(g =>
-            g.description.toLowerCase().includes("pothole") &&
-            g.createdAt && 'seconds' in g.createdAt &&
-            isWithinInterval(new Date(g.createdAt.seconds * 1000), last7Days)
+        const totalComplaints = grievances.length;
+        const klhComplaints = grievances.filter(g => 
+            g.location.latitude > 17.3 && g.location.latitude < 17.5 &&
+            g.location.longitude > 78.4 && g.location.longitude < 78.6
         ).length;
 
-        const potholeReportsLastWeek = grievances.filter(g =>
-            g.description.toLowerCase().includes("pothole") &&
-            g.createdAt && 'seconds' in g.createdAt &&
-            isWithinInterval(new Date(g.createdAt.seconds * 1000), prev7Days)
-        ).length;
-
-        if (potholeReportsLastWeek === 0 && potholeReportsThisWeek > 0) {
-            return `Pothole reports have started this week with ${potholeReportsThisWeek} submissions.`;
-        }
-        if (potholeReportsLastWeek === 0) {
-            return "No pothole reports in the last two weeks to compare.";
-        }
-
-        const percentageChange = ((potholeReportsThisWeek - potholeReportsLastWeek) / potholeReportsLastWeek) * 100;
-
-        if (percentageChange > 20) {
-            return `KLH potholes up ${percentageChange.toFixed(0)}% weekly`;
-        }
-        if (percentageChange > 0) {
-            return `Pothole reports are up ${percentageChange.toFixed(0)}% this week compared to last.`;
-        }
-        if (percentageChange < 0) {
-            return `Good news! Pothole reports are down ${Math.abs(percentageChange).toFixed(0)}% this week.`;
-        }
-        return "Pothole report numbers are stable this week.";
+        const klhPercentage = totalComplaints > 0 ? ((klhComplaints / totalComplaints) * 100).toFixed(0) : 0;
+        
+        return `KLH = ${klhPercentage}% complaints`;
 
     }, [grievances]);
 
@@ -79,7 +53,7 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
             </CardHeader>
             <CardContent>
                 <p className="text-lg font-semibold">{insight}</p>
-                <p className="text-sm text-muted-foreground mt-2">*Insight generated based on pothole reports over the last 14 days.</p>
+                <p className="text-sm text-muted-foreground mt-2">*Insight generated based on geo-location of complaints.</p>
             </CardContent>
         </Card>
     );
