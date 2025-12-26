@@ -1,7 +1,8 @@
+
 "use client";
 
 import Header from '@/components/header';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 function StarTrail() {
   useEffect(() => {
@@ -32,21 +33,20 @@ function StarTrail() {
     return () => clearInterval(interval);
   }, []);
 
-  return <div id="star-trail" className="star-trail"></div>;
+  return <div id="star-trail" className="fixed top-0 left-0 w-full h-full star-trail -z-10"></div>;
 }
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   return (
-    <div className="relative flex min-h-full w-full flex-col">
-      {isClient && <StarTrail />}
-      <Header />
-      <main className="flex-1">{children}</main>
+    <div className="relative flex flex-col min-h-screen">
+      <StarTrail />
+      <div className="p-4">
+        <div className="relative w-full bg-background/80 backdrop-blur-sm rounded-md border border-border">
+          <Header />
+          <main>{children}</main>
+        </div>
+      </div>
     </div>
   );
 }
