@@ -39,11 +39,13 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
 
         const potholeReportsThisWeek = grievances.filter(g =>
             g.description.toLowerCase().includes("pothole") &&
+            g.createdAt && 'seconds' in g.createdAt &&
             isWithinInterval(new Date(g.createdAt.seconds * 1000), last7Days)
         ).length;
 
         const potholeReportsLastWeek = grievances.filter(g =>
             g.description.toLowerCase().includes("pothole") &&
+            g.createdAt && 'seconds' in g.createdAt &&
             isWithinInterval(new Date(g.createdAt.seconds * 1000), prev7Days)
         ).length;
 
@@ -56,6 +58,9 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
 
         const percentageChange = ((potholeReportsThisWeek - potholeReportsLastWeek) / potholeReportsLastWeek) * 100;
 
+        if (percentageChange > 20) {
+            return `KLH potholes up ${percentageChange.toFixed(0)}% weekly`;
+        }
         if (percentageChange > 0) {
             return `Pothole reports are up ${percentageChange.toFixed(0)}% this week compared to last.`;
         }
@@ -69,7 +74,7 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
     return (
         <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <CardHeader>
-                <CardTitle className="flex items-center"><Zap className="mr-2 h-5 w-5 text-primary" /> AI-Powered Insights</CardTitle>
+                <CardTitle className="flex items-center"><Zap className="mr-2 h-5 w-5 text-primary" /> Gemini on BigQuery</CardTitle>
                 <CardDescription>Automatic analysis of grievance trends.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -82,20 +87,23 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
 
 function QRCodeGenerator() {
     const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [appUrl, setAppUrl] = useState('');
 
     useEffect(() => {
+        // This code now runs only on the client, ensuring `window` is available.
+        const currentAppUrl = window.location.origin;
+        setAppUrl(currentAppUrl);
+
         const generateQR = async () => {
             try {
-                // In a real app, this would be your production URL
-                const appUrl = window.location.origin;
-                const dataUrl = await QRCode.toDataURL(appUrl, {
+                const dataUrl = await QRCode.toDataURL(currentAppUrl, {
                     errorCorrectionLevel: 'H',
                     type: 'image/jpeg',
                     quality: 0.9,
                     margin: 1,
                     color: {
-                        dark: "#0F0F1A", // Dark background color from theme
-                        light: "#FFFFFF"  // White for QR code dots
+                        dark: "#0F0F1A", // HSL 240 10% 3.9%
+                        light: "#FFFFFF"
                     }
                 });
                 setQrCodeUrl(dataUrl);
@@ -111,19 +119,21 @@ function QRCodeGenerator() {
         <Card className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <CardHeader>
                 <CardTitle className="flex items-center"><QrCode className="mr-2 h-5 w-5 text-primary" /> App QR Code</CardTitle>
-                <CardDescription>Share this QR code to direct users to the app.</CardDescription>
+                <CardDescription>Share this to direct users to the app.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center gap-4">
                 {qrCodeUrl ? (
                     <Image src={qrCodeUrl} alt="App QR Code" width={180} height={180} className="rounded-lg border-4 border-primary/50" />
                 ) : (
-                    <div className="w-[180px] h-[180px] flex items-center justify-center">
+                    <div className="w-[180px] h-[180px] flex items-center justify-center bg-muted rounded-lg">
                         <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
                 )}
-                <Button asChild>
-                    <a href={qrCodeUrl} download="resolvex-app-qrcode.jpg">Download QR Code</a>
-                </Button>
+                 {qrCodeUrl && (
+                    <Button asChild>
+                        <a href={qrCodeUrl} download="resolvex-app-qrcode.jpg">Download QR Code</a>
+                    </Button>
+                )}
             </CardContent>
         </Card>
     );
@@ -141,17 +151,13 @@ export default function AnalyticsPage() {
     const { data: grievances, isLoading } = useCollection<Grievance>(grievancesQuery);
 
     const statusData = useMemo(() => {
-        const counts = { Submitted: 0, "In Progress": 0, Resolved: 0 };
+        const counts: { [key: string]: number } = { Submitted: 0, "In Progress": 0, Resolved: 0 };
         grievances?.forEach(g => {
             if (g.status in counts) {
                 counts[g.status]++;
             }
         });
-        return [
-            { status: "Submitted", count: counts.Submitted },
-            { status: "In Progress", count: counts["In Progress"] },
-            { status: "Resolved", count: counts.Resolved },
-        ];
+        return Object.entries(counts).map(([status, count]) => ({ status, count }));
     }, [grievances]);
 
     const trendsData = useMemo(() => {
@@ -161,10 +167,13 @@ export default function AnalyticsPage() {
         });
 
         grievances?.forEach(g => {
-            const grievanceDate = new Date(g.createdAt.seconds * 1000);
-            const dayData = last30Days.find(d => format(subDays(new Date(d.date),0), 'MMM dd') === format(grievanceDate, "MMM dd") );
-            if (dayData) {
-                dayData.count++;
+             if (g.createdAt && 'seconds' in g.createdAt) {
+                const grievanceDate = new Date(g.createdAt.seconds * 1000);
+                const dayStr = format(grievanceDate, "MMM dd");
+                const dayData = last30Days.find(d => d.date === dayStr);
+                if (dayData) {
+                    dayData.count++;
+                }
             }
         });
 
