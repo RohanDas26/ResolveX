@@ -16,10 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { doc } from "firebase/firestore";
+import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -31,6 +33,8 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const auth = useAuth();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,15 +49,34 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      await updateProfile(userCredential.user, { displayName: values.name });
-      await sendEmailVerification(userCredential.user);
+      const user = userCredential.user;
       
-      await auth.signOut();
+      const [firstName, ...lastNameParts] = values.name.split(' ');
+      const lastName = lastNameParts.join(' ');
+
+      const userProfile = {
+        id: user.uid,
+        email: user.email,
+        firstName: firstName,
+        lastName: lastName,
+        registrationDate: new Date().toISOString(),
+      };
+      
+      setDocumentNonBlocking(doc(firestore, "users", user.uid), userProfile, { merge: true });
+
+      await updateProfile(user, { displayName: values.name });
+      await sendEmailVerification(user);
+      
       setIsSuccess(true);
       toast({
         title: "Registration Successful",
         description: "A verification email has been sent to your address. Please verify to login.",
       });
+
+      // It's good practice to sign the user out after registration and email verification is sent
+      // so they have to login after verifying.
+      await auth.signOut();
+
     } catch (error: any) {
       toast({
         variant: "destructive",

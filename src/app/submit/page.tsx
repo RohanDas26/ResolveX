@@ -13,11 +13,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
 import AuthGuard from "@/components/auth-guard";
-import { useAuth } from "@/hooks/use-auth";
-import { GeoPoint, Timestamp, addDoc, collection } from "firebase/firestore";
-import { db, storage } from "@/lib/firebase";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { useUser, useFirestore } from "@/firebase";
+import { GeoPoint, Timestamp, addDoc, collection, getFirestore } from "firebase/firestore";
+import { getStorage, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -34,12 +34,13 @@ const formSchema = z.object({
 });
 
 function SubmitPageContent() {
-    const { user } = useAuth();
+    const { user } = useUser();
     const { toast } = useToast();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
+    const firestore = useFirestore();
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -82,12 +83,13 @@ function SubmitPageContent() {
         setIsLoading(true);
         try {
             const imageFile = values.photo[0];
+            const storage = getStorage();
             const imageRef = ref(storage, `grievances/${user.uid}/${uuidv4()}-${imageFile.name}`);
             
             await uploadBytes(imageRef, imageFile);
             const imageUrl = await getDownloadURL(imageRef);
 
-            await addDoc(collection(db, "grievances"), {
+            const grievanceData = {
                 userId: user.uid,
                 userName: user.displayName || "Anonymous",
                 description: values.description,
@@ -95,7 +97,9 @@ function SubmitPageContent() {
                 location: new GeoPoint(location.lat, location.lng),
                 status: "Submitted",
                 createdAt: Timestamp.now(),
-            });
+            };
+
+            addDocumentNonBlocking(collection(firestore, "users", user.uid, "grievances"), grievanceData);
 
             toast({ title: "Grievance Submitted!", description: "Thank you for your report. It is now under review." });
             router.push("/dashboard");

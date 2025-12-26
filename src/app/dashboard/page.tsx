@@ -1,11 +1,10 @@
 "use client";
 
 import AuthGuard from "@/components/auth-guard";
-import { db } from "@/lib/firebase";
 import { type Grievance } from "@/lib/types";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { collection, query, orderBy } from "firebase/firestore";
+import { useMemo } from "react";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -16,38 +15,18 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 function DashboardPageContent() {
-    const { user } = useAuth();
-    const [grievances, setGrievances] = useState<Grievance[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { user } = useUser();
+    const firestore = useFirestore();
 
-    useEffect(() => {
-        if (!user) return;
-
-        const q = query(
-            collection(db, "grievances"),
-            where("userId", "==", user.uid),
+    const grievancesQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(
+            collection(firestore, "users", user.uid, "grievances"),
             orderBy("createdAt", "desc")
         );
+    }, [firestore, user]);
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const userGrievances: Grievance[] = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                userGrievances.push({
-                    id: doc.id,
-                    ...data,
-                    createdAt: data.createdAt.toDate(),
-                } as Grievance);
-            });
-            setGrievances(userGrievances);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching dashboard grievances: ", error);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [user]);
+    const { data: grievances, isLoading: loading } = useCollection<Grievance>(grievancesQuery);
 
     if (loading) {
         return (
@@ -76,7 +55,7 @@ function DashboardPageContent() {
                     </Link>
                 </Button>
             </div>
-            {grievances.length === 0 ? (
+            {grievances && grievances.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center py-20 border-2 border-dashed rounded-lg bg-card">
                     <Frown className="h-16 w-16 text-muted-foreground mb-4"/>
                     <h2 className="text-xl font-semibold">No grievances found.</h2>
@@ -84,7 +63,7 @@ function DashboardPageContent() {
                 </div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {grievances.map((grievance) => (
+                    {grievances && grievances.map((grievance) => (
                         <Card key={grievance.id} className="overflow-hidden flex flex-col">
                             <CardHeader className="p-0">
                                 <div className="relative w-full h-48">
@@ -99,7 +78,7 @@ function DashboardPageContent() {
                             </CardHeader>
                             <CardContent className="p-4 flex-grow">
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    {formatDistanceToNow(grievance.createdAt, { addSuffix: true })}
+                                    {grievance.createdAt ? formatDistanceToNow(grievance.createdAt, { addSuffix: true }) : 'Just now'}
                                 </p>
                                 <CardTitle className="text-lg leading-tight line-clamp-3">{grievance.description}</CardTitle>
                             </CardContent>

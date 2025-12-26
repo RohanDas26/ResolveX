@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/hooks/use-auth";
+import { useUser, useAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { Icons } from "./icons";
 import { LogOut, LayoutDashboard, PlusCircle, MapPin, Loader2 } from "lucide-react";
 
 export default function Header() {
-  const { user, loading } = useAuth();
+  const { user, isUserLoading: loading } = useUser();
+  const auth = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {

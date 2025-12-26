@@ -55,7 +55,7 @@
           "type": "string",
           "description": "Description of the grievance."
         },
-        "photoUrl": {
+        "imageUrl": {
           "type": "string",
           "description": "URL of the photo submitted with the grievance.",
           "format": "uri"
@@ -82,7 +82,7 @@
         "id",
         "userId",
         "description",
-        "photoUrl",
+        "imageUrl",
         "latitude",
         "longitude",
         "submissionDate",

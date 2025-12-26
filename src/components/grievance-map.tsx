@@ -1,46 +1,24 @@
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
-import { useEffect, useState, useCallback } from "react";
-import { collection, onSnapshot, Query, query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useState, useCallback } from "react";
+import { collectionGroup, query } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
-import { Button } from "./ui/button";
 
 const KLH_HYD_COORDS = { lat: 17.3033, lng: 78.5833 };
 
 export default function GrievanceMap() {
-  const [grievances, setGrievances] = useState<Grievance[]>([]);
+  const firestore = useFirestore();
+  const grievancesQuery = useMemoFirebase(() => query(collectionGroup(firestore, "grievances")), [firestore]);
+  const { data: grievances } = useCollection<Grievance>(grievancesQuery);
+  
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
 
-  const selectedGrievance = grievances.find(g => g.id === selectedGrievanceId) || null;
-
-  useEffect(() => {
-    const q: Query = query(collection(db, "grievances"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const newGrievances: Grievance[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        // Basic validation
-        if (data.location && data.createdAt) {
-          newGrievances.push({
-            id: doc.id,
-            ...data,
-            location: data.location,
-            createdAt: data.createdAt.toDate(),
-          } as Grievance);
-        }
-      });
-      setGrievances(newGrievances);
-    }, (error) => {
-      console.error("Error fetching grievances: ", error);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const selectedGrievance = grievances?.find(g => g.id === selectedGrievanceId) || null;
   
   const handleMarkerClick = useCallback((grievanceId: string) => {
     setSelectedGrievanceId(grievanceId);
@@ -62,7 +40,7 @@ export default function GrievanceMap() {
       zoomControl={true}
       mapTypeControl={false}
     >
-      {grievances.map((grievance) => (
+      {grievances && grievances.map((grievance) => (
         <AdvancedMarker
           key={grievance.id}
           position={{ lat: grievance.location.latitude, lng: grievance.location.longitude }}
@@ -96,7 +74,7 @@ export default function GrievanceMap() {
             <CardContent className="p-2">
               <CardTitle className="text-base font-semibold leading-tight mb-1">{selectedGrievance.description}</CardTitle>
               <CardDescription className="text-xs">
-                By {selectedGrievance.userName} • {formatDistanceToNow(selectedGrievance.createdAt, { addSuffix: true })}
+                By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(selectedGrievance.createdAt, { addSuffix: true }) : 'Just now'}
               </CardDescription>
               <p className="text-sm font-semibold mt-2">Status: <span className="text-accent">{selectedGrievance.status}</span></p>
             </CardContent>

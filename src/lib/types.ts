@@ -8,5 +8,13 @@ export interface Grievance {
   location: GeoPoint;
   imageUrl: string;
   status: "Submitted" | "In Progress" | "Resolved";
-  createdAt: Timestamp;
+  createdAt: Date;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  registrationDate: string;
 }
