@@ -68,12 +68,10 @@ export default function GrievanceMap({
       mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "RESOLVEX_MAP"}
       className="w-full h-full"
       gestureHandling={'greedy'}
-      disableDefaultUI={true}
+      disableDefaultUI={false}
       streetViewControl={false}
       zoomControl={true}
       mapTypeControl={false}
-      // The map's transition is managed by the state updates in the parent component
-      // so we don't need `transitionDuration` here.
     >
       {grievances && grievances.map((grievance) => (
         <AdvancedMarker

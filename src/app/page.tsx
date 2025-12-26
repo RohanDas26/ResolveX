@@ -57,6 +57,10 @@ export default function Home() {
         setMapCenter({ lat: grievance.location.latitude, lng: grievance.location.longitude });
         setMapZoom(DETAIL_ZOOM);
       }
+    } else {
+        // Optional: Reset zoom when deselecting
+        // setMapCenter(TELANGANA_CENTER);
+        // setMapZoom(INITIAL_ZOOM);
     }
   }
 
