@@ -133,8 +133,7 @@ service cloud.firestore {
        * @principle Enforces document ownership for all operations within a user's private subcollection.
        */
       match /grievances/{grievanceId} {
-        allow read: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow read, list: if isOwner(userId);
         allow create: if isOwner(userId) && isValidGrievanceCreate(userId);
         allow update: if isExistingOwner(userId) && isImmutableGrievance();
         allow delete: if isExistingOwner(userId);
