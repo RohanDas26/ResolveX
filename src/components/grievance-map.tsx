@@ -3,8 +3,6 @@
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
 import { useState, useCallback, useMemo, ReactNode } from "react";
-import { collection, query } from "firebase/firestore";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { type Grievance } from "@/lib/types";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -19,16 +17,7 @@ interface GrievanceMapProps {
   children?: ReactNode;
 }
 
-export default function GrievanceMap({ grievances: initialGrievances, children }: GrievanceMapProps) {
-  const firestore = useFirestore();
-  const grievancesQuery = useMemoFirebase(() => {
-    if (initialGrievances || !firestore) return null;
-    return query(collection(firestore, "grievances"));
-  }, [firestore, initialGrievances]);
-  
-  const { data: fetchedGrievances } = useCollection<Grievance>(grievancesQuery);
-  const grievances = useMemo(() => initialGrievances || fetchedGrievances, [initialGrievances, fetchedGrievances]);
-  
+export default function GrievanceMap({ grievances, children }: GrievanceMapProps) {
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
 
   const selectedGrievance = grievances?.find(g => g.id === selectedGrievanceId) || null;
