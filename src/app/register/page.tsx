@@ -16,12 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
-import { doc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -62,7 +61,7 @@ function RegisterForm() {
         registrationDate: new Date().toISOString(),
       };
       
-      setDocumentNonBlocking(doc(firestore, "users", user.uid), userProfile, { merge: true });
+      await setDoc(doc(firestore, "users", user.uid), userProfile);
 
       await updateProfile(user, { displayName: values.name });
       await sendEmailVerification(user);
