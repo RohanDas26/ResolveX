@@ -69,7 +69,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
   
-  .star-trail {
+  .ambient-background {
     position: fixed;
     top: 0;
     left: 0;
@@ -77,26 +77,48 @@
     height: 100vh;
     z-index: -1;
     overflow: hidden;
+    background: hsl(var(--background));
+    background-size: 400% 400%;
+    animation: gradient-animation 20s ease infinite;
   }
 
-  .star {
+  .ambient-background::before,
+  .ambient-background::after {
+    content: '';
     position: absolute;
-    background-color: hsl(var(--primary));
-    border-radius: 50%;
-    animation: star-animation linear infinite;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, hsla(var(--primary), 0.2) 0%, transparent 40%),
+                radial-gradient(circle at center, hsla(var(--accent), 0.2) 0%, transparent 40%);
+    background-size: 200% 200%;
+    animation: spin 30s linear infinite;
   }
 
-  @keyframes star-animation {
+  .ambient-background::after {
+    animation-delay: -15s; /* Offset the second layer's animation */
+    animation-direction: reverse;
+  }
+
+  @keyframes gradient-animation {
     0% {
-      transform: translateY(0) scale(0.5);
-      opacity: 0;
+      background-position: 0% 50%;
     }
-    10%, 90% {
-      opacity: 1;
+    50% {
+      background-position: 100% 50%;
     }
     100% {
-      transform: translateY(100vh) scale(1.5);
-      opacity: 0;
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
     }
   }
 }
