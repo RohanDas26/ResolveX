@@ -82,36 +82,42 @@ function SubmitPageContent() {
         }
 
         setIsLoading(true);
+        try {
+            const imageFile = values.photo[0];
+            const storage = getStorage();
+            const grievanceId = uuidv4();
+            const imageRef = ref(storage, `grievances/${user.uid}/${grievanceId}-${imageFile.name}`);
+            
+            await uploadBytes(imageRef, imageFile);
+            const imageUrl = await getDownloadURL(imageRef);
 
-        const imageFile = values.photo[0];
-        const storage = getStorage();
-        const grievanceId = uuidv4();
-        const imageRef = ref(storage, `grievances/${user.uid}/${grievanceId}-${imageFile.name}`);
-        
-        await uploadBytes(imageRef, imageFile);
-        const imageUrl = await getDownloadURL(imageRef);
+            const grievanceData = {
+                id: grievanceId,
+                userId: user.uid,
+                userName: user.displayName || "Anonymous",
+                description: values.description,
+                imageUrl: imageUrl,
+                location: new GeoPoint(location.lat, location.lng),
+                status: "Submitted",
+                createdAt: Timestamp.now(),
+            };
 
-        const grievanceData = {
-            id: grievanceId,
-            userId: user.uid,
-            userName: user.displayName || "Anonymous",
-            description: values.description,
-            imageUrl: imageUrl,
-            location: new GeoPoint(location.lat, location.lng),
-            status: "Submitted",
-            createdAt: Timestamp.now(),
-        };
+            // Write to the user-specific collection for their dashboard
+            setDocumentNonBlocking(doc(firestore, "users", user.uid, "grievances", grievanceId), grievanceData, { merge: true });
 
-        // Write to the user-specific collection for their dashboard
-        setDocumentNonBlocking(doc(firestore, "users", user.uid, "grievances", grievanceId), grievanceData, { merge: true });
-
-        // Write to the public collection for the map
-        setDocumentNonBlocking(doc(firestore, "grievances", grievanceId), grievanceData, { merge: true });
+            // Write to the public collection for the map
+            setDocumentNonBlocking(doc(firestore, "grievances", grievanceId), grievanceData, { merge: true });
 
 
-        toast({ title: "Grievance Submitted!", description: "Thank you for your report. It is now under review." });
-        router.push("/dashboard");
-        setIsLoading(false);
+            toast({ title: "Grievance Submitted!", description: "Thank you for your report. It is now under review." });
+            router.push("/dashboard");
+
+        } catch (error: any) {
+            console.error("Submission error:", error);
+            toast({ variant: "destructive", title: "Submission Failed", description: "An unexpected error occurred. Please try again." });
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
