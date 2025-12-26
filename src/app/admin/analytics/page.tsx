@@ -126,7 +126,7 @@ function AIInsights() {
     return (
         <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <CardHeader>
-                <CardTitle className="flex items-center"><Zap className="mr-2 h-5 w-5 text-primary" /> Gemini on BigQuery</CardTitle>
+                <CardTitle className="flex items-center text-base sm:text-lg"><Zap className="mr-2 h-5 w-5 text-primary" /> Gemini on BigQuery</CardTitle>
                 <CardDescription>Automatic analysis of real-time grievance trends.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -134,8 +134,8 @@ function AIInsights() {
                     <div className="flex items-start gap-3">
                          <div className="p-2 bg-primary/10 rounded-full"><Lightbulb className="h-5 w-5 text-primary" /></div>
                         <div>
-                            <h4 className="font-semibold">Top Issue</h4>
-                            <p className="text-sm text-muted-foreground">Open <span className="font-bold">{insights.topCategory[0]}</span> reports are the most frequent, requiring immediate attention.</p>
+                            <h4 className="font-semibold text-sm sm:text-base">Top Issue</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Open <span className="font-bold">{insights.topCategory[0]}</span> reports are the most frequent, requiring immediate attention.</p>
                         </div>
                     </div>
                 ) : <p className="text-sm text-muted-foreground">Not enough data for trend analysis.</p>}
@@ -144,8 +144,8 @@ function AIInsights() {
                     <div className="flex items-start gap-3">
                         <div className="p-2 bg-amber-500/10 rounded-full"><AlertTriangle className="h-5 w-5 text-amber-500" /></div>
                         <div>
-                            <h4 className="font-semibold">Emerging Hotspot</h4>
-                            <p className="text-sm text-muted-foreground">A spike in reports has been detected in the <span className="font-bold text-amber-500">{insights.emergingHotspot}</span> area this week.</p>
+                            <h4 className="font-semibold text-sm sm:text-base">Emerging Hotspot</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground">A spike in reports has been detected in the <span className="font-bold text-amber-500">{insights.emergingHotspot}</span> area this week.</p>
                         </div>
                     </div>
                 ) : <p className="text-sm text-muted-foreground">No new hotspots detected this week.</p>}
@@ -154,8 +154,8 @@ function AIInsights() {
                     <div className="flex items-start gap-3">
                          <div className="p-2 bg-green-500/10 rounded-full"><Clock className="h-5 w-5 text-green-500" /></div>
                         <div>
-                            <h4 className="font-semibold">Avg. Time Open</h4>
-                            <p className="text-sm text-muted-foreground">New grievances remain open for an average of <span className="font-bold text-green-500">{insights.resolutionTime} days</span> before being resolved.</p>
+                            <h4 className="font-semibold text-sm sm:text-base">Avg. Time Open</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground">New grievances remain open for an average of <span className="font-bold text-green-500">{insights.resolutionTime} days</span> before being resolved.</p>
                         </div>
                     </div>
                 ) : <p className="text-sm text-muted-foreground">No open grievances to analyze.</p>}
@@ -164,8 +164,8 @@ function AIInsights() {
                      <div className="flex items-start gap-3">
                          <div className="p-2 bg-indigo-500/10 rounded-full"><ShieldCheck className="h-5 w-5 text-indigo-500" /></div>
                         <div>
-                            <h4 className="font-semibold">Strategic Recommendation</h4>
-                            <p className="text-sm text-muted-foreground">Deploy a <span className="font-bold text-indigo-400">{insights.strategicRecommendation.category}</span> repair team to the <span className="font-bold text-indigo-400">{insights.strategicRecommendation.area}</span> area to address the highest concentration of open issues.</p>
+                            <h4 className="font-semibold text-sm sm:text-base">Strategic Recommendation</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Deploy a <span className="font-bold text-indigo-400">{insights.strategicRecommendation.category}</span> repair team to the <span className="font-bold text-indigo-400">{insights.strategicRecommendation.area}</span> area to address the highest concentration of open issues.</p>
                         </div>
                     </div>
                 )}
@@ -246,7 +246,7 @@ function ImpactSimulator() {
     return (
         <Card className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <CardHeader>
-                <CardTitle className="flex items-center"><BrainCircuit className="mr-2 h-5 w-5 text-primary" /> Impact Simulator</CardTitle>
+                <CardTitle className="flex items-center text-base sm:text-lg"><BrainCircuit className="mr-2 h-5 w-5 text-primary" /> Impact Simulator</CardTitle>
                 <CardDescription>Simulate how resolving issues changes risk and future complaints.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -367,10 +367,10 @@ export default function AnalyticsPage() {
     }
     
     return (
-        <div className="p-4 sm:p-8 space-y-8">
-            <h1 className="text-3xl font-bold tracking-tight animate-fade-in-up">Grievance Analytics</h1>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                 <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="p-4 sm:p-6 md:p-8 space-y-8">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight animate-fade-in-up">Grievance Analytics</h1>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                 <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                     <AIInsights />
                     <ImpactSimulator />
                 </div>
@@ -383,8 +383,8 @@ export default function AnalyticsPage() {
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={statusData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
-                                <XAxis dataKey="status" stroke="hsl(var(--muted-foreground))"/>
-                                <YAxis stroke="hsl(var(--muted-foreground))"/>
+                                <XAxis dataKey="status" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                                 <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}/>
                                 <Legend />
                                 <Bar dataKey="count" fill="hsl(var(--primary))" />
@@ -420,8 +420,8 @@ export default function AnalyticsPage() {
                         <ResponsiveContainer width="100%" height={300}>
                             <LineChart data={trendsData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))"/>
-                                <YAxis stroke="hsl(var(--muted-foreground))"/>
+                                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} angle={-45} textAnchor="end" height={50} />
+                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12}/>
                                 <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}/>
                                 <Legend />
                                 <Line type="monotone" dataKey="count" name="Submissions" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />

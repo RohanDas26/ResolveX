@@ -12,7 +12,12 @@ import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 
 export default function TicketsPage() {
     const { user: authUser, isUserLoading } = useUser();
-    const [allGrievances, setAllGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
+    const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
+
+    useEffect(() => {
+        // Simulate loading data on the client
+        setAllGrievances(DEMO_GRIEVANCES);
+    }, []);
 
     const userGrievances = useMemo(() => {
         if (!authUser) return [];
@@ -38,7 +43,7 @@ export default function TicketsPage() {
     return (
         <div className="container mx-auto px-4 py-8 animate-fade-in">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold tracking-tight">My Reported Tickets</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Reported Tickets</h1>
                 <p className="mt-1 text-muted-foreground">
                     A list of all the grievances you have submitted.
                 </p>
@@ -51,12 +56,12 @@ export default function TicketsPage() {
                              <img src={g.imageUrl} alt={g.description} className="w-full h-full object-cover" />
                          </div>
                          <div className="flex-grow">
-                             <p className="font-semibold text-lg">{g.description}</p>
-                             <div className="flex items-center text-sm text-muted-foreground mt-2">
+                             <p className="font-semibold text-base sm:text-lg">{g.description}</p>
+                             <div className="flex items-center text-xs sm:text-sm text-muted-foreground mt-2">
                                  <MapPin className="h-4 w-4 mr-1" />
                                  <span>{g.location.latitude.toFixed(4)}, {g.location.longitude.toFixed(4)}</span>
                              </div>
-                              <div className="flex items-center text-sm text-muted-foreground mt-1">
+                              <div className="flex items-center text-xs sm:text-sm text-muted-foreground mt-1">
                                  {g.status === 'Resolved' ? <CheckCircle className="h-4 w-4 mr-1 text-green-500" /> : <Clock className="h-4 w-4 mr-1" />}
                                  <span>{g.status} • {g.createdAt ? formatDistanceToNow(new Date(g.createdAt.seconds * 1000), { addSuffix: true }) : ''}</span>
                              </div>
@@ -70,3 +75,5 @@ export default function TicketsPage() {
         </div>
     );
 }
+
+    

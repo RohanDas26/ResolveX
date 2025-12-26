@@ -196,16 +196,16 @@ function SubmitPageContent() {
     }
 
     return (
-        <Card className="w-full max-w-2xl border-0 md:border md:shadow-lg animate-fade-in-up">
-            <CardHeader>
-                <CardTitle className="text-3xl font-bold tracking-tight">Submit a New Grievance</CardTitle>
+        <Card className="w-full max-w-2xl border-0 sm:border sm:shadow-lg animate-fade-in-up">
+            <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight">Submit a New Grievance</CardTitle>
                 <CardDescription>
                     Fill out the form below to report a civic issue. Your current location will be attached.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
                         <FormField
                             control={form.control}
                             name="description"
@@ -332,8 +332,10 @@ function SubmitPageContent() {
 
 export default function SubmitPage() {
     return (
-        <div className="container mx-auto px-4 py-8 flex justify-center animate-fade-in">
+        <div className="container mx-auto px-4 py-4 sm:py-8 flex justify-center animate-fade-in">
             <SubmitPageContent />
         </div>
     );
 }
+
+    

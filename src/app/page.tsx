@@ -189,7 +189,7 @@ export default function AuthPage() {
 
 
   return (
-    <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden p-4" >
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden p-4 sm:p-6 md:p-8" >
       <StarTrail />
        <div
         className="pointer-events-none fixed inset-0 z-30 transition duration-300 lg:absolute"
@@ -206,29 +206,29 @@ export default function AuthPage() {
       
       {!showAuthForms ? (
         <div className="z-10 text-center animate-fade-in-up w-full max-w-5xl mx-auto">
-            <Icons.logo className="h-20 w-20 text-primary mx-auto mb-6" />
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Welcome to ResolveX</h1>
-            <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            <Icons.logo className="h-16 w-16 md:h-20 md:w-20 text-primary mx-auto mb-6" />
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Welcome to ResolveX</h1>
+            <p className="mt-4 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
                 Your platform for reporting and tracking local civic issues. See a problem? Report it and help build a better community.
             </p>
-            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="mt-10 sm:mt-12 grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
               <FeatureCard 
-                icon={<Upload className="w-10 h-10" />}
+                icon={<Upload className="w-8 h-8 md:w-10 md:h-10" />}
                 title="Effortless Reporting"
                 description="Quickly submit a grievance with a photo and your precise location in just a few taps."
               />
               <FeatureCard 
-                icon={<MapPin className="w-10 h-10" />}
+                icon={<MapPin className="w-8 h-8 md:w-10 md:h-10" />}
                 title="Live Map Tracking"
                 description="View all reported issues on a real-time, interactive map of your area to stay informed."
               />
               <FeatureCard 
-                icon={<BarChart2 className="w-10 h-10" />}
+                icon={<BarChart2 className="w-8 h-8 md:w-10 md:h-10" />}
                 title="Community-Driven Change"
                 description="See leaderboards, track resolution progress, and be a part of making your community better."
               />
             </div>
-            <Button size="lg" className="mt-12 font-semibold text-lg" onClick={() => setShowAuthForms(true)}>
+            <Button size="lg" className="mt-10 sm:mt-12 font-semibold text-base sm:text-lg" onClick={() => setShowAuthForms(true)}>
                 Get Started <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
         </div>
@@ -346,4 +346,6 @@ export default function AuthPage() {
     </div>
   );
 }
+    
+
     
