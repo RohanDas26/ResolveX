@@ -22,8 +22,8 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
         <Providers>
-          <div className="p-4 h-screen">
-             <div className="relative w-full h-full bg-background/80 backdrop-blur-sm rounded-md overflow-hidden border border-border">
+          <div className="p-4 min-h-screen">
+             <div className="relative w-full h-full bg-background/80 backdrop-blur-sm rounded-md overflow-y-auto border border-border">
                 <MainLayout>
                   {children}
                 </MainLayout>
