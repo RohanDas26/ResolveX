@@ -89,11 +89,11 @@ function Directions() {
             return;
         }
         
-        let grievancesToAvoid: Grievance[] = [];
+        let grievancesToFilter: Grievance[] = [];
         if (routePreference === 'avoid-all') {
-            grievancesToAvoid = DEMO_GRIEVANCES.filter(g => g.status === 'Submitted' || g.status === 'In Progress');
+            grievancesToFilter = DEMO_GRIEVANCES.filter(g => g.status === 'Submitted' || g.status === 'In Progress');
         } else if (routePreference === 'avoid-potholes') {
-            grievancesToAvoid = DEMO_GRIEVANCES.filter(g => g.description.toLowerCase().includes('pothole') && (g.status === 'Submitted' || g.status === 'In Progress'));
+            grievancesToFilter = DEMO_GRIEVANCES.filter(g => g.description.toLowerCase().includes('pothole') && (g.status === 'Submitted' || g.status === 'In Progress'));
         }
 
         const request: google.maps.DirectionsRequest = {
@@ -106,17 +106,22 @@ function Directions() {
             if (status === google.maps.DirectionsStatus.OK && result) {
                 setDirectionsResult(result);
                 
-                if (geometryLibrary && result.routes[0]) {
+                if (geometryLibrary && result.routes[0] && grievancesToFilter.length > 0) {
                     const routePath = result.routes[0].overview_path;
-                    const grievancesOnRoute = DEMO_GRIEVANCES.filter(g => {
+                    const grievancesOnRoute = grievancesToFilter.filter(g => {
                        const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                       return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({path: routePath}), 0.001); // 0.001 degrees tolerance
+                       // isLocationOnEdge checks if a point is on or near a polyline.
+                       return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({path: routePath}), 0.001); // 0.001 degrees is approx 111 meters tolerance
                     });
                     setAvoidedGrievances(grievancesOnRoute);
+                } else {
+                    setAvoidedGrievances([]);
                 }
             } else {
                 console.error(`Directions request failed due to ${status}`);
                 toast({ variant: "destructive", title: "Route Failed", description: `Failed to get directions: ${status}` });
+                setDirectionsResult(null); // Clear previous route on error
+                setAvoidedGrievances([]);
             }
         });
     };
@@ -145,7 +150,7 @@ function Directions() {
             <Card className="w-full max-w-md m-4 border-0 md:border md:shadow-lg z-10 animate-fade-in-left absolute">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Milestone /> Safe Path Finder</CardTitle>
-                    <CardDescription>Plan your route avoiding road grievances.</CardDescription>
+                    <CardDescription>Plan your route and see potential road issues.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
                     <div className="space-y-2">
@@ -181,11 +186,11 @@ function Directions() {
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="avoid-potholes" id="avoid-potholes" />
-                                <Label htmlFor="avoid-potholes">Avoid Potholes</Label>
+                                <Label htmlFor="avoid-potholes">Check for Potholes</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="avoid-all" id="avoid-all" />
-                                <Label htmlFor="avoid-all">Avoid All Issues</Label>
+                                <Label htmlFor="avoid-all">Check for All Issues</Label>
                             </div>
                         </RadioGroup>
                     </div>
