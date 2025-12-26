@@ -7,6 +7,7 @@ import { type Grievance } from "@/lib/types";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 
@@ -17,9 +18,18 @@ interface GrievanceMapProps {
   children?: ReactNode;
   onMarkerClick?: (grievanceId: string | null) => void;
   selectedGrievanceId?: string | null;
+  center?: { lat: number; lng: number; };
+  zoom?: number;
 }
 
-export default function GrievanceMap({ grievances, children, onMarkerClick, selectedGrievanceId: externalSelectedId }: GrievanceMapProps) {
+export default function GrievanceMap({ 
+  grievances, 
+  children, 
+  onMarkerClick, 
+  selectedGrievanceId: externalSelectedId,
+  center = TELANGANA_CENTER,
+  zoom = 8
+}: GrievanceMapProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 
   const selectedGrievanceId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
@@ -53,8 +63,8 @@ export default function GrievanceMap({ grievances, children, onMarkerClick, sele
 
   return (
     <Map
-      defaultCenter={TELANGANA_CENTER}
-      defaultZoom={8}
+      center={center}
+      zoom={zoom}
       mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "RESOLVEX_MAP"}
       className="w-full h-full"
       gestureHandling={'greedy'}
@@ -62,6 +72,8 @@ export default function GrievanceMap({ grievances, children, onMarkerClick, sele
       streetViewControl={false}
       zoomControl={true}
       mapTypeControl={false}
+      // The map's transition is managed by the state updates in the parent component
+      // so we don't need `transitionDuration` here.
     >
       {grievances && grievances.map((grievance) => (
         <AdvancedMarker
@@ -69,12 +81,14 @@ export default function GrievanceMap({ grievances, children, onMarkerClick, sele
           position={{ lat: grievance.location.latitude, lng: grievance.location.longitude }}
           onClick={() => handleMarkerClick(grievance.id)}
         >
-          <Pin
-            background={selectedGrievanceId === grievance.id ? '#9333ea' : (grievance.pinColor || "#ef4444")}
-            borderColor={"#ffffff"}
-            glyphColor={"#ffffff"}
-            scale={selectedGrievanceId === grievance.id ? 1.2 : 1}
-          />
+          <div className={cn(selectedGrievanceId === grievance.id && "pulsating-pin rounded-full")}>
+            <Pin
+              background={selectedGrievanceId === grievance.id ? 'hsl(var(--primary))' : (grievance.pinColor || "#ef4444")}
+              borderColor={selectedGrievanceId === grievance.id ? 'hsl(var(--primary))' : "#ffffff"}
+              glyphColor={"#ffffff"}
+              scale={selectedGrievanceId === grievance.id ? 1.5 : 1}
+            />
+          </div>
         </AdvancedMarker>
       ))}
 
@@ -88,7 +102,7 @@ export default function GrievanceMap({ grievances, children, onMarkerClick, sele
             <div className="w-full max-w-xs rounded-lg overflow-hidden bg-background text-foreground shadow-xl">
               <div className="relative w-full h-40">
                   <Image
-                      src={selectedGrievance.imageUrl}
+                      src={selectedGrievedGrievanceMapProps.tsxance.imageUrl}
                       alt={selectedGrievance.description}
                       fill
                       className="object-cover"
