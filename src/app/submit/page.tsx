@@ -25,6 +25,18 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/web
 const MOCK_USER_ID = "user_student_1";
 const MOCK_USER_NAME = "Alex Doe";
 
+// Bounding box for Telangana
+const TELANGANA_BOUNDS = {
+  lat: { min: 15.8, max: 19.9 },
+  lng: { min: 77.2, max: 81.8 },
+};
+
+const getRandomLocation = () => {
+    const lat = Math.random() * (TELANGANA_BOUNDS.lat.max - TELANGANA_BOUNDS.lat.min) + TELANGANA_BOUNDS.lat.min;
+    const lng = Math.random() * (TELANGANA_BOUNDS.lng.max - TELANGANA_BOUNDS.lng.min) + TELANGANA_BOUNDS.lng.min;
+    return { lat, lng };
+}
+
 const formSchema = z.object({
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500, { message: "Description must be 500 characters or less." }),
   photo: z.any()
@@ -41,29 +53,12 @@ function SubmitPageContent() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-    const [locationError, setLocationError] = useState<string | null>(null);
     const firestore = useFirestore();
 
     useEffect(() => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setLocation({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                    });
-                    setLocationError(null);
-                },
-                (error) => {
-                    setLocationError(`Location Error: ${error.message}.`);
-                    toast({ variant: "destructive", title: "Location Error", description: "Please enable location services in your browser to submit a grievance." });
-                }
-            );
-        } else {
-            setLocationError("Geolocation is not supported by this browser.");
-            toast({ variant: "destructive", title: "Browser Incompatible", description: "Your browser does not support geolocation." });
-        }
-    }, [toast]);
+        // Set a random location within Telangana when the component mounts
+        setLocation(getRandomLocation());
+    }, []);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -74,7 +69,7 @@ function SubmitPageContent() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         if (!location) {
-            toast({ variant: "destructive", title: "Location unavailable", description: "Cannot submit without your location." });
+            toast({ variant: "destructive", title: "Location unavailable", description: "Could not generate a random location." });
             return;
         }
         
@@ -138,7 +133,7 @@ function SubmitPageContent() {
             <CardHeader>
                 <CardTitle className="text-3xl font-bold tracking-tight">Submit a New Grievance</CardTitle>
                 <CardDescription>
-                    Fill out the form below to report a civic issue. Your current location will be attached automatically.
+                    Fill out the form below to report a civic issue. A random location in Telangana will be attached.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -188,18 +183,13 @@ function SubmitPageContent() {
                         />
                         
                         <div className={cn("flex items-center p-3 rounded-md transition-all", 
-                            location ? 'bg-secondary text-secondary-foreground' : 
-                            locationError ? 'bg-destructive/20 text-destructive-foreground' : 
-                            'bg-muted text-muted-foreground animate-pulse')}>
+                            location ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground animate-pulse')}>
                           
-                          {location && <MapPin className="mr-3 h-5 w-5 text-primary" />}
-                          {locationError && <MapPin className="mr-3 h-5 w-5 text-destructive" />}
-                          {!location && !locationError && <Loader2 className="mr-3 h-5 w-5 animate-spin" />}
+                          {location ? <MapPin className="mr-3 h-5 w-5 text-primary" /> : <Loader2 className="mr-3 h-5 w-5 animate-spin" />}
                           
                           <div className="text-sm">
-                            {location ? <span>Location captured: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span> : 
-                             locationError ? <span>{locationError}</span> :
-                             <span>Acquiring your location...</span>}
+                            {location ? <span>Random location generated: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span> : 
+                             <span>Generating random location...</span>}
                           </div>
                         </div>
 
