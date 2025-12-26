@@ -35,14 +35,19 @@ export default function ProfilePage() {
         return DEMO_GRIEVANCES.filter(g => g.userId === authUser.uid);
     }, [authUser]);
 
-    const grievanceCount = useMemo(() => userGrievances.length, [userGrievances]);
+    // Get the accurate count from the user profile data, which is now consistent
+    const grievanceCount = useMemo(() => {
+        const currentUserData = DEMO_USERS.find(u => u.id === authUser?.uid);
+        return currentUserData?.grievanceCount || 0;
+    }, [authUser]);
+
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
     const isLoading = isUserLoading || isProfileLoading;
     
     const leaderboardUsers = useMemo(() => {
-        return [...DEMO_USERS]
-            .sort((a, b) => b.grievanceCount - a.grievanceCount);
+        // DEMO_USERS is now pre-sorted with correct counts
+        return DEMO_USERS;
     }, []);
 
     if (isLoading) {

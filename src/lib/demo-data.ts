@@ -110,24 +110,22 @@ const descriptions = [
   "Illegal dumping of construction waste in residential layout.",
 ];
 
-export const DEMO_USERS: UserProfile[] = [
-    { id: 'user-demo-3', name: 'Rohan', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=rohan`, grievanceCount: 36 },
-    { id: 'user-demo-1', name: 'Priya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=priya`, grievanceCount: 29 },
-    { id: 'user-demo-4', name: 'Anika', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=anika`, grievanceCount: 25 },
-    { id: 'user-demo-2', name: 'Vikram', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=vikram`, grievanceCount: 22 },
-    { id: 'user_student_1', name: 'Alex Doe', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`, grievanceCount: 18 },
-    { id: 'user-demo-6', name: 'Sneha', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=sneha`, grievanceCount: 15 },
-    { id: 'user-demo-8', name: 'Arjun', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=arjun`, grievanceCount: 12 },
-    { id: 'user-demo-5', name: 'Neha', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=neha`, grievanceCount: 10 },
-    { id: 'user-demo-7', name: 'Karthik', imageUrl: `https://api.dicebear.com/8x/bottts/svg?seed=karthik`, grievanceCount: 8 },
-    { id: 'user-demo-9', name: 'Ishita', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=ishita`, grievanceCount: 5 },
-    { id: 'user-demo-10', name: 'Rahul', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=rahul`, grievanceCount: 3 },
-    { id: 'user-demo-11', name: 'Divya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=divya`, grievanceCount: 2 },
-    { id: 'user-demo-12', name: 'Aditya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=aditya`, grievanceCount: 1 },
+let initialUsers: Omit<UserProfile, 'grievanceCount'>[] = [
+    { id: 'user-demo-3', name: 'Rohan', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=rohan` },
+    { id: 'user-demo-1', name: 'Priya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=priya` },
+    { id: 'user-demo-4', name: 'Anika', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=anika` },
+    { id: 'user-demo-2', name: 'Vikram', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=vikram` },
+    { id: 'user_student_1', name: 'Alex Doe', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=alex` },
+    { id: 'user-demo-6', name: 'Sneha', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=sneha` },
+    { id: 'user-demo-8', name: 'Arjun', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=arjun` },
+    { id: 'user-demo-5', name: 'Neha', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=neha` },
+    { id: 'user-demo-7', name: 'Karthik', imageUrl: `https://api.dicebear.com/8x/bottts/svg?seed=karthik` },
+    { id: 'user-demo-9', name: 'Ishita', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=ishita` },
+    { id: 'user-demo-10', name: 'Rahul', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=rahul` },
+    { id: 'user-demo-11', name: 'Divya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=divya` },
+    { id: 'user-demo-12', name: 'Aditya', imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=aditya` },
 ];
 
-
-const userNames = DEMO_USERS.map(u => u.name);
 
 const statuses: Grievance["status"][] = ["Submitted", "In Progress", "Resolved"];
 
@@ -154,19 +152,6 @@ const riskFactors: { [key: string]: { base: number, note: string } } = {
     default: { base: 20, note: "Initial assessment indicates low risk, but requires manual review for confirmation." }
 };
 
-// Create a weighted list of users to make some report more than others
-const createWeightedUserList = () => {
-    const weightedList: number[] = [];
-    DEMO_USERS.forEach((user, index) => {
-        // Use the pre-defined grievanceCount to create the weighted list
-        for(let i = 0; i < user.grievanceCount; i++) {
-            weightedList.push(index);
-        }
-    });
-    return weightedList;
-}
-const weightedUserIndexes = createWeightedUserList();
-
 const getPinColor = (status: Grievance["status"]) => {
   switch (status) {
     case "Resolved": return "#22c55e";
@@ -182,52 +167,73 @@ const MY_DEMO_REPORTS: Grievance[] = [
     { id: 'demo-903', userId: 'user_student_1', userName: 'Alex Doe', description: 'Overflowing drain near the bus stop.', location: new GeoPoint(17.39, 78.47), imageUrl: 'https://picsum.photos/seed/drain-overflow/400/300', status: 'Submitted' as const, createdAt: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)), riskScore: 70, aiNotes: 'Public health concern due to stagnant water and smell.' },
 ];
 
-
-const generateRandomGrievance = (
-  idIndex: number
-): Grievance & { pinColor: string } => {
-  const randomLocation = getClusterLocation();
-
-  const randomDate = new Date(
-    Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000
-  );
-
-  const status = statuses[idIndex % statuses.length];
-  const description = descriptions[idIndex % descriptions.length];
-  
-  // Select a user based on the weighted list for more realistic counts
-  const userIndex = weightedUserIndexes[idIndex % weightedUserIndexes.length];
-  const user = DEMO_USERS[userIndex];
-  
-  const imageSeed = imageSeeds[idIndex % imageSeeds.length];
-
-  const keyword = imageSeeds.find(seed => description.toLowerCase().includes(seed));
-  const riskData = keyword && riskFactors[keyword] ? riskFactors[keyword] : riskFactors.default;
-  const riskScore = Math.min(100, Math.max(0, riskData.base + Math.floor(Math.random() * 20) - 10));
-
-  return {
-    id: `demo-${idIndex}`,
-    userId: user.id,
-    userName: user.name,
-    description,
-    location: new GeoPoint(randomLocation.lat, randomLocation.lng),
-    imageUrl: `https://picsum.photos/seed/${imageSeed}-${idIndex}/400/300`,
-    status,
-    createdAt: Timestamp.fromDate(randomDate),
-    pinColor: getPinColor(status),
-    riskScore: riskScore,
-    aiNotes: riskData.note,
-  };
-};
-
 const DEMO_COUNT = 250;
 
-const OTHER_DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = Array.from(
+// To create a more realistic distribution, we'll assign grievances to users.
+// We'll create a flat list of user IDs to pick from, weighted by how many reports we want them to have.
+const userReportCounts: { [key: string]: number } = {
+    'user-demo-3': 36, 'user-demo-1': 29, 'user-demo-4': 25, 'user-demo-2': 22,
+    'user_student_1': 0, // This will be handled by MY_DEMO_REPORTS
+    'user-demo-6': 15, 'user-demo-8': 12, 'user-demo-5': 10, 'user-demo-7': 8,
+    'user-demo-9': 5, 'user-demo-10': 3, 'user-demo-11': 2, 'user-demo-12': 1,
+};
+const weightedUserIds: string[] = [];
+Object.entries(userReportCounts).forEach(([userId, count]) => {
+    for (let i = 0; i < count; i++) {
+        weightedUserIds.push(userId);
+    }
+});
+
+const OTHER_DEMO_GRIEVANCES: Grievance[] = Array.from(
   { length: DEMO_COUNT - MY_DEMO_REPORTS.length },
-  (_, i) => generateRandomGrievance(i + 1)
+  (_, i) => {
+    const randomLocation = getClusterLocation();
+    const randomDate = new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000);
+    const status = statuses[i % statuses.length];
+    const description = descriptions[i % descriptions.length];
+    
+    // Pick a user for this grievance
+    const userId = weightedUserIds[i % weightedUserIds.length];
+    const user = initialUsers.find(u => u.id === userId)!;
+    
+    const imageSeed = imageSeeds[i % imageSeeds.length];
+    const keyword = imageSeeds.find(seed => description.toLowerCase().includes(seed));
+    const riskData = keyword && riskFactors[keyword] ? riskFactors[keyword] : riskFactors.default;
+    const riskScore = Math.min(100, Math.max(0, riskData.base + Math.floor(Math.random() * 20) - 10));
+
+    return {
+        id: `demo-${i + 1}`,
+        userId: user.id,
+        userName: user.name,
+        description,
+        location: new GeoPoint(randomLocation.lat, randomLocation.lng),
+        imageUrl: `https://picsum.photos/seed/${imageSeed}-${i + 1}/400/300`,
+        status,
+        createdAt: Timestamp.fromDate(randomDate),
+        riskScore: riskScore,
+        aiNotes: riskData.note,
+    };
+  }
 );
 
-export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = [
-    ...MY_DEMO_REPORTS.map(r => ({...r, pinColor: getPinColor(r.status)})),
-    ...OTHER_DEMO_GRIEVANCES
-];
+// Combine all grievances
+export const ALL_GRIEVANCES: Grievance[] = [ ...MY_DEMO_REPORTS, ...OTHER_DEMO_GRIEVANCES ];
+
+// Now, calculate the counts for each user from the single source of truth
+const grievanceCounts = ALL_GRIEVANCES.reduce((acc, grievance) => {
+    acc[grievance.userId] = (acc[grievance.userId] || 0) + 1;
+    return acc;
+}, {} as Record<string, number>);
+
+// Create the final DEMO_USERS list with accurate counts
+export const DEMO_USERS: UserProfile[] = initialUsers.map(user => ({
+    ...user,
+    grievanceCount: grievanceCounts[user.id] || 0,
+})).sort((a, b) => b.grievanceCount - a.grievanceCount);
+
+
+// Finally, create the export for the map, which includes pin colors
+export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = ALL_GRIEVANCES.map(g => ({
+    ...g,
+    pinColor: getPinColor(g.status),
+}));

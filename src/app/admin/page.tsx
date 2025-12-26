@@ -28,10 +28,9 @@ function AdminDashboardContent() {
   }, [searchParams]);
 
   const topReporters = useMemo(() => {
-      // Use the static demo users and sort them by grievance count.
-      return [...DEMO_USERS]
-          .sort((a, b) => b.grievanceCount - a.grievanceCount)
-          .slice(0, 5);
+      // Use the static demo users which now have correct, pre-calculated counts
+      // and are pre-sorted.
+      return DEMO_USERS.slice(0, 5);
   }, []);
 
 
