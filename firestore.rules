@@ -105,7 +105,7 @@ service cloud.firestore {
      */
     match /grievances/{grievanceId} {
         allow read: if isSignedIn();
-        allow create: if isOwner(request.resource.data.userId);
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
         allow update, delete: if isOwner(resource.data.userId);
     }
 
