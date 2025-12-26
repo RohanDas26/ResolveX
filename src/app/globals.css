@@ -108,19 +108,3 @@
   initial-value: 0deg;
   inherits: false;
 }
-
-@keyframes border-glow {
-  from { --angle: 0deg; }
-  to { --angle: 360deg; }
-}
-
-@keyframes star-field {
-  from { background-position: 0 0; }
-  to { background-position: -10000px 5000px; }
-}
-
-@keyframes comet-sweep {
-  0% { transform: translateX(-100%); opacity: 0; }
-  20%, 80% { opacity: 1; }
-  100% { transform: translateX(100%); opacity: 0; }
-}
