@@ -168,12 +168,25 @@ export default function RoutePlanner() {
     ): Promise<{ route: google.maps.DirectionsRoute, issues: Grievance[] } | null> => {
         if (!directionsService || !geometryLibrary) return null;
 
+        const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
+        
         const request: google.maps.DirectionsRequest = {
             origin: originLoc,
             destination: destinationLoc,
             travelMode: google.maps.TravelMode.DRIVING,
-            provideRouteAlternatives: true,
         };
+
+        if (mode === 'avoid_issues') {
+            request.provideRouteAlternatives = true;
+            // Explicitly tell the API to avoid the grievance locations
+            const waypointsToAvoid: google.maps.DirectionsWaypoint[] = openGrievances.map(g => ({
+                location: new google.maps.LatLng(g.location.latitude, g.location.longitude),
+                stopover: false,
+            }));
+            // @ts-ignore - The 'avoid' property on waypoints is not in all type definitions yet
+            request.waypoints = waypointsToAvoid.map(wp => ({ ...wp, avoid: true }));
+        }
+
 
         try {
             const response = await directionsService.route(request);
@@ -182,38 +195,27 @@ export default function RoutePlanner() {
                 return null;
             }
 
-            const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
-
-            const scoredRoutes = response.routes.map(route => {
-                const issues = openGrievances.filter(g => {
+            // In 'avoid_issues' mode, we've already asked Google for the best route avoiding points.
+            // We just take the first result it gives us.
+            if (mode === 'avoid_issues') {
+                const safestRoute = response.routes[0];
+                 const issues = openGrievances.filter(g => {
                     const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
-                    return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: route.overview_path }), 0.005); // ~500m tolerance
+                    return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: safestRoute.overview_path }), 0.005); // ~500m tolerance
                 });
-                const travelTime = route.legs[0]?.duration?.value || Infinity;
-                return { route, issues, travelTime, issueCount: issues.length };
-            });
-
-            if (mode === 'fastest') {
-                const fastest = scoredRoutes.sort((a,b) => a.travelTime - b.travelTime)[0];
-                return { route: fastest.route, issues: fastest.issues };
+                return { route: safestRoute, issues: issues };
             }
-            
-            // mode === 'avoid_issues'
-            const bestRoute = scoredRoutes.sort((a, b) => {
-                // If one route is clear and the other isn't, the clear one wins
-                if (a.issueCount === 0 && b.issueCount > 0) return -1;
-                if (b.issueCount === 0 && a.issueCount > 0) return 1;
 
-                // A much heavier penalty for issues to force different routes
-                const scoreA = a.travelTime + a.issueCount * 1200; // 20-minute penalty per issue
-                const scoreB = b.travelTime + b.issueCount * 1200;
-
-                return scoreA - scoreB;
-            })[0];
-            return { route: bestRoute.route, issues: bestRoute.issues };
+            // For 'fastest' mode, we just get the primary route and check for issues.
+            const fastestRoute = response.routes[0];
+            const issuesOnFastest = openGrievances.filter(g => {
+                const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
+                return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: fastestRoute.overview_path }), 0.005);
+            });
+            return { route: fastestRoute, issues: issuesOnFastest };
         
         } catch (error) {
-             toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while findin`g the route."});
+             toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
              return null;
         }
     };
@@ -247,13 +249,13 @@ export default function RoutePlanner() {
              if (routePreference === 'avoid_issues' && result.issues.length > 0) {
                 toast({
                     variant: 'destructive',
-                    title: "Issues Detected",
-                    description: `The safest route still has ${result.issues.length} issue(s). Proceed with caution.`,
+                    title: "Issues Persist",
+                    description: `The safest route still has ${result.issues.length} issue(s). No completely clear route was found.`,
                 });
             } else if (routePreference === 'fastest' && result.issues.length > 0) {
                  toast({
                     title: "FYI: Issues on Route",
-                    description: `Fastest route has ${result.issues.length} issue(s). To find a safer path, select 'Safest'.`,
+                    description: `The fastest route has ${result.issues.length} issue(s). Choose 'Safest' for a clearer path.`,
                 });
             } else if (result.issues.length === 0) {
                 toast({
@@ -386,5 +388,3 @@ export default function RoutePlanner() {
         </div>
     );
 }
-
-    
