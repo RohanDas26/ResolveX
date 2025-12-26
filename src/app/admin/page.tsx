@@ -19,36 +19,14 @@ function AdminDashboardContent() {
   const grievancesLoading = false;
   const usersLoading = false;
 
-  const allUsers: UserProfile[] = useMemo(() => {
-    if (!grievances) return [];
-
-    const userMap = new Map<string, { id: string, name: string, count: number }>();
-
-    grievances.forEach(g => {
-        if (!userMap.has(g.userId)) {
-            userMap.set(g.userId, { id: g.userId, name: g.userName, count: 0 });
-        }
-        const userData = userMap.get(g.userId);
-        if(userData){
-            userData.count++;
-        }
-    });
-
-    const sortedUsers = Array.from(userMap.values()).sort((a, b) => b.count - a.count);
-    
-    // Take only the top 5 reporters
-    const top5Users = sortedUsers.slice(0, 5);
-
-    return top5Users.map(u => ({
-        id: u.id,
-        name: u.name,
-        email: `${u.name.toLowerCase().replace(' ', '.')}@demo.com`,
-        imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${u.name}`,
-        grievanceCount: u.count,
-    }));
-
-  }, [grievances]);
-
+  // Use a static list of top users to prevent hydration errors.
+  const allUsers: UserProfile[] = [
+    { id: 'user-demo-20', name: 'Manoj', email: 'manoj@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Manoj', grievanceCount: 36 },
+    { id: 'user-demo-19', name: 'Kavita', email: 'kavita@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Kavita', grievanceCount: 29 },
+    { id: 'user-demo-18', name: 'Rajesh', email: 'rajesh@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Rajesh', grievanceCount: 23 },
+    { id: 'user-demo-17', name: 'Sunita', email: 'sunita@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Sunita', grievanceCount: 18 },
+    { id: 'user-demo-16', name: 'Amit', email: 'amit@demo.com', imageUrl: 'https://api.dicebear.com/8.x/bottts/svg?seed=Amit', grievanceCount: 14 }
+  ];
 
   const filteredGrievances = useMemo(() => {
     if (!grievances) return [];
