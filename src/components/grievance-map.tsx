@@ -2,7 +2,7 @@
 "use client";
 
 import { Map, AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
-import { useState, useCallback, useMemo, ReactNode } from "react";
+import { useState, useCallback, useMemo, ReactNode, useEffect } from "react";
 import { type Grievance } from "@/lib/types";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -18,22 +18,26 @@ interface GrievanceMapProps {
   children?: ReactNode;
   onMarkerClick?: (grievanceId: string | null) => void;
   selectedGrievanceId?: string | null;
-  center?: { lat: number; lng: number; };
-  zoom?: number;
 }
 
 export default function GrievanceMap({ 
   grievances, 
   children, 
   onMarkerClick, 
-  selectedGrievanceId: externalSelectedId,
-  center = TELANGANA_CENTER,
-  zoom = 8
+  selectedGrievanceId: externalSelectedId
 }: GrievanceMapProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 
+  // Allow parent component to control the selected ID
   const selectedGrievanceId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
   const setSelectedGrievanceId = onMarkerClick || setInternalSelectedId;
+
+  // Sync internal state if external state changes
+  useEffect(() => {
+    if (externalSelectedId !== undefined) {
+      setInternalSelectedId(externalSelectedId);
+    }
+  }, [externalSelectedId]);
 
   const selectedGrievance = useMemo(() => 
     grievances?.find(g => g.id === selectedGrievanceId) || null
@@ -63,8 +67,8 @@ export default function GrievanceMap({
 
   return (
     <Map
-      center={center}
-      zoom={zoom}
+      defaultCenter={TELANGANA_CENTER}
+      defaultZoom={8}
       mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "RESOLVEX_MAP"}
       className="w-full h-full"
       gestureHandling={'greedy'}

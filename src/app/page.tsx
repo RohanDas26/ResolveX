@@ -4,10 +4,11 @@
 import GrievanceMap from "@/components/grievance-map";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { type Grievance } from "@/lib/types";
 import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 import { useUser } from "@/firebase";
+import { APIProviderContext, useMap } from "@vis.gl/react-google-maps";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
@@ -24,14 +25,35 @@ const grievanceStore = {
   }
 };
 
+function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (map && selectedGrievance) {
+            // Start zoomed out, then zoom in
+            map.setZoom(INITIAL_ZOOM);
+            map.setCenter(TELANGANA_CENTER);
+
+            setTimeout(() => {
+                map.setCenter({ lat: selectedGrievance.location.latitude, lng: selectedGrievance.location.longitude });
+                map.setZoom(DETAIL_ZOOM);
+            }, 500); // Delay for the "zoom in" effect
+        }
+    }, [map, selectedGrievance]);
+
+    return null;
+}
+
+
 export default function Home() {
   const searchParams = useSearchParams();
   const [grievances, setGrievances] = useState<Grievance[] | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
-  const [mapCenter, setMapCenter] = useState(TELANGANA_CENTER);
-  const [mapZoom, setMapZoom] = useState(INITIAL_ZOOM);
   const { isUserLoading } = useUser();
   const [isLoading, setIsLoading] = useState(true);
+
+  // This flag ensures the initial zoom effect runs only once
+  const initialEffectRan = useRef(false);
 
   useEffect(() => {
     // Simulate loading data
@@ -41,37 +63,20 @@ export default function Home() {
     setIsLoading(false);
   }, []);
 
+  useEffect(() => {
+    const grievanceIdFromUrl = searchParams.get('id');
+    if (grievanceIdFromUrl && !initialEffectRan.current) {
+        setSelectedGrievanceId(grievanceIdFromUrl);
+        initialEffectRan.current = true;
+    }
+  }, [searchParams]);
+  
   const selectedGrievance = useMemo(() => {
     return grievances?.find(g => g.id === selectedGrievanceId) || null;
   }, [grievances, selectedGrievanceId]);
-
-  useEffect(() => {
-    const grievanceIdFromUrl = searchParams.get('id');
-    if (grievanceIdFromUrl && grievances) {
-      const grievance = grievances.find(g => g.id === grievanceIdFromUrl);
-      if (grievance) {
-        setSelectedGrievanceId(grievanceIdFromUrl);
-        // Start zoomed out, then zoom in
-        setMapZoom(INITIAL_ZOOM);
-        setMapCenter(TELANGANA_CENTER);
-
-        setTimeout(() => {
-          setMapCenter({ lat: grievance.location.latitude, lng: grievance.location.longitude });
-          setMapZoom(DETAIL_ZOOM);
-        }, 500); // Delay for the "zoom in" effect
-      }
-    }
-  }, [searchParams, grievances]);
   
   const handleMarkerClick = (id: string | null) => {
     setSelectedGrievanceId(id);
-     if (id) {
-      const grievance = grievances?.find(g => g.id === id);
-      if (grievance) {
-        setMapCenter({ lat: grievance.location.latitude, lng: grievance.location.longitude });
-        setMapZoom(DETAIL_ZOOM);
-      }
-    }
   }
 
   if (isLoading || isUserLoading) {
@@ -99,9 +104,9 @@ export default function Home() {
         grievances={grievances} 
         onMarkerClick={handleMarkerClick}
         selectedGrievanceId={selectedGrievanceId}
-        center={mapCenter}
-        zoom={mapZoom}
-      />
+      >
+        {selectedGrievance && <MapEffect selectedGrievance={selectedGrievance} />}
+      </GrievanceMap>
     </div>
   );
 }
