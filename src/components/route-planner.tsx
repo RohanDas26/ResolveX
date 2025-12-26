@@ -10,7 +10,24 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Milestone, LocateFixed, Loader2, Info, Navigation, Clock, Forward } from 'lucide-react';
+import { 
+    AlertTriangle, 
+    Milestone, 
+    LocateFixed, 
+    Loader2, 
+    Info, 
+    Navigation, 
+    Clock, 
+    Forward,
+    ArrowUp,
+    ArrowLeft,
+    ArrowRight,
+    Undo2,
+    Merge,
+    Waypoints,
+    CircleDot,
+    Flag,
+} from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DEMO_GRIEVANCES } from '@/lib/demo-data';
 
@@ -57,6 +74,37 @@ function RoutePolyline({ route, color }: { route: google.maps.DirectionsRoute | 
 
     return null;
 }
+
+// Helper to get an icon for a maneuver
+const getManeuverIcon = (maneuver: string | undefined) => {
+    if (!maneuver) return <Forward />;
+    
+    const maneuverMap: { [key: string]: React.ReactNode } = {
+        'turn-sharp-left': <Undo2 className="transform -scale-x-100" />,
+        'uturn-left': <Undo2 className="transform -scale-x-100" />,
+        'turn-slight-left': <ArrowLeft />,
+        'merge': <Merge />,
+        'roundabout-left': <CircleDot />,
+        'roundabout-right': <CircleDot />,
+        'uturn-right': <Undo2 />,
+        'turn-slight-right': <ArrowRight />,
+        'straight': <ArrowUp />,
+        'turn-left': <ArrowLeft />,
+        'turn-right': <ArrowRight />,
+        'fork-left': <Waypoints />,
+        'fork-right': <Waypoints className="transform -scale-x-100" />,
+        'ramp-left': <ArrowLeft />,
+        'ramp-right': <ArrowRight />,
+        'turn-sharp-right': <Undo2 />,
+        'ferry': <Milestone />,
+        'ferry-train': <Milestone />,
+        'destination': <Flag />,
+    };
+
+    const key = Object.keys(maneuverMap).find(k => maneuver.includes(k));
+    return key ? maneuverMap[key] : <Forward />;
+};
+
 
 export default function RoutePlanner() {
     const map = useMap();
@@ -151,10 +199,16 @@ export default function RoutePlanner() {
             
             // mode === 'avoid_issues'
             const bestRoute = scoredRoutes.sort((a,b) => {
-                // Prioritize routes with fewer issues first.
-                if (a.issueCount < b.issueCount) return -1;
-                if (a.issueCount > b.issueCount) return 1;
-                // If issue counts are equal, then choose the faster route.
+                 // Prioritize routes with zero issues above all else.
+                if (a.issueCount === 0 && b.issueCount > 0) return -1;
+                if (b.issueCount === 0 && a.issueCount > 0) return 1;
+
+                // If both have issues (or both are clear), prefer the one with fewer issues.
+                if (a.issueCount !== b.issueCount) {
+                    return a.issueCount - b.issueCount;
+                }
+                
+                // If issue counts are the same, then choose the faster route.
                 return a.travelTime - b.travelTime;
             })[0];
             return { route: bestRoute.route, issues: bestRoute.issues };
@@ -284,8 +338,8 @@ export default function RoutePlanner() {
                             <div className="space-y-3">
                                 {selectedRoute.legs[0].steps.map((step, index) => (
                                     <div key={index} className="flex gap-4 items-start p-2 rounded-md hover:bg-muted">
-                                        <div className="pt-1">
-                                             <Forward className="h-5 w-5 text-primary"/>
+                                        <div className="pt-1 text-primary">
+                                             {getManeuverIcon(step.maneuver)}
                                         </div>
                                         <div>
                                             <div dangerouslySetInnerHTML={{ __html: step.instructions || '' }} className="font-semibold" />
@@ -333,5 +387,7 @@ export default function RoutePlanner() {
         </div>
     );
 }
+
+    
 
     
