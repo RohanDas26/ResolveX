@@ -19,19 +19,25 @@ export default function AISummary({ grievances, isLoading }: AISummaryProps) {
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
 
     const handleGenerateSummary = () => {
-        if (grievances && grievances.length > 0) {
-          setIsSummaryLoading(true);
-          setSummary(null);
-          summarizePriorities({ grievances })
-            .then(result => setSummary(result.summary))
+        if (!grievances || grievances.length === 0) {
+            setSummary("No grievances to summarize for the current filter.");
+            return;
+        }
+        
+        setIsSummaryLoading(true);
+        setSummary(null); // Clear previous summary before fetching new one
+
+        summarizePriorities({ grievances })
+            .then(result => {
+                setSummary(result.summary);
+            })
             .catch(err => {
                 console.error("Error generating summary: ", err);
                 setSummary("Could not generate AI summary due to an error.");
             })
-            .finally(() => setIsSummaryLoading(false));
-        } else if (!isLoading) {
-            setSummary("No grievances to summarize for the current filter.");
-        }
+            .finally(() => {
+                setIsSummaryLoading(false);
+            });
     };
 
     return (
@@ -62,7 +68,7 @@ export default function AISummary({ grievances, isLoading }: AISummaryProps) {
                         Click the button to generate an AI summary for the current filters.
                     </div>
                 )}
-                 <Button onClick={handleGenerateSummary} disabled={isSummaryLoading || isLoading || grievances.length === 0} className="w-full">
+                 <Button onClick={handleGenerateSummary} disabled={isSummaryLoading || isLoading} className="w-full">
                     {isSummaryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
                     {isSummaryLoading ? 'Analyzing...' : 'Generate Summary'}
                 </Button>
