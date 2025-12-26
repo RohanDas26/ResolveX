@@ -41,29 +41,19 @@ export default function AuthPage() {
     }, 1000);
   };
 
-  const maskSize = 150; // Size of the snowflake mask
-
   return (
     <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] overflow-hidden" >
       <StarTrail />
        <div
         className="pointer-events-none fixed inset-0 z-30 transition duration-300"
         style={{
-          maskImage: 'var(--snowflake)',
-          maskSize: `${maskSize}px ${maskSize}px`,
-          maskRepeat: 'no-repeat',
-          maskPosition: `${mousePosition.x - maskSize / 2}px ${mousePosition.y - maskSize / 2}px`,
           background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--primary) / 0.15), transparent 80%)`,
         }}
       />
        <div
         className="pointer-events-none fixed inset-0 z-30 transition duration-300"
         style={{
-          maskImage: 'var(--snowflake)',
-          maskSize: `${maskSize}px ${maskSize}px`,
-          maskRepeat: 'no-repeat',
-          maskPosition: `${mousePosition.x - maskSize / 2 + 20}px ${mousePosition.y - maskSize / 2 + 20}px`,
-          background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, hsl(var(--accent) / 0.15), transparent 80%)`,
+          background: `radial-gradient(circle at ${mousePosition.x + 20}px ${mousePosition.y + 20}px, hsl(var(--accent) / 0.15), transparent 80%)`,
         }}
       />
       
