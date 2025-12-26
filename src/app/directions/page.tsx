@@ -181,16 +181,14 @@ function Directions() {
 export default function DirectionsPage() {
     return (
         <div className="relative h-full w-full">
-            <div className="absolute top-0 left-0 h-full w-full bg-muted">
-                 <Map
-                    defaultCenter={{ lat: 17.3850, lng: 78.4867 }}
-                    defaultZoom={12}
-                    mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
-                    gestureHandling={'greedy'}
-                    disableDefaultUI={true}
-                    className="w-full h-full"
-                 />
-            </div>
+             <Map
+                defaultCenter={{ lat: 17.3850, lng: 78.4867 }}
+                defaultZoom={12}
+                mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
+                gestureHandling={'greedy'}
+                disableDefaultUI={true}
+                className="absolute top-0 left-0 h-full w-full bg-muted"
+             />
             <Directions />
         </div>
     );
