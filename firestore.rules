@@ -23,14 +23,13 @@ service cloud.firestore {
       allow list: if isSignedIn();
     }
     
-    // Rules for the 'grievances' collection
-    // This rule allows any authenticated user to LIST all grievances,
-    // which is required for the map and feeds to work.
+    // This rule allows any authenticated user to LIST all grievances from the collection.
+    // This is required for the map and feeds to work.
     match /grievances {
       allow list: if isSignedIn();
     }
 
-    // This rule applies to INDIVIDUAL grievance documents
+    // These rules apply to INDIVIDUAL grievance documents within the collection.
     match /grievances/{grievanceId} {
       // Any authenticated user can GET a single grievance document.
       allow get: if isSignedIn();
