@@ -10,7 +10,7 @@ import { GoogleMapsContext } from "@vis.gl/react-google-maps";
 interface AdminMapProps {
     grievances: Grievance[] | null;
     isLoading: boolean;
-    onMarkerClick: (grievanceId: string) => void;
+    onMarkerClick: (grievanceId: string | null) => void;
     selectedGrievanceId: string | null;
 }
 
