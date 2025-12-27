@@ -7,53 +7,25 @@ import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
 import { useSearchParams } from 'next/navigation'
-import { doc, updateDoc, collection } from "firebase/firestore";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
 
 function AdminDashboardContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const firestore = useFirestore();
 
+  const [allGrievances, setAllGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   
-  const grievancesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'grievances');
-  }, [firestore]);
-  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
-  
   const [topReporters, setTopReporters] = useState<UserProfile[]>([]);
-  const [isReportersLoading, setIsReportersLoading] = useState(true);
-
-  useEffect(() => {
-    if (grievances) {
-      setIsReportersLoading(true);
-      const reporterCounts: { [userId: string]: { count: number; name: string; id: string } } = {};
-
-      grievances.forEach(g => {
-        if (!reporterCounts[g.userId]) {
-          reporterCounts[g.userId] = { count: 0, name: g.userName, id: g.userId };
-        }
-        reporterCounts[g.userId].count++;
-      });
-
-      const sortedReporters = Object.values(reporterCounts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10) // Get top 10
-        .map(reporter => ({
-          id: reporter.id,
-          name: reporter.name,
-          grievanceCount: reporter.count,
-          imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${reporter.id}`
-        }));
-      
-      setTopReporters(sortedReporters);
-      setIsReportersLoading(false);
-    }
-  }, [grievances]);
   
+  // Set initial data on mount
+  useEffect(() => {
+    setAllGrievances(DEMO_GRIEVANCES);
+    const sortedReporters = [...DEMO_USERS].sort((a,b) => b.grievanceCount - a.grievanceCount).slice(0,10);
+    setTopReporters(sortedReporters);
+  }, []);
+
   useEffect(() => {
     const grievanceId = searchParams.get('id');
     if (grievanceId) {
@@ -62,48 +34,36 @@ function AdminDashboardContent() {
   }, [searchParams]);
 
   const filteredGrievances = useMemo(() => {
-    if (!grievances) return [];
-    if (!filter) return grievances;
-    return grievances.filter(g => g.description.toLowerCase().includes(filter.toLowerCase()));
-  }, [grievances, filter]);
+    if (!filter) return allGrievances;
+    return allGrievances.filter(g => g.description.toLowerCase().includes(filter.toLowerCase()));
+  }, [allGrievances, filter]);
 
   const selectedGrievance = useMemo(() => {
-    return grievances?.find(g => g.id === selectedGrievanceId) || null;
-  }, [grievances, selectedGrievanceId]);
+    return allGrievances?.find(g => g.id === selectedGrievanceId) || null;
+  }, [allGrievances, selectedGrievanceId]);
 
   const handleUpdateGrievanceStatus = async (id: string, status: Grievance['status']) => {
-    if (!firestore) {
-      toast({ variant: "destructive", title: "Firestore not available" });
-      return;
-    }
-    const grievanceRef = doc(firestore, "grievances", id);
-    try {
-      await updateDoc(grievanceRef, { status }); 
-      toast({
-        title: "Status Updated",
+    setAllGrievances(prevGrievances => 
+        prevGrievances.map(g => g.id === id ? { ...g, status } : g)
+    );
+    toast({
+        title: "Status Updated (Demo)",
         description: `Grievance status changed to ${status}.`,
-      });
-    } catch (error: any) {
-      console.error("Error updating status: ", error);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error.message,
-      });
-    }
+    });
   };
   
   const handleSelectGrievance = (id: string | null) => {
     setSelectedGrievanceId(id);
   }
-
-  const isLoading = isGrievancesLoading && (!grievances || grievances.length === 0);
+  
+  const isGrievancesLoading = allGrievances.length === 0;
+  const isReportersLoading = topReporters.length === 0;
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] animate-fade-in">
       <AdminSidebar 
         grievances={filteredGrievances}
-        isLoading={isLoading}
+        isLoading={isGrievancesLoading}
         topReporters={topReporters}
         isReportersLoading={isReportersLoading}
         activeFilter={filter}
@@ -115,7 +75,7 @@ function AdminDashboardContent() {
       <div className="flex-1 h-full w-full md:h-auto">
         <AdminMap 
           grievances={filteredGrievances}
-          isLoading={isLoading}
+          isLoading={isGrievancesLoading}
           onMarkerClick={handleSelectGrievance}
           selectedGrievanceId={selectedGrievanceId}
         />
@@ -127,3 +87,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    

@@ -10,11 +10,9 @@ import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight, Lightbulb, A
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { DEMO_CENTERS } from "@/lib/demo-data";
+import { DEMO_CENTERS, DEMO_GRIEVANCES } from "@/lib/demo-data";
 import { Label } from "@/components/ui/label";
 import { differenceInDays } from "date-fns";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
 
@@ -315,12 +313,16 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
 
 
 export default function AnalyticsPage() {
-    const firestore = useFirestore();
-    const grievancesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'grievances');
-    }, [firestore]);
-    const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+    const [grievances, setGrievances] = useState<Grievance[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Simulate fetching data
+        setTimeout(() => {
+            setGrievances(DEMO_GRIEVANCES);
+            setIsLoading(false);
+        }, 500);
+    }, []);
 
     const statusData = useMemo(() => {
         if (!grievances) return [];
@@ -365,7 +367,7 @@ export default function AnalyticsPage() {
         return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
     }, [grievances]);
 
-    if (isGrievancesLoading) {
+    if (isLoading) {
         return (
             <div className="flex h-full w-full items-center justify-center p-8">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -440,7 +442,5 @@ export default function AnalyticsPage() {
         </div>
     );
 }
-
-    
 
     

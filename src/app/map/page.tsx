@@ -6,9 +6,9 @@ import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { type Grievance } from "@/lib/types";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
-import { collection } from "firebase/firestore";
+import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
@@ -27,18 +27,21 @@ function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null 
     return null;
 }
 
-
 export default function MapPage() {
   const searchParams = useSearchParams();
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const [grievances, setGrievances] = useState<Grievance[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const grievancesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'grievances');
-  }, [firestore]);
-  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  useEffect(() => {
+    // Simulate fetching data
+    setIsLoading(true);
+    setTimeout(() => {
+        setGrievances(DEMO_GRIEVANCES);
+        setIsLoading(false);
+    }, 500);
+  }, []);
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
@@ -59,9 +62,9 @@ export default function MapPage() {
   }
 
   // Show loader if user auth state is loading or grievances are loading
-  const isLoading = isUserLoading || (isGrievancesLoading && !grievances);
+  const isPageLoading = isUserLoading || isLoading;
 
-  if (isLoading) {
+  if (isPageLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -83,3 +86,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+    
