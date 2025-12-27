@@ -6,9 +6,8 @@ import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { type Grievance } from "@/lib/types";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
-import { collection } from "firebase/firestore";
 import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
@@ -31,25 +30,12 @@ function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null 
 
 export default function MapPage() {
   const searchParams = useSearchParams();
-  const firestore = useFirestore();
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
 
-  const grievancesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'grievances');
-  }, [firestore]);
-  
-  const { data: liveGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
-
-  const grievances = useMemo(() => {
-    // If live data is available and not empty, use it.
-    if (liveGrievances && liveGrievances.length > 0) {
-      return liveGrievances;
-    }
-    // Otherwise, fall back to demo data.
-    return DEMO_GRIEVANCES;
-  }, [liveGrievances]);
+  // Force the use of demo grievances to ensure a populated map for demonstration.
+  const grievances = DEMO_GRIEVANCES;
+  const isGrievancesLoading = false; // Demo data is never in a loading state.
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
@@ -69,10 +55,10 @@ export default function MapPage() {
     setSelectedGrievanceId(id);
   }
 
-  // Show loader only if we have neither live nor demo data yet.
-  const isLoading = isUserLoading || (isGrievancesLoading && !liveGrievances);
+  // Show loader only if the user auth state is loading
+  const isLoading = isUserLoading;
 
-  if (isLoading && !grievances) {
+  if (isLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -20,37 +20,12 @@ function AdminDashboardContent() {
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   
-  const { data: liveGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(
-    useMemoFirebase(() => firestore ? collection(firestore, 'grievances') : null, [firestore])
-  );
-
-  // Use live data if available and not empty, otherwise fall back to demo data.
-  const grievances = useMemo(() => {
-    if (liveGrievances && liveGrievances.length > 0) {
-      return liveGrievances;
-    }
-    return DEMO_GRIEVANCES;
-  }, [liveGrievances]);
+  // Force use of demo data for a consistently populated map.
+  const grievances = DEMO_GRIEVANCES;
+  const isGrievancesLoading = false; // Demo data is never loading.
+  const topReporters = DEMO_USERS;
+  const isReportersLoading = false; // Demo data is never loading.
   
-  const { data: liveUsers, isLoading: isUsersLoading } = useCollection<UserProfile>(
-    useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore])
-  );
-  
-  const topReporters = useMemo(() => {
-      let users: UserProfile[];
-      // Use live users if available and not empty, otherwise use demo users.
-      if (liveUsers && liveUsers.length > 0) {
-          users = liveUsers;
-      } else {
-          users = DEMO_USERS;
-      }
-      return users.filter(u => u.grievanceCount > 0)
-                  .sort((a, b) => b.grievanceCount - a.grievanceCount)
-                  .slice(0, 5);
-  }, [liveUsers]);
-
-  const isReportersLoading = isUsersLoading && !liveUsers;
-
   useEffect(() => {
     const grievanceId = searchParams.get('id');
     if (grievanceId) {
