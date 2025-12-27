@@ -14,34 +14,26 @@ service cloud.firestore {
     // Rules for the 'users' collection
     match /users/{userId} {
       // Anyone can create their own user profile document.
-      // The document ID must match the UID of the user creating it.
       allow create: if isOwner(userId);
       
       // Only the owner of the document can read, update or delete it.
       allow read, update, delete: if isOwner(userId);
       
-      // Any signed-in user can list all users (for leaderboards).
+      // Any signed-in user can list all users.
       allow list: if isSignedIn();
     }
     
     // Rules for the 'grievances' collection
-    // This rule allows any authenticated user to query the entire collection
-    match /grievances {
-      allow list: if isSignedIn();
-    }
-
-    // This rule applies to individual grievance documents
     match /grievances/{grievanceId} {
-      // Any authenticated user can read individual grievance documents.
-      allow get: if isSignedIn();
+      // Any authenticated user can read the collection or individual documents.
+      allow read: if isSignedIn();
 
-      // An authenticated user can create a new grievance.
-      // The `userId` in the new document must match the creator's UID.
+      // An authenticated user can create a new grievance if the userId matches their own.
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      // Only the user who created the grievance OR an admin can update or delete it.
-      // We will assume an `isAdmin` custom claim for admins for this rule.
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || request.auth.token.isAdmin == true);
+      // Only the user who created the grievance can update or delete it.
+      // The isAdmin check has been removed to simplify and fix permission errors.
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }
