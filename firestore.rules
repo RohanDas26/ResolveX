@@ -27,9 +27,8 @@ service cloud.firestore {
 
     // Rules for the top-level 'grievances' collection
     match /grievances/{grievanceId} {
-      // Any authenticated user can read the full list of grievances (for map view).
-      // Any authenticated user can read a single grievance document.
-      allow get, list: if isSignedIn();
+      // Any authenticated user can read the full list of grievances and individual documents.
+      allow read: if isSignedIn();
 
       // An authenticated user can create a new grievance.
       // The `userId` in the new document must match the creator's UID.
