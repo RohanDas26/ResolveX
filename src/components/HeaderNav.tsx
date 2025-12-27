@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Icons } from "./icons";
-import { PlusCircle, Map, Milestone, ShieldCheck, Ticket, User } from "lucide-react";
+import { PlusCircle, Map, Milestone, ShieldCheck, Ticket, Info } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MobileNav } from "./mobile-nav";
@@ -13,7 +13,7 @@ const navLinks = [
   { href: "/map", label: "Live Map", icon: Map },
   { href: "/directions", label: "Directions", icon: Milestone },
   { href: "/tickets", label: "My Tickets", icon: Ticket },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/about", label: "About Us", icon: Info },
   { href: "/admin", label: "Admin", icon: ShieldCheck },
 ];
 
