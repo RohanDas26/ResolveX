@@ -43,6 +43,9 @@ User input: "${userInput}"`,
         schema: GrievanceSummaryOutputSchema,
       },
     });
-    return output;
+    return output ?? {
+        description: userInput,
+        category: 'Other',
+    };
   }
 );
