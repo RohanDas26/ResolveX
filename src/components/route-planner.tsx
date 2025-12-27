@@ -263,7 +263,7 @@ export default function RoutePlanner() {
 
         } catch (e) {
             console.error("Directions request failed", e);
-            toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while findin`g the route."});
+            toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
         } finally {
             setIsLoading(false);
         }
@@ -401,3 +401,5 @@ export default function RoutePlanner() {
         </div>
     );
 }
+
+    
