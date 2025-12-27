@@ -7,18 +7,14 @@ import { Grievance, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2, MailWarning, Settings, BarChart3, Edit, KeyRound } from 'lucide-react';
+import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2, MailWarning } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Leaderboard from '@/components/leaderboard';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { sendEmailVerification, sendPasswordResetEmail, updateProfile as updateAuthProfile } from 'firebase/auth';
+import { sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, doc, getDocs, orderBy, limit, updateDoc } from 'firebase/firestore';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
 
 const getBadge = (grievanceCount: number) => {
@@ -34,149 +30,16 @@ const getBadge = (grievanceCount: number) => {
     return null;
 };
 
-const StatsCard = ({ grievances }: { grievances: Grievance[] | null }) => {
-    const stats = useMemo(() => {
-        const initial = { resolved: 0, inProgress: 0, submitted: 0 };
-        if (!grievances) return initial;
-        return grievances.reduce((acc, g) => {
-            if (g.status === 'Resolved') acc.resolved++;
-            else if (g.status === 'In Progress') acc.inProgress++;
-            else if (g.status === 'Submitted') acc.submitted++;
-            return acc;
-        }, initial);
-    }, [grievances]);
-
-    return (
-        <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><BarChart3 /> Statistics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-md">
-                    <div className="flex items-center gap-2">
-                        <CheckCircle className="text-green-500" />
-                        <span className="font-medium">Resolved</span>
-                    </div>
-                    <span className="font-bold text-lg">{stats.resolved}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-md">
-                    <div className="flex items-center gap-2">
-                        <Clock className="text-amber-500" />
-                        <span className="font-medium">In Progress</span>
-                    </div>
-                    <span className="font-bold text-lg">{stats.inProgress}</span>
-                </div>
-                 <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-md">
-                    <div className="flex items-center gap-2">
-                        <MapPin className="text-red-500" />
-                        <span className="font-medium">Submitted</span>
-                    </div>
-                    <span className="font-bold text-lg">{stats.submitted}</span>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
-
-const SettingsCard = ({ user, userDocRef }: { user: any, userDocRef: any }) => {
-    const { toast } = useToast();
-    const [showEditProfileDialog, setShowEditProfileDialog] = useState(false);
-    const [newName, setNewName] = useState(user.displayName || "");
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    const handlePasswordReset = async () => {
-        if (!user.email) return;
-        try {
-            await sendPasswordResetEmail(user.auth, user.email);
-            toast({
-                title: "Password Reset Email Sent",
-                description: "Check your inbox for a link to reset your password.",
-            });
-        } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Could not send password reset email.",
-            });
-        }
-    };
-
-    const handleUpdateName = async () => {
-        if (!newName.trim()) {
-            toast({ variant: "destructive", title: "Name cannot be empty." });
-            return;
-        }
-        setIsUpdating(true);
-        try {
-            // Update Firebase Auth profile
-            await updateAuthProfile(user, { displayName: newName });
-            // Update Firestore document
-            if (userDocRef) {
-                await updateDoc(userDocRef, { name: newName });
-            }
-            toast({ title: "Profile updated successfully!" });
-            setShowEditProfileDialog(false);
-        } catch (error) {
-            toast({ variant: "destructive", title: "Error", description: "Could not update your profile." });
-        } finally {
-            setIsUpdating(false);
-        }
-    }
-
-    return (
-        <>
-            <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Settings /> Account Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start" onClick={() => setShowEditProfileDialog(true)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit Profile Name
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" onClick={handlePasswordReset}>
-                        <KeyRound className="mr-2 h-4 w-4" /> Reset Password
-                    </Button>
-                </CardContent>
-            </Card>
-
-            <Dialog open={showEditProfileDialog} onOpenChange={setShowEditProfileDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Profile Name</DialogTitle>
-                        <DialogDescription>Update your display name below.</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2 py-4">
-                        <Label htmlFor="name">Display Name</Label>
-                        <Input id="name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary">Cancel</Button>
-                        </DialogClose>
-                        <Button type="button" onClick={handleUpdateName} disabled={isUpdating}>
-                            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Changes
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
-    );
-};
-
-
 export default function ProfilePage() {
     const { user: authUser, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
-
-    const userDocRef = useMemoFirebase(() => {
-      if (!firestore || !authUser) return null;
-      return doc(firestore, 'users', authUser.uid);
-    }, [firestore, authUser]);
-
-    const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
     
+    // We don't have the user's profile from a collection, so we construct it.
+    // In a real app, this would come from a `useDoc` hook on a 'users' collection.
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [isProfileLoading, setIsProfileLoading] = useState(true);
+
     const userGrievancesQuery = useMemoFirebase(() => {
         if (!firestore || !authUser) return null;
         return query(collection(firestore, 'grievances'), where('userId', '==', authUser.uid), orderBy("createdAt", "desc"));
@@ -210,6 +73,21 @@ export default function ProfilePage() {
         calculateTopReporters();
     }, [firestore, profile]); // Re-run when user profile changes to update count
 
+    useEffect(() => {
+        if (authUser && userGrievances) {
+            setProfile({
+                name: authUser.displayName || "New User",
+                email: authUser.email || "",
+                imageUrl: authUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`,
+                grievanceCount: userGrievances.length,
+            });
+            setIsProfileLoading(false);
+        } else if (!isUserLoading) {
+            setIsProfileLoading(false);
+        }
+    }, [authUser, userGrievances, isUserLoading]);
+
+
     const grievanceCount = useMemo(() => profile?.grievanceCount || 0, [profile]);
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
@@ -239,14 +117,7 @@ export default function ProfilePage() {
         );
     }
     
-    if (!authUser) return <div className="container mx-auto px-4 py-8 animate-fade-in"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
-    
-    const displayProfile = {
-        name: profile?.name || authUser.displayName || "New User",
-        grievanceCount: grievanceCount,
-        imageUrl: profile?.imageUrl || authUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`
-    };
-
+    if (!authUser || !profile) return <div className="container mx-auto px-4 py-8 animate-fade-in"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
 
     return (
         <div className="container mx-auto px-4 py-8 animate-fade-in">
@@ -268,11 +139,11 @@ export default function ProfilePage() {
                     <Card className="animate-fade-in-up">
                         <CardHeader className="flex flex-col items-center text-center">
                             <Avatar className="w-24 h-24 mb-4 border-4 border-primary/50">
-                                <AvatarImage src={displayProfile.imageUrl} alt={displayProfile.name} />
-                                <AvatarFallback>{displayProfile.name?.[0].toUpperCase()}</AvatarFallback>
+                                <AvatarImage src={profile.imageUrl} alt={profile.name} />
+                                <AvatarFallback>{profile.name?.[0].toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <CardTitle className="text-2xl">{displayProfile.name}</CardTitle>
-                            <CardDescription>Grievances Reported: {displayProfile.grievanceCount}</CardDescription>
+                            <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                            <CardDescription>Grievances Reported: {profile.grievanceCount}</CardDescription>
                             {badge && (
                                 <div className="flex items-center gap-2 mt-4 animate-fade-in-up">
                                     <badge.icon className={`h-8 w-8 ${badge.color}`} />
@@ -281,10 +152,6 @@ export default function ProfilePage() {
                             )}
                         </CardHeader>
                     </Card>
-
-                    <StatsCard grievances={userGrievances} />
-
-                    <SettingsCard user={authUser} userDocRef={userDocRef} />
 
                      <Card className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                         <CardHeader>
@@ -327,7 +194,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    
-
-    
