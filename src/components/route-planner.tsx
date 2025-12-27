@@ -134,7 +134,6 @@ export default function RoutePlanner() {
     }, []);
 
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
-    const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
     const [routePreference, setRoutePreference] = useState<'avoid_issues' | 'fastest'>('avoid_issues');
     const [isLoading, setIsLoading] = useState(false);
     
@@ -177,14 +176,16 @@ export default function RoutePlanner() {
     }
     
     const countIssuesOnRoute = (route: google.maps.DirectionsRoute, openGrievances: Grievance[]) => {
-        if (!geometryLibrary) return [];
+        if (!geometryLibrary || !route) return [];
         
-        const routePath = route.overview_path;
+        const routePath = new google.maps.Polyline({
+            path: route.overview_path,
+        });
         
         const onRoute = openGrievances.filter(g => {
             const grievanceLoc = new google.maps.LatLng(g.location.latitude, g.location.longitude);
             // Check if the location is within ~50 meters of the polyline
-            return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, new google.maps.Polyline({ path: routePath }), 1e-3);
+            return geometryLibrary.poly.isLocationOnEdge(grievanceLoc, routePath, 1e-3);
         });
         return onRoute;
     };
@@ -199,7 +200,6 @@ export default function RoutePlanner() {
         }
         
         setIsLoading(true);
-        setDirectionsResult(null);
         setFastestRoute(null);
         setSafestRoute(null);
         setIssuesOnFastest([]);
@@ -240,7 +240,6 @@ export default function RoutePlanner() {
                 return a.duration - b.duration; 
             })[0];
             
-            setDirectionsResult(response);
             setFastestRoute(fastestRouteData.route);
             setIssuesOnFastest(fastestRouteData.issues);
             setSafestRoute(safestRouteData.route);
@@ -264,7 +263,7 @@ export default function RoutePlanner() {
 
         } catch (e) {
             console.error("Directions request failed", e);
-            toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while finding the route."});
+            toast({ variant: "destructive", title: "Routing Error", description: "An error occurred while findin`g the route."});
         } finally {
             setIsLoading(false);
         }
@@ -377,24 +376,18 @@ export default function RoutePlanner() {
                     {origin && (origin as any).geometry && <AdvancedMarker position={(origin as any).geometry.location}><Pin background={'#4caf50'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
                     {destination && (destination as any).geometry && <AdvancedMarker position={(destination as any).geometry.location}><Pin background={'#f44336'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
                     
-                    {directionsResult && directionsResult.routes.map((route, index) => (
-                         <RoutePolyline 
-                            key={index} 
-                            route={route} 
-                            color={route === selectedRoute ? (routePreference === 'fastest' ? fastestRouteColor : safestRouteColor) : '#808080'}
-                            visible={route === selectedRoute}
-                            zIndex={route === selectedRoute ? 1 : 0}
-                         />
-                    ))}
-                     {directionsResult && directionsResult.routes.map((route, index) => (
-                         <RoutePolyline 
-                            key={`alt-${index}`}
-                            route={route}
-                            color="#808080" // Grey for non-selected routes
-                            visible={route !== selectedRoute}
-                            zIndex={0}
-                        />
-                    ))}
+                    <RoutePolyline 
+                        route={fastestRoute ?? undefined} 
+                        color={fastestRouteColor}
+                        visible={routePreference === 'fastest'}
+                        zIndex={routePreference === 'fastest' ? 1 : 0}
+                    />
+                    <RoutePolyline 
+                        route={safestRoute ?? undefined}
+                        color={safestRouteColor}
+                        visible={routePreference === 'avoid_issues'}
+                        zIndex={routePreference === 'avoid_issues' ? 1 : 0}
+                    />
                     
                     {issuesOnSelectedRoute.map(issue => (
                          <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
@@ -408,4 +401,3 @@ export default function RoutePlanner() {
         </div>
     );
 }
-
