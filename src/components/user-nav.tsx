@@ -113,12 +113,6 @@ export function UserNav() {
 
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/profile">
-              <User className="mr-2" />
-              <span>Profile</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
             <Link href="/tickets">
               <Ticket className="mr-2" />
               <span>My Tickets</span>
