@@ -17,6 +17,7 @@ export interface Grievance {
   pinColor?: string;
   riskScore?: number;
   aiNotes?: string;
+  phone?: string;
 }
 
 export interface UserProfile {

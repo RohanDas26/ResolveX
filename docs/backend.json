@@ -19,6 +19,11 @@
           "type": "string",
           "description": "Detailed description of the grievance."
         },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number of the user for verification.",
+          "format": "phone"
+        },
         "imageUrl": {
           "type": "string",
           "description": "URL of the image associated with the grievance.",
@@ -56,6 +61,7 @@
         "userId",
         "userName",
         "description",
+        "phone",
         "imageUrl",
         "location",
         "createdAt",

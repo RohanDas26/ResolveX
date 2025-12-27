@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, DragEvent } from "react";
-import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
+import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
@@ -21,9 +21,13 @@ import { Badge } from "@/components/ui/badge";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const phoneRegex = new RegExp(
+  /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/
+);
 
 const formSchema = z.object({
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500, { message: "Description must be 500 characters or less." }),
+  phone: z.string().regex(phoneRegex, 'Invalid Number!').min(10, { message: "Must be a valid 10-digit phone number."}).max(14, { message: "Must be a valid 10-digit phone number."}),
   photo: z.any()
     .refine((files) => files?.length == 1, "Photo is required.")
     .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
@@ -50,6 +54,7 @@ function SubmitPageContent() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             description: "",
+            phone: "",
         },
     });
 
@@ -128,6 +133,7 @@ function SubmitPageContent() {
         // In a real app, you would send this data to your backend.
         console.log("Submitting Grievance:", {
             description: values.description,
+            phone: values.phone,
             photo: values.photo[0].name,
             location,
             category: suggestedCategory,
@@ -220,6 +226,25 @@ function SubmitPageContent() {
                                 <Badge variant="secondary">{suggestedCategory}</Badge>
                             </div>
                         )}
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Phone Number</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input type="tel" placeholder="e.g., 9876543210" className="pl-10" {...field} />
+                                        </div>
+                                    </FormControl>
+                                    <FormDescription>
+                                        Required for verification purposes as there are no accounts.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                          <FormField
                             control={form.control}
                             name="photo"
