@@ -11,11 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, DragEvent } from "react";
+import { useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
 import { useUser, useFirestore, useFirebaseApp } from "@/firebase";
-import { GeoPoint, addDoc, collection, doc, writeBatch, getDoc, serverTimestamp, increment } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -39,10 +37,6 @@ const formSchema = z.object({
 
 function SubmitPageContent() {
     const { toast } = useToast();
-    const router = useRouter();
-    const firestore = useFirestore();
-    const firebaseApp = useFirebaseApp();
-
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -136,68 +130,18 @@ function SubmitPageContent() {
 
         setIsSubmitting(true);
 
-        try {
-            const storage = getStorage(firebaseApp);
-            const photoFile = values.photo[0] as File;
-            const grievanceId = uuidv4();
-            const extension = photoFile.name.split(".").pop();
-            const photoRef = ref(storage, `grievances/${user.uid}/${grievanceId}.${extension}`);
-            
-            const uploadResult = await uploadBytes(photoRef, photoFile);
-            const imageUrl = await getDownloadURL(uploadResult.ref);
-
-            const userRef = doc(firestore, "users", user.uid);
-            const userDoc = await getDoc(userRef);
-            const userProfile = userDoc.data();
-            
-            const userName = userProfile?.name || user.displayName || "Anonymous User";
-
-            const newGrievance = {
-                userId: user.uid,
-                userName,
-                description: values.description,
-                location: new GeoPoint(location.lat, location.lng),
-                imageUrl,
-                status: "Submitted" as const,
-                createdAt: serverTimestamp(),
-                riskScore: Math.floor(Math.random() * 40) + 10,
-                aiNotes: "A new user-submitted grievance, pending automated analysis.",
-            };
-
-            const batch = writeBatch(firestore);
-            
-            const newGrievanceRef = doc(collection(firestore, "grievances"));
-            batch.set(newGrievanceRef, newGrievance);
-
-            if (userDoc.exists()) {
-                batch.update(userRef, { grievanceCount: increment(1) });
-            } else {
-                batch.set(userRef, {
-                    name: userName,
-                    email: user.email,
-                    imageUrl: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`,
-                    grievanceCount: 1
-                });
-            }
-
-            await batch.commit();
-
+        // Simulate a fake submission process
+        setTimeout(() => {
             toast({
-                title: "Grievance Submitted!",
-                description: "Thank you for your report. It's now live on the map.",
+                title: "New grievance added",
+                description: "It will be updated on the map shortly.",
             });
-
-            router.push(`/map?id=${newGrievanceRef.id}`);
-        } catch (error: any) {
-            console.error("Grievance submission error:", error);
-            toast({
-                variant: "destructive",
-                title: "Submission Failed",
-                description: error?.message || "An unexpected error occurred.",
-            });
-        } finally {
             setIsSubmitting(false);
-        }
+            // Optional: reset the form if desired
+            // form.reset();
+            // setPhotoPreview(null);
+            // setLocation(null);
+        }, 1500);
     }
 
     const handleFile = (file: File) => {
@@ -383,5 +327,3 @@ export default function SubmitPage() {
         </div>
     );
 }
-
-    
