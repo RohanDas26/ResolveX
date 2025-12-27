@@ -9,8 +9,6 @@ import { type Grievance } from "@/lib/types";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
 import { collection } from "firebase/firestore";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
-
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
@@ -21,14 +19,8 @@ function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null 
 
     useEffect(() => {
         if (map && selectedGrievance) {
-            // Start zoomed out, then zoom in
-            map.setZoom(INITIAL_ZOOM);
-            map.setCenter(TELANGANA_CENTER);
-
-            setTimeout(() => {
-                map.setCenter({ lat: selectedGrievance.location.latitude, lng: selectedGrievance.location.longitude });
-                map.setZoom(DETAIL_ZOOM);
-            }, 500); // Delay for the "zoom in" effect
+            map.setCenter({ lat: selectedGrievance.location.latitude, lng: selectedGrievance.location.longitude });
+            map.setZoom(DETAIL_ZOOM);
         }
     }, [map, selectedGrievance]);
 
@@ -47,44 +39,31 @@ export default function MapPage() {
     return collection(firestore, 'grievances');
   }, [firestore]);
   
-  const { data: liveGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
-
-  const grievances = useMemo(() => {
-    // For a consistent and rich demo experience, we always show the demo data on the public map.
-    // Live data would be used in a production version.
-    // @ts-ignore
-    return DEMO_GRIEVANCES;
-  }, []);
-
+  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
-    if (grievanceIdFromUrl) {
-        // Also check live data if the ID comes from a real submission
-        const liveGrievance = liveGrievances?.find(g => g.id === grievanceIdFromUrl);
-        if (liveGrievance) {
-             setSelectedGrievanceId(grievanceIdFromUrl);
-        } else if (DEMO_GRIEVANCES.find(g => g.id === grievanceIdFromUrl)) {
+    if (grievanceIdFromUrl && grievances) {
+        const grievanceExists = grievances.some(g => g.id === grievanceIdFromUrl);
+        if (grievanceExists) {
              setSelectedGrievanceId(grievanceIdFromUrl);
         }
     }
-  }, [searchParams, liveGrievances]);
+  }, [searchParams, grievances]);
   
   const selectedGrievance = useMemo(() => {
-    // Check both live and demo data for the selected ID
-    return grievances?.find(g => g.id === selectedGrievanceId) || liveGrievances?.find(g => g.id === selectedGrievanceId) || null;
-  }, [grievances, liveGrievances, selectedGrievanceId]);
+    return grievances?.find(g => g.id === selectedGrievanceId) || null;
+  }, [grievances, selectedGrievanceId]);
   
   const handleMarkerClick = (id: string | null) => {
     setSelectedGrievanceId(id);
   }
 
-  // We can show the map immediately with demo data, so we don't need a heavy loading screen.
-  if (isUserLoading) {
+  if (isUserLoading || isGrievancesLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg">Authenticating...</p>
+        <p className="ml-4 text-lg">Loading Map Data...</p>
       </div>
     );
   }
@@ -92,7 +71,7 @@ export default function MapPage() {
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full animate-fade-in">
       <GrievanceMap 
-        grievances={[...grievances, ...(liveGrievances || [])]} 
+        grievances={grievances} 
         onMarkerClick={handleMarkerClick}
         selectedGrievanceId={selectedGrievanceId}
         currentUserId={user?.uid}

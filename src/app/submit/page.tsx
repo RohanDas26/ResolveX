@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
-import { useUser, useFirestore, useFirebaseApp } from "@/firebase";
-import { GeoPoint, Timestamp, addDoc, collection, doc, writeBatch, getDoc, updateDoc } from "firebase/firestore";
+import { useUser, useFirestore, useFirebaseApp, useMemoFirebase } from "@/firebase";
+import { GeoPoint, Timestamp, addDoc, collection, doc, writeBatch, getDoc, serverTimestamp, increment } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ import Image from "next/image";
 import { summarizeGrievance } from "@/ai/flows/summarize-grievance-flow";
 import { Badge } from "@/components/ui/badge";
 import { UserProfile } from "@/lib/types";
+import { useDoc } from "@/firebase/firestore/use-doc";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -51,6 +52,14 @@ function SubmitPageContent() {
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const { user, isUserLoading } = useUser();
+    
+    const userDocRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+
+    const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
 
@@ -126,6 +135,15 @@ function SubmitPageContent() {
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (isUserLoading || isProfileLoading) {
+            toast({
+                variant: "destructive",
+                title: "Authentication Pending",
+                description: "Please wait for your account to finish loading.",
+            });
+            return;
+        }
+
         if (!user) {
             toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
             return;
@@ -143,17 +161,11 @@ function SubmitPageContent() {
             const grievanceId = uuidv4();
             const extension = photoFile.name.split(".").pop();
             const photoRef = ref(storage, `grievances/${user.uid}/${grievanceId}.${extension}`);
-
-            // Fetch user profile directly before submission
-            const userRef = doc(firestore, "users", user.uid);
-            const userDoc = await getDoc(userRef);
-            const profile = userDoc.exists() ? (userDoc.data() as UserProfile) : null;
             
-            const userName = profile?.name || user.displayName || "Anonymous User";
-            const currentCount = profile?.grievanceCount ?? 0;
-
             const uploadResult = await uploadBytes(photoRef, photoFile);
             const imageUrl = await getDownloadURL(uploadResult.ref);
+
+            const userName = profile?.name || user.displayName || "Anonymous User";
 
             const newGrievance = {
                 userId: user.uid,
@@ -162,19 +174,21 @@ function SubmitPageContent() {
                 location: new GeoPoint(location.lat, location.lng),
                 imageUrl,
                 status: "Submitted" as const,
-                createdAt: Timestamp.now(),
+                createdAt: serverTimestamp(),
                 riskScore: Math.floor(Math.random() * 40) + 10,
                 aiNotes: "A new user-submitted grievance, pending automated analysis.",
             };
 
             const batch = writeBatch(firestore);
+            
             const newGrievanceRef = doc(collection(firestore, "grievances"));
             batch.set(newGrievanceRef, newGrievance);
 
-            // This will create the profile if it doesn't exist, or update it if it does.
-            // Using { merge: true } is key to this working for both cases.
-             if (profile) {
-                batch.update(userRef, { grievanceCount: currentCount + 1 });
+            const userRef = doc(firestore, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+
+            if (userDoc.exists()) {
+                batch.update(userRef, { grievanceCount: increment(1) });
             } else {
                 batch.set(userRef, {
                     name: userName,
@@ -183,7 +197,6 @@ function SubmitPageContent() {
                     grievanceCount: 1
                 });
             }
-
 
             await batch.commit();
 
@@ -238,12 +251,14 @@ function SubmitPageContent() {
     };
     
     if (isUserLoading && !user) {
-        return (
+         return (
              <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         )
     }
+
+    const isDataLoading = isUserLoading || isProfileLoading;
 
     return (
         <Card className="w-full max-w-2xl border-0 sm:border sm:shadow-lg animate-fade-in-up">
@@ -369,9 +384,9 @@ function SubmitPageContent() {
                             )}
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isUserLoading}>
-                            {isSubmitting || isUserLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                            {isSubmitting ? "Submitting..." : isUserLoading ? "Authenticating..." : "Submit Grievance"}
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isDataLoading || isSubmitting || !location}>
+                            {isDataLoading || isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isSubmitting ? "Submitting..." : isDataLoading ? "Authenticating..." : "Submit Grievance"}
                         </Button>
                     </form>
                 </Form>
@@ -387,5 +402,3 @@ export default function SubmitPage() {
         </div>
     );
 }
-
-    

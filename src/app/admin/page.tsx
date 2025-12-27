@@ -9,8 +9,6 @@ import AdminMap from "@/components/admin/admin-map";
 import { useSearchParams } from 'next/navigation'
 import { doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
-
 
 function AdminDashboardContent() {
   const { toast } = useToast();
@@ -25,17 +23,10 @@ function AdminDashboardContent() {
     return collection(firestore, 'grievances');
   }, [firestore]);
 
-  const { data: liveGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  
   const [topReporters, setTopReporters] = useState<UserProfile[]>([]);
   const [isReportersLoading, setIsReportersLoading] = useState(true);
-
-  const grievances = useMemo(() => {
-    // For a consistent and rich demo experience, we always show the demo data on the admin map.
-    // Live data is still used for updates.
-    // @ts-ignore
-    return DEMO_GRIEVANCES;
-  }, []);
-
 
   useEffect(() => {
     const calculateTopReporters = async () => {
@@ -48,23 +39,19 @@ function AdminDashboardContent() {
                 .map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
                 .filter(user => user.grievanceCount > 0);
             
-            if (users.length > 0) {
-                const sortedUsers = users.sort((a, b) => b.grievanceCount - a.grievanceCount).slice(0, 5);
-                setTopReporters(sortedUsers);
-            } else {
-                // Fallback to demo users if no live users have reports
-                setTopReporters(DEMO_USERS.slice(0, 5));
-            }
+            const sortedUsers = users.sort((a, b) => b.grievanceCount - a.grievanceCount).slice(0, 5);
+            setTopReporters(sortedUsers);
+            
         } catch (error) {
             console.error("Error fetching top reporters:", error);
-            setTopReporters(DEMO_USERS.slice(0, 5)); // Fallback on error
+            setTopReporters([]); 
         } finally {
             setIsReportersLoading(false);
         }
     };
 
     calculateTopReporters();
-  }, [firestore]); 
+  }, [firestore, grievances]); // Re-calculate when grievances change
 
 
   useEffect(() => {
@@ -89,14 +76,9 @@ function AdminDashboardContent() {
       toast({ variant: "destructive", title: "Firestore not available" });
       return;
     }
-    // Do not update demo data
-    if (id.startsWith('demo-')) {
-        toast({ title: "Demo Mode", description: "Status updates are disabled for demo grievances."});
-        return;
-    }
     const grievanceRef = doc(firestore, "grievances", id);
     try {
-      updateDoc(grievanceRef, { status }); // Non-blocking update
+      await updateDoc(grievanceRef, { status }); 
       toast({
         title: "Status Updated",
         description: `Grievance status changed to ${status}.`,
@@ -115,7 +97,7 @@ function AdminDashboardContent() {
     setSelectedGrievanceId(id);
   }
 
-  const isLoading = isGrievancesLoading && (!liveGrievances || liveGrievances.length === 0);
+  const isLoading = isGrievancesLoading && (!grievances || grievances.length === 0);
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] animate-fade-in">
@@ -133,7 +115,7 @@ function AdminDashboardContent() {
       <div className="flex-1 h-full w-full md:h-auto">
         <AdminMap 
           grievances={filteredGrievances}
-          isLoading={false} // Demo data is always available
+          isLoading={isLoading}
           onMarkerClick={handleSelectGrievance}
           selectedGrievanceId={selectedGrievanceId}
         />

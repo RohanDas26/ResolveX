@@ -53,17 +53,18 @@ export default function ProfilePage() {
     const [leaderboardUsers, setLeaderboardUsers] = useState<UserProfile[]>([]);
     const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
 
-    // Calculate top reporters from live data
     useEffect(() => {
         const calculateTopReporters = async () => {
             if (!firestore) return;
             setIsLeaderboardLoading(true);
 
             try {
-                const usersSnapshot = await getDocs(collection(firestore, "users"));
+                const usersRef = collection(firestore, "users");
+                const q = query(usersRef, where("grievanceCount", ">", 0));
+                const usersSnapshot = await getDocs(q);
+
                 const users = usersSnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
-                    .filter(user => user.grievanceCount > 0)
                     .sort((a, b) => b.grievanceCount - a.grievanceCount)
                     .slice(0, 5);
                 setLeaderboardUsers(users);
@@ -76,9 +77,9 @@ export default function ProfilePage() {
         };
 
         calculateTopReporters();
-    }, [firestore]);
+    }, [firestore, userGrievances]); // Re-run when user grievances change to update count
 
-    const grievanceCount = useMemo(() => userGrievances?.length || 0, [userGrievances]);
+    const grievanceCount = useMemo(() => profile?.grievanceCount || 0, [profile]);
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
     const handleResendVerification = async () => {
@@ -99,7 +100,7 @@ export default function ProfilePage() {
         }
     };
 
-    if (isUserLoading || isGrievancesLoading || isProfileLoading) {
+    if (isUserLoading || isProfileLoading || isGrievancesLoading) {
         return (
             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
