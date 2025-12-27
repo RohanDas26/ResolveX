@@ -12,20 +12,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore, useMemoFirebase } from "@/firebase";
 import { LogOut, Ticket, User, MailWarning } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, sendEmailVerification } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useDoc } from "@/firebase/firestore/use-doc";
+import { UserProfile } from "@/lib/types";
+import { doc } from "firebase/firestore";
 
 
 export function UserNav() {
-  const { user, profile: userProfile } = useUser();
+  const { user } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -55,16 +66,9 @@ export function UserNav() {
   }
 
   const isEmailVerified = user.emailVerified;
-  // Use profile from useUser hook, but generate an avatar if it's missing
-  const profile = userProfile || {
-    id: user.uid,
-    name: user.displayName || user.email || 'User',
-    imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`,
-    grievanceCount: 0,
-  }
-
-  const userName = profile?.name || user.email;
-  const userImage = profile?.imageUrl;
+  
+  const userName = userProfile?.name || user.displayName || user.email;
+  const userImage = userProfile?.imageUrl || user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`;
   const userFallback = userName?.[0].toUpperCase() || 'U';
 
 

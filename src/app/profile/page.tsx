@@ -15,7 +15,9 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
+import { useDoc } from '@/firebase/firestore/use-doc';
+
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -31,9 +33,16 @@ const getBadge = (grievanceCount: number) => {
 };
 
 export default function ProfilePage() {
-    const { user: authUser, isUserLoading, profile } = useUser();
+    const { user: authUser, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+
+    const userDocRef = useMemoFirebase(() => {
+      if (!firestore || !authUser) return null;
+      return doc(firestore, 'users', authUser.uid);
+    }, [firestore, authUser]);
+
+    const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
     
     const userGrievancesQuery = useMemoFirebase(() => {
         if (!firestore || !authUser) return null;
@@ -66,7 +75,7 @@ export default function ProfilePage() {
         }
     };
 
-    if (isUserLoading || isGrievancesLoading) {
+    if (isUserLoading || isGrievancesLoading || isProfileLoading) {
         return (
             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -74,12 +83,12 @@ export default function ProfilePage() {
         );
     }
     
-    if (!profile || !authUser) return <div className="container mx-auto px-4 py-8 animate-fade-in"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
-
+    if (!authUser) return <div className="container mx-auto px-4 py-8 animate-fade-in"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
+    
     const displayProfile = {
-        ...profile,
+        name: profile?.name || authUser.displayName || "New User",
         grievanceCount: grievanceCount,
-        imageUrl: profile.imageUrl || `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`
+        imageUrl: profile?.imageUrl || authUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`
     };
 
 

@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
 import { useUser, useFirestore, useFirebaseApp } from "@/firebase";
-import { GeoPoint, Timestamp, addDoc, collection, doc, writeBatch } from "firebase/firestore";
+import { GeoPoint, Timestamp, addDoc, collection, doc, writeBatch, getDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import { summarizeGrievance } from "@/ai/flows/summarize-grievance-flow";
 import { Badge } from "@/components/ui/badge";
+import { UserProfile } from "@/lib/types";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -49,7 +50,7 @@ function SubmitPageContent() {
     const [locationError, setLocationError] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const { user, profile, isUserLoading, isProfileLoading } = useUser();
+    const { user, isUserLoading } = useUser();
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
 
@@ -125,108 +126,79 @@ function SubmitPageContent() {
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-      // still loading auth/profile → block with clear message
-      if (isUserLoading || isProfileLoading) {
-        toast({
-          variant: "destructive",
-          title: "Authentication Pending",
-          description: "Please wait for your account to finish loading.",
-        });
-        return;
-      }
-    
-      // user MUST exist
-      if (!user) {
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: "You must be logged in to submit a grievance.",
-        });
-        return;
-      }
-    
-      // location still required
-      if (!location) {
-        toast({
-          variant: "destructive",
-          title: "Location Missing",
-          description: "Please get your current location before submitting.",
-        });
-        return;
-      }
-    
-      setIsSubmitting(true);
-    
-      try {
-        const storage = getStorage(firebaseApp);
-        const photoFile = values.photo[0] as File;
-        const grievanceId = uuidv4();
-        const extension = photoFile.name.split(".").pop();
-        const photoRef = ref(
-          storage,
-          `grievances/${user.uid}/${grievanceId}.${extension}`
-        );
-    
-        // 1. Upload photo
-        const uploadResult = await uploadBytes(photoRef, photoFile);
-        const imageUrl = await getDownloadURL(uploadResult.ref);
-    
-        // 2. Prepare grievance data
-        const userName = profile?.name || user.displayName || "Anonymous User";
-        const currentCount = profile?.grievanceCount ?? 0;
-    
-        const newGrievance = {
-          userId: user.uid,
-          userName,
-          description: values.description,
-          location: new GeoPoint(location.lat, location.lng),
-          imageUrl,
-          status: "Submitted" as const,
-          createdAt: Timestamp.now(),
-          riskScore: Math.floor(Math.random() * 40) + 10,
-          aiNotes: "A new user-submitted grievance, pending automated analysis.",
-        };
-    
-        const batch = writeBatch(firestore);
-    
-        // 3. Save grievance
-        const grievancesCol = collection(firestore, "grievances");
-        const newGrievanceRef = doc(grievancesCol);
-        batch.set(newGrievanceRef, newGrievance);
-    
-        // 4. Ensure user profile doc exists and update grievanceCount
-        const userRef = doc(firestore, "users", user.uid);
-        if (profile) {
-          batch.update(userRef, { grievanceCount: currentCount + 1 });
-        } else {
-          // If profile doesn't exist, create it. This is key for new users.
-          batch.set(userRef, {
-            name: userName,
-            email: user.email,
-            imageUrl: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`,
-            grievanceCount: 1
-          });
+        if (!user) {
+            toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
+            return;
         }
-    
-        // 5. Commit
-        await batch.commit();
-    
-        toast({
-          title: "Grievance Submitted!",
-          description: "Thank you for your report. It's now live on the map.",
-        });
-    
-        router.push(`/map?id=${newGrievanceRef.id}`);
-      } catch (error: any) {
-        console.error("Grievance submission error:", error);
-        toast({
-          variant: "destructive",
-          title: "Submission Failed",
-          description: error?.message || "An unexpected error occurred.",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
+        if (!location) {
+            toast({ variant: "destructive", title: "Location Missing", description: "Please get your current location before submitting." });
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const storage = getStorage(firebaseApp);
+            const photoFile = values.photo[0] as File;
+            const grievanceId = uuidv4();
+            const extension = photoFile.name.split(".").pop();
+            const photoRef = ref(storage, `grievances/${user.uid}/${grievanceId}.${extension}`);
+
+            const userRef = doc(firestore, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            const profile = userDoc.exists() ? userDoc.data() as UserProfile : null;
+            
+            const userName = profile?.name || user.displayName || "Anonymous User";
+            const currentCount = profile?.grievanceCount ?? 0;
+
+            const uploadResult = await uploadBytes(photoRef, photoFile);
+            const imageUrl = await getDownloadURL(uploadResult.ref);
+
+            const newGrievance = {
+                userId: user.uid,
+                userName,
+                description: values.description,
+                location: new GeoPoint(location.lat, location.lng),
+                imageUrl,
+                status: "Submitted" as const,
+                createdAt: Timestamp.now(),
+                riskScore: Math.floor(Math.random() * 40) + 10,
+                aiNotes: "A new user-submitted grievance, pending automated analysis.",
+            };
+
+            const batch = writeBatch(firestore);
+            const newGrievanceRef = doc(collection(firestore, "grievances"));
+            batch.set(newGrievanceRef, newGrievance);
+
+            if (profile) {
+                batch.update(userRef, { grievanceCount: currentCount + 1 });
+            } else {
+                batch.set(userRef, {
+                    name: userName,
+                    email: user.email,
+                    imageUrl: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`,
+                    grievanceCount: 1
+                });
+            }
+
+            await batch.commit();
+
+            toast({
+                title: "Grievance Submitted!",
+                description: "Thank you for your report. It's now live on the map.",
+            });
+
+            router.push(`/map?id=${newGrievanceRef.id}`);
+        } catch (error: any) {
+            console.error("Grievance submission error:", error);
+            toast({
+                variant: "destructive",
+                title: "Submission Failed",
+                description: error?.message || "An unexpected error occurred.",
+            });
+            setIsSubmitting(false); // Ensure loading state is turned off on error
+        }
+        // No finally block needed if router push happens on success
     }
 
     const handleFile = (file: File) => {
@@ -235,11 +207,9 @@ function SubmitPageContent() {
             setPhotoPreview(reader.result as string);
         };
         reader.readAsDataURL(file);
-        // Create a FileList to satisfy the form schema
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         form.setValue("photo", dataTransfer.files);
-        // Manually trigger validation for the photo field
         form.trigger("photo");
     };
 
@@ -264,15 +234,13 @@ function SubmitPageContent() {
         }
     };
     
-    if (isUserLoading && !user) { // Only show full page loader on initial load
+    if (isUserLoading && !user) {
         return (
              <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         )
     }
-
-    const isDataLoading = isUserLoading || isProfileLoading;
 
     return (
         <Card className="w-full max-w-2xl border-0 sm:border sm:shadow-lg animate-fade-in-up">
@@ -398,9 +366,9 @@ function SubmitPageContent() {
                             )}
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isDataLoading}>
-                            {isSubmitting || isDataLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                            {isSubmitting ? "Submitting..." : isDataLoading ? "Loading Profile..." : "Submit Grievance"}
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isUserLoading}>
+                            {isSubmitting || isUserLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isSubmitting ? "Submitting..." : isUserLoading ? "Loading..." : "Submit Grievance"}
                         </Button>
                     </form>
                 </Form>

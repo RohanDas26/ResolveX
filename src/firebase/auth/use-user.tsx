@@ -4,7 +4,7 @@ import { User, onAuthStateChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
 import { useAuth, useFirestore, useMemoFirebase } from '..';
 import { useEffect, useState } from 'react';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { useDoc } from '../firestore/use-doc';
 
 
@@ -17,9 +17,10 @@ interface AuthState {
   isProfileLoading: boolean;
 }
 
-export function useUser(): AuthState {
+// This simplified hook only manages the Firebase Auth user object.
+// Profile data is now fetched separately in the components that need it.
+export function useUser(): Omit<AuthState, 'profile' | 'isProfileLoading'> {
   const auth = useAuth();
-  const firestore = useFirestore();
   const [authState, setAuthState] = useState<{ user: User | null; isLoading: boolean; error: Error | null; claims: any | null }>({
     user: null,
     isLoading: true,
@@ -28,6 +29,8 @@ export function useUser(): AuthState {
   });
 
   useEffect(() => {
+    if (!auth) return;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const tokenResult = await user.getIdTokenResult();
@@ -42,25 +45,11 @@ export function useUser(): AuthState {
     return () => unsubscribe();
   }, [auth]);
 
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !authState.user) return null;
-    return doc(firestore, 'users', authState.user.uid);
-  }, [firestore, authState.user]);
-
-  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
-
   return {
     user: authState.user,
     claims: authState.claims,
     isUserLoading: authState.isLoading,
     userError: authState.error,
-    profile,
-    isProfileLoading,
   };
 }
-
-// Keep useAuthState for any components that might still reference it.
-export const useAuthState = useUser;
-
     
