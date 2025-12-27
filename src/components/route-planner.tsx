@@ -53,26 +53,33 @@ function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value, 
 }
 
 // Main component to render the calculated route polyline
-function RoutePolyline({ route, color }: { route: google.maps.DirectionsRoute | undefined, color: string }) {
+function RoutePolyline({ route, color, visible = true }: { route: google.maps.DirectionsRoute | undefined, color: string, visible?: boolean }) {
     const map = useMap();
 
-    useEffect(() => {
-        if (!map || !route) return;
-        const polyline = new google.maps.Polyline({
+    const polyline = useMemo(() => {
+        if (!map || !route) return null;
+        const p = new google.maps.Polyline({
             path: route.overview_path,
             strokeColor: color,
-            strokeOpacity: 0.8,
-            strokeWeight: 6,
+            strokeOpacity: visible ? 0.8 : 0.4,
+            strokeWeight: visible ? 7 : 5,
+            zIndex: visible ? 1 : 0
         });
-        polyline.setMap(map);
+        return p;
+    }, [map, route, color, visible]);
 
-        // Fit map to route bounds
-        if (route.bounds) {
+    useEffect(() => {
+        if (!map || !polyline) return;
+        polyline.setMap(map);
+        return () => polyline.setMap(null);
+    }, [map, polyline]);
+    
+     useEffect(() => {
+        if (map && route?.bounds && visible) {
             map.fitBounds(route.bounds);
         }
+    }, [map, route, visible]);
 
-        return () => polyline.setMap(null);
-    }, [map, route, color]);
 
     return null;
 }
@@ -192,7 +199,7 @@ export default function RoutePlanner() {
         return onRoute;
     };
     
-    const findRoute = async () => {
+   const findRoute = async () => {
         const originLocation = (origin as any)?.geometry?.location || origin;
         const destinationLocation = (destination as any)?.geometry?.location || destination;
 
@@ -224,6 +231,7 @@ export default function RoutePlanner() {
             setDirectionsResult(response);
             const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
 
+            // 1. Analyze all routes
             const routesWithAnalysis = response.routes.map(route => {
                 const issues = countIssuesOnRoute(route, openGrievances);
                 return {
@@ -234,15 +242,18 @@ export default function RoutePlanner() {
                 };
             });
             
+            // 2. Find the objectively fastest route
             const fastestRouteData = [...routesWithAnalysis].sort((a, b) => a.duration - b.duration)[0];
             
+            // 3. Find the objectively safest route
             const safestRouteData = [...routesWithAnalysis].sort((a, b) => {
                 if (a.issueCount !== b.issueCount) {
-                    return a.issueCount - b.issueCount;
+                    return a.issueCount - b.issueCount; // Primary sort: by fewest issues
                 }
-                return a.duration - b.duration;
+                return a.duration - b.duration; // Secondary sort: by duration
             })[0];
 
+            // 4. Select which route to display based on user preference
             let chosenRouteData;
             if (routePreference === 'fastest') {
                 chosenRouteData = fastestRouteData;
@@ -252,10 +263,11 @@ export default function RoutePlanner() {
                 });
             } else { // 'avoid_issues'
                 chosenRouteData = safestRouteData;
-                if (safestRouteData.issueCount < fastestRouteData.issueCount) {
+                const issuesAvoided = fastestRouteData.issueCount - safestRouteData.issueCount;
+                if (issuesAvoided > 0) {
                      toast({
                         title: "Safest Route Selected!",
-                        description: `This route avoids ${fastestRouteData.issueCount - safestRouteData.issueCount} issues.`,
+                        description: `This route avoids ${issuesAvoided} issue(s).`,
                         variant: 'default',
                         className: 'bg-green-600 border-green-600 text-white'
                     });
@@ -277,6 +289,7 @@ export default function RoutePlanner() {
             setIsLoading(false);
         }
     };
+
 
     const routeColor = routePreference === 'fastest' ? '#3b82f6' : '#22c55e'; // blue or green
 
@@ -327,7 +340,7 @@ export default function RoutePlanner() {
                         </RadioGroup>
                         <Button onClick={findRoute} className="w-full" disabled={isLoading}>
                             {isLoading && <Loader2 className="animate-spin mr-2"/>}
-                            {isLoading ? 'Finding Route...' : 'Find Route'}
+                            {isLoading ? 'Finding Routes...' : 'Find Route'}
                         </Button>
                     </CardContent>
                 </Card>
@@ -390,14 +403,14 @@ export default function RoutePlanner() {
                     {origin && (origin as any).geometry && <AdvancedMarker position={(origin as any).geometry.location}><Pin background={'#4caf50'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
                     {destination && (destination as any).geometry && <AdvancedMarker position={(destination as any).geometry.location}><Pin background={'#f44336'} borderColor={'#fff'} glyphColor={'#fff'} /></AdvancedMarker>}
                     
-                    {directionsResult && directionsResult.routes.map((route, index) => {
-                        if (route !== selectedRoute) {
-                           return <RoutePolyline key={index} route={route} color={'#808080'} />
-                        }
-                        return null;
-                    })}
-
-                    {selectedRoute && <RoutePolyline route={selectedRoute} color={routeColor} />}
+                    {directionsResult && directionsResult.routes.map((route, index) => (
+                         <RoutePolyline 
+                            key={index} 
+                            route={route} 
+                            color={route === selectedRoute ? routeColor : '#808080'}
+                            visible={route === selectedRoute}
+                         />
+                    ))}
                     
                     {issuesOnRoute.map(issue => (
                          <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
@@ -411,3 +424,5 @@ export default function RoutePlanner() {
         </div>
     );
 }
+
+    
