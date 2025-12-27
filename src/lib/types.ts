@@ -1,3 +1,4 @@
+
 import type { Timestamp, GeoPoint } from "firebase/firestore";
 
 export interface Grievance {
@@ -16,10 +17,12 @@ export interface Grievance {
 }
 
 export interface UserProfile {
-    id: string;
+    id?: string; // id is the doc id, so it's not in the doc data
     name: string;
     email?: string;
     imageUrl: string;
     grievanceCount: number;
     isAdmin?: boolean;
 }
+
+    

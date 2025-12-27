@@ -15,7 +15,8 @@ import {
   createUserWithEmailAndPassword, 
   sendEmailVerification, 
   signInWithEmailAndPassword,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  updateProfile
 } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -78,6 +79,12 @@ export default function AuthPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
+      // Also update the user's profile with their name
+      await updateProfile(userCredential.user, {
+          displayName: name,
+          photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=${userCredential.user.uid}`
+      });
+
       // Send verification email
       await sendEmailVerification(userCredential.user);
 
@@ -90,7 +97,6 @@ export default function AuthPage() {
       setTimeout(() => router.push("/map"), 1000);
 
     } catch (error: any) {
-      console.error(error);
       let description = "An unknown error occurred.";
       if (error.code === 'auth/email-already-in-use') {
         description = "This email is already in use. Please sign in or use a different email.";
@@ -343,6 +349,5 @@ export default function AuthPage() {
     </div>
   );
 }
-    
 
     

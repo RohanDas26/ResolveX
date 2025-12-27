@@ -125,73 +125,108 @@ function SubmitPageContent() {
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        if (isUserLoading || isProfileLoading) {
-            toast({ variant: "destructive", title: "Authentication Pending", description: "Please wait for your user profile to load." });
-            return;
+      // still loading auth/profile → block with clear message
+      if (isUserLoading || isProfileLoading) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Pending",
+          description: "Please wait for your account to finish loading.",
+        });
+        return;
+      }
+    
+      // user MUST exist
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "You must be logged in to submit a grievance.",
+        });
+        return;
+      }
+    
+      // location still required
+      if (!location) {
+        toast({
+          variant: "destructive",
+          title: "Location Missing",
+          description: "Please get your current location before submitting.",
+        });
+        return;
+      }
+    
+      setIsSubmitting(true);
+    
+      try {
+        const storage = getStorage(firebaseApp);
+        const photoFile = values.photo[0] as File;
+        const grievanceId = uuidv4();
+        const extension = photoFile.name.split(".").pop();
+        const photoRef = ref(
+          storage,
+          `grievances/${user.uid}/${grievanceId}.${extension}`
+        );
+    
+        // 1. Upload photo
+        const uploadResult = await uploadBytes(photoRef, photoFile);
+        const imageUrl = await getDownloadURL(uploadResult.ref);
+    
+        // 2. Prepare grievance data
+        const userName = profile?.name || user.displayName || "Anonymous User";
+        const currentCount = profile?.grievanceCount ?? 0;
+    
+        const newGrievance = {
+          userId: user.uid,
+          userName,
+          description: values.description,
+          location: new GeoPoint(location.lat, location.lng),
+          imageUrl,
+          status: "Submitted" as const,
+          createdAt: Timestamp.now(),
+          riskScore: Math.floor(Math.random() * 40) + 10,
+          aiNotes: "A new user-submitted grievance, pending automated analysis.",
+        };
+    
+        const batch = writeBatch(firestore);
+    
+        // 3. Save grievance
+        const grievancesCol = collection(firestore, "grievances");
+        const newGrievanceRef = doc(grievancesCol);
+        batch.set(newGrievanceRef, newGrievance);
+    
+        // 4. Ensure user profile doc exists and update grievanceCount
+        const userRef = doc(firestore, "users", user.uid);
+        if (profile) {
+          batch.update(userRef, { grievanceCount: currentCount + 1 });
+        } else {
+          // If profile doesn't exist, create it. This is key for new users.
+          batch.set(userRef, {
+            name: userName,
+            email: user.email,
+            imageUrl: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`,
+            grievanceCount: 1
+          });
         }
-
-        if (!location) {
-            toast({ variant: "destructive", title: "Location Missing", description: "Please get your current location before submitting." });
-            return;
-        }
-        if (!user || !profile) {
-            toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
-            return;
-        }
-        
-        setIsSubmitting(true);
-        
-        try {
-            const storage = getStorage(firebaseApp);
-            const photoFile = values.photo[0] as File;
-            const grievanceId = uuidv4();
-            const photoRef = ref(storage, `grievances/${user.uid}/${grievanceId}.${photoFile.name.split('.').pop()}`);
-
-            // 1. Upload photo to Firebase Storage
-            const uploadResult = await uploadBytes(photoRef, photoFile);
-            const imageUrl = await getDownloadURL(uploadResult.ref);
-
-            // 2. Prepare grievance data for Firestore
-            const newGrievance = {
-                // id will be the doc id, so we dont store it in the document
-                userId: user.uid,
-                userName: profile.name,
-                description: values.description,
-                location: new GeoPoint(location.lat, location.lng),
-                imageUrl: imageUrl,
-                status: "Submitted" as const,
-                createdAt: Timestamp.now(),
-                riskScore: Math.floor(Math.random() * 40) + 10, // Assign a random low-ish risk for now
-                aiNotes: "A new user-submitted grievance, pending automated analysis.",
-            };
-
-            const batch = writeBatch(firestore);
-
-            // 3. Save grievance to Firestore
-            const grievancesCol = collection(firestore, 'grievances');
-            const newGrievanceRef = doc(grievancesCol); // Create a new doc ref in the collection
-            batch.set(newGrievanceRef, newGrievance);
-            
-            // 4. Update the user's grievanceCount
-            const userRef = doc(firestore, "users", user.uid);
-            batch.update(userRef, {
-                grievanceCount: (profile.grievanceCount || 0) + 1
-            });
-            
-            // 5. Commit the batch
-            await batch.commit();
-
-            toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now live on the map." });
-
-            // 6. Navigate to the map, highlighting the new grievance
-            router.push(`/map?id=${newGrievanceRef.id}`);
-
-        } catch(error: any) {
-             console.error("Grievance submission error:", error);
-             toast({ variant: "destructive", title: "Submission Failed", description: error.message || "An unexpected error occurred." });
-        } finally {
-            setIsSubmitting(false);
-        }
+    
+        // 5. Commit
+        await batch.commit();
+    
+        toast({
+          title: "Grievance Submitted!",
+          description: "Thank you for your report. It's now live on the map.",
+        });
+    
+        router.push(`/map?id=${newGrievanceRef.id}`);
+      } catch (error: any) {
+        console.error("Grievance submission error:", error);
+        toast({
+          variant: "destructive",
+          title: "Submission Failed",
+          description: error?.message || "An unexpected error occurred.",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
 
     const handleFile = (file: File) => {
@@ -364,7 +399,7 @@ function SubmitPageContent() {
                         </div>
 
                         <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isDataLoading}>
-                            {isDataLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isSubmitting || isDataLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                             {isSubmitting ? "Submitting..." : isDataLoading ? "Loading Profile..." : "Submit Grievance"}
                         </Button>
                     </form>
