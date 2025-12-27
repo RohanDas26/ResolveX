@@ -1,15 +1,11 @@
 
 'use client';
 
-// This file is no longer the primary provider.
-// The main logic has been moved to src/hooks/use-auth-context.tsx
-// to better encapsulate the authentication flow.
-// This file is kept for potential future use if other Firebase services need a dedicated provider.
-
 import React, { createContext, useContext } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export interface FirebaseContextState {
   firebaseApp: FirebaseApp | null;
@@ -26,3 +22,18 @@ export const useFirebase = (): FirebaseContextState => {
   }
   return context;
 };
+
+// These hooks are just wrappers around useFirebase for convenience
+export const useFirebaseApp = () => useFirebase().firebaseApp;
+export const useFirestore = () => useFirebase().firestore;
+export const useAuth = () => useFirebase().auth;
+
+// The provider component
+export function FirebaseProvider({ value, children }: { value: FirebaseContextState, children: React.ReactNode }) {
+  return (
+    <FirebaseContext.Provider value={value}>
+      <FirebaseErrorListener />
+      {children}
+    </FirebaseContext.Provider>
+  );
+}
