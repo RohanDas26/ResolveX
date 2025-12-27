@@ -3,13 +3,18 @@
 
 import { useRouter } from 'next/navigation';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getAuth, onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase';
-import { doc, getFirestore, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 
+// Define a minimal User-like type for the frontend simulation
+interface SimulatedUser {
+  displayName: string;
+  email: string;
+  photoURL: string;
+  uid: string;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: SimulatedUser | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
@@ -19,56 +24,58 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SimulatedUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
-  const { auth, firestore } = initializeFirebase();
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [auth]);
+    // Check localStorage for a "logged in" user on initial load
+    try {
+      const storedUser = localStorage.getItem('simulatedUser');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("Failed to parse user from localStorage", error);
+      localStorage.removeItem('simulatedUser');
+    }
+    setIsLoading(false);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-    toast({ title: 'Sign In Successful', description: 'Welcome back!' });
+    // Simulate a successful login
+    const uid = 'simulated-uid-' + new Date().getTime();
+    const simulatedUser: SimulatedUser = {
+      displayName: 'Demo User',
+      email: email,
+      photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=${uid}`,
+      uid: uid,
+    };
+    localStorage.setItem('simulatedUser', JSON.stringify(simulatedUser));
+    setUser(simulatedUser);
+    toast({ title: 'Sign In Successful', description: 'Welcome back! (Simulation)' });
     router.push('/map');
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
-    if (userCredential.user) {
-        await updateProfile(userCredential.user, {
-            displayName: name,
-            photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=${userCredential.user.uid}`
-        });
-
-        // Create user profile in Firestore
-        const userRef = doc(firestore, "users", userCredential.user.uid);
-        await setDoc(userRef, {
-            name: name,
-            email: userCredential.user.email,
-            imageUrl: userCredential.user.photoURL,
-            grievanceCount: 0,
-            isAdmin: false // Default to not admin
-        });
-        
-        // Manually update the user state because onAuthStateChanged might be slow
-        setUser({ ...userCredential.user, displayName: name, photoURL: userCredential.user.photoURL });
-    }
-    toast({ title: 'Sign Up Successful', description: 'Welcome! You are now logged in.' });
+    // Simulate a successful sign-up
+     const uid = 'simulated-uid-' + new Date().getTime();
+    const simulatedUser: SimulatedUser = {
+      displayName: name,
+      email: email,
+      photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=${uid}`,
+      uid: uid,
+    };
+    localStorage.setItem('simulatedUser', JSON.stringify(simulatedUser));
+    setUser(simulatedUser);
+    toast({ title: 'Sign Up Successful', description: 'Welcome! You are now logged in. (Simulation)' });
     router.push('/map');
   };
 
   const logout = async () => {
-    await signOut(auth);
+    localStorage.removeItem('simulatedUser');
+    setUser(null);
     router.push('/');
   };
 

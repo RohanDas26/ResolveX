@@ -27,7 +27,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { FirebaseError } from 'firebase/app';
 
 const signUpSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.'}),
@@ -60,21 +59,7 @@ function SignUpForm() {
     } catch (error) {
       console.error("Sign up error", error);
       let description = "An unexpected error occurred. Please try again.";
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case 'auth/email-already-in-use':
-            description = "This email address is already in use by another account.";
-            break;
-          case 'auth/invalid-email':
-            description = "The email address is not valid.";
-            break;
-          case 'auth/weak-password':
-            description = "The password is too weak.";
-            break;
-          default:
-            description = "Failed to create an account. Please check the details and try again."
-        }
-      }
+      // Since this is a simulation, we won't have specific Firebase errors
       toast({
         variant: "destructive",
         title: 'Sign Up Failed',
@@ -156,7 +141,7 @@ function SignInForm() {
       toast({
         variant: "destructive",
         title: 'Sign In Failed',
-        description: 'Invalid email or password. Please try again.',
+        description: 'Invalid email or password. Please try again. (Simulation)',
       });
     } finally {
       setIsLoading(false);
