@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, MouseEvent } from "react";
 import {
   Map,
   useMap,
@@ -43,6 +43,8 @@ import {
   ShieldCheck,
   Zap,
   PanelTop,
+  Move,
+  Maximize,
 } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
 import { DEMO_GRIEVANCES } from "@/lib/demo-data";
@@ -202,7 +204,15 @@ export default function RoutePlanner() {
   const [originText, setOriginText] = useState("");
   const [destinationText, setDestinationText] = useState("");
   const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
+  
+  // Directions Panel State
   const [showDirections, setShowDirections] = useState(true);
+  const [panelPosition, setPanelPosition] = useState({ x: 16, y: 16 });
+  const [panelSize, setPanelSize] = useState({ width: 384, height: 400 }); // sm: 384px
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const resizeStartSize = useRef({ width: 0, height: 0 });
 
 
   useEffect(() => {
@@ -380,6 +390,63 @@ export default function RoutePlanner() {
       setIsLoading(false);
     }
   };
+  
+  // Drag and resize handlers
+  const onDragMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    dragStartPos.current = {
+      x: e.clientX - panelPosition.x,
+      y: e.clientY - panelPosition.y,
+    };
+    e.stopPropagation();
+  };
+  
+  const onResizeMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    setIsResizing(true);
+    dragStartPos.current = {
+      x: e.clientX,
+      y: e.clientY,
+    };
+    resizeStartSize.current = panelSize;
+    e.stopPropagation();
+  };
+
+  const onMouseMove = (e: globalThis.MouseEvent) => {
+    if (isDragging) {
+      const newX = e.clientX - dragStartPos.current.x;
+      const newY = e.clientY - dragStartPos.current.y;
+      setPanelPosition({ x: newX, y: newY });
+    }
+    if (isResizing) {
+      const dx = e.clientX - dragStartPos.current.x;
+      const dy = e.clientY - dragStartPos.current.y;
+      const newWidth = Math.max(320, resizeStartSize.current.width + dx); // min width 320px
+      const newHeight = Math.max(200, resizeStartSize.current.height + dy); // min height 200px
+      setPanelSize({ width: newWidth, height: newHeight });
+    }
+  };
+  
+  const onMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
+  };
+
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    } else {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [isDragging, isResizing]);
+
 
   const fastestRouteColor = "#ef4444"; // Red for danger
   const safestRouteColor = "#22c55e"; // Green for safe
@@ -568,17 +635,28 @@ export default function RoutePlanner() {
         </Map>
         
         {selectedRoute && (
-          <div className="absolute top-4 left-4 right-4 animate-fade-in-up">
-            <Card className="bg-background/80 backdrop-blur-md max-w-sm mx-auto">
-              <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-lg">Directions</CardTitle>
+          <div 
+            className="absolute animate-fade-in-up"
+            style={{ 
+              left: `${panelPosition.x}px`, 
+              top: `${panelPosition.y}px`, 
+              width: `${panelSize.width}px`, 
+              height: `${panelSize.height}px` 
+            }}
+          >
+            <Card className="bg-background/80 backdrop-blur-md w-full h-full flex flex-col shadow-2xl">
+              <CardHeader 
+                className="flex flex-row items-center justify-between p-3 cursor-move"
+                onMouseDown={onDragMouseDown}
+              >
+                <CardTitle className="text-lg flex items-center gap-2"><Move className="h-4 w-4 text-muted-foreground"/>Directions</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setShowDirections(!showDirections)}>
                     <PanelTop className={cn("h-5 w-5 transition-transform", showDirections && "rotate-180")}/>
                 </Button>
               </CardHeader>
               {showDirections && (
-                <CardContent className="p-3 pt-0">
-                  <ScrollArea className="max-h-60 text-sm">
+                <CardContent className="p-3 pt-0 flex-1 min-h-0">
+                  <ScrollArea className="h-full text-sm">
                     <div className="space-y-3 pr-4">
                       {selectedRoute.legs?.[0]?.steps?.map((step, index) => (
                           <div
@@ -611,6 +689,12 @@ export default function RoutePlanner() {
                   </ScrollArea>
                 </CardContent>
               )}
+               <div 
+                  className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+                  onMouseDown={onResizeMouseDown}
+               >
+                 <Maximize className="h-3 w-3 absolute bottom-1 right-1 text-muted-foreground/50"/>
+              </div>
             </Card>
           </div>
         )}
@@ -624,3 +708,5 @@ export default function RoutePlanner() {
     </div>
   );
 }
+
+    
