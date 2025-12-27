@@ -68,6 +68,17 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* Style for the InfoWindow close button */
+  .gm-ui-hover-effect {
+    background-color: hsl(var(--background) / 0.8) !important;
+    backdrop-filter: blur(4px);
+    border-radius: 9999px !important;
+    top: 8px !important;
+    right: 8px !important;
+  }
+  .gm-ui-hover-effect span {
+    filter: invert(1);
+  }
 }
 
 @layer utilities {

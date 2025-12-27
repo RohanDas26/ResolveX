@@ -107,9 +107,9 @@ export default function GrievanceMap({
           position={{ lat: selectedGrievance.location.latitude, lng: selectedGrievance.location.longitude }}
           onCloseClick={handleCloseInfoWindow}
           maxWidth={320}
-          headerDisabled
+          
         >
-            <div className="w-full max-w-xs rounded-lg overflow-hidden bg-background text-foreground shadow-xl">
+            <div className="w-full max-w-xs rounded-lg overflow-hidden bg-background text-foreground shadow-xl -m-4">
               <div className="relative w-full h-40">
                   <Image
                       src={selectedGrievance.imageUrl}
