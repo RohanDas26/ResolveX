@@ -104,3 +104,5 @@ export default function AdminMap({ grievances, isLoading, onMarkerClick, selecte
         </div>
     );
 }
+
+    

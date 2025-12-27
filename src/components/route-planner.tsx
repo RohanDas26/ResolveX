@@ -343,19 +343,14 @@ export default function RoutePlanner() {
       provideRouteAlternatives: true,
     };
 
-    try {
-      const response = await directionsService.route(request);
-      if (
-        response.status !== "OK" ||
-        !response.routes ||
-        response.routes.length === 0
-      ) {
+    directionsService.route(request, (response, status) => {
+      setIsLoading(false);
+      if (status !== "OK" || !response || !response.routes || response.routes.length === 0) {
         toast({
           variant: "destructive",
           title: "Route Not Found",
           description: "Could not find a route for the selected locations.",
         });
-        setIsLoading(false);
         return;
       }
       
@@ -378,17 +373,7 @@ export default function RoutePlanner() {
         title: "Routes Found!",
         description: "Compare the fastest and safest options.",
       });
-
-    } catch (e) {
-      console.error("Directions request failed", e);
-      toast({
-        variant: "destructive",
-        title: "Routing Error",
-        description: "An error occurred while finding the route.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
   
   // Drag and resize handlers
@@ -708,3 +693,5 @@ export default function RoutePlanner() {
     </div>
   );
 }
+
+    
