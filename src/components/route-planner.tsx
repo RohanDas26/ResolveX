@@ -336,8 +336,8 @@ export default function RoutePlanner() {
       const actualFastestRoute = sortedRoutes[0];
       
       // The "Safest" route is the second longest for a clear demo.
-      let demoSafestRoute = sortedRoutes.length > 1 ? sortedRoutes[sortedRoutes.length - 2] : sortedRoutes[0];
-       // If only one route, use it for both.
+      let demoSafestRoute = sortedRoutes.length > 1 ? sortedRoutes[1] : sortedRoutes[0];
+      // If only one route, use it for both.
       if (sortedRoutes.length === 1) {
         demoSafestRoute = sortedRoutes[0];
       }
@@ -435,21 +435,21 @@ export default function RoutePlanner() {
               onValueChange={(v: "fastest" | "avoid_issues") =>
                 setRoutePreference(v)
               }
-              className="grid grid-cols-2 gap-4"
+              className="grid grid-cols-2 gap-2"
             >
-              <Label htmlFor="fastest" className="flex flex-col items-center gap-2 -m-2 p-2 rounded-md hover:bg-accent cursor-pointer has-[input:checked]:bg-accent has-[input:checked]:font-semibold">
+              <Label htmlFor="fastest" className="flex flex-col items-center justify-center gap-1 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 has-[input:checked]:text-primary cursor-pointer">
                 <RadioGroupItem value="fastest" id="fastest" className="sr-only"/>
-                <span>Fastest Route</span>
-                {fastestRoute && <span className="text-sm text-muted-foreground">{fastestRoute.legs[0].duration?.text}</span>}
+                <span className="font-semibold">Fastest Route</span>
+                {fastestRoute && <span className="text-sm">{fastestRoute.legs[0].duration?.text}</span>}
               </Label>
-              <Label htmlFor="avoid_issues" className="flex flex-col items-center gap-2 -m-2 p-2 rounded-md hover:bg-accent cursor-pointer has-[input:checked]:bg-accent has-[input:checked]:font-semibold">
+              <Label htmlFor="avoid_issues" className="flex flex-col items-center justify-center gap-1 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 has-[input:checked]:text-primary cursor-pointer">
                 <RadioGroupItem
                   value="avoid_issues"
                   id="avoid_issues"
                   className="sr-only"
                 />
-                <span>Safest Route</span>
-                {safestRoute && <span className="text-sm text-muted-foreground">{safestRoute.legs[0].duration?.text}</span>}
+                <span className="font-semibold">Safest Route</span>
+                {safestRoute && <span className="text-sm">{safestRoute.legs[0].duration?.text}</span>}
               </Label>
             </RadioGroup>
             <Button
