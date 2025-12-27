@@ -189,9 +189,10 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
 
         const openGrievances = areaGrievances.filter(g => g.status !== 'Resolved');
         const openIssueCount = openGrievances.length;
-        const currentRisk = openIssueCount > 0 
-            ? openGrievances.reduce((acc, g) => acc + (g.riskScore || 0), 0) / openIssueCount
-            : 0;
+
+        // Current State
+        const currentTotalRisk = openGrievances.reduce((acc, g) => acc + (g.riskScore || 0), 0);
+        const currentAvgRisk = openIssueCount > 0 ? currentTotalRisk / openIssueCount : 0;
         
         const totalComplaintsLast30Days = areaGrievances.filter(g => {
             const grievanceDate = g.createdAt.toDate();
@@ -199,20 +200,30 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
             return grievanceDate > thirtyDaysAgo;
         }).length;
         
+        // Simulation Logic
         const resolvedCount = Math.min(issuesToResolve, openIssueCount);
-        const projectedOpenIssues = openIssueCount - resolvedCount;
-        const reductionFactor = openIssueCount > 0 ? (1 - (resolvedCount / openIssueCount)) : 1;
-        const projectedRisk = Math.max(0, currentRisk * reductionFactor);
-        const projectedComplaints = Math.round(totalComplaintsLast30Days * reductionFactor);
         
+        // Assume we resolve the highest-risk issues first
+        const sortedOpenGrievances = [...openGrievances].sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0));
+        const remainingGrievances = sortedOpenGrievances.slice(resolvedCount);
+
+        const projectedOpenIssues = remainingGrievances.length;
+        const projectedTotalRisk = remainingGrievances.reduce((acc, g) => acc + (g.riskScore || 0), 0);
+        const projectedAvgRisk = projectedOpenIssues > 0 ? projectedTotalRisk / projectedOpenIssues : 0;
+
+        // Project future complaints based on the reduction of total risk
+        const riskReductionPercentage = currentTotalRisk > 0 ? (currentTotalRisk - projectedTotalRisk) / currentTotalRisk : 0;
+        const projectedComplaints = Math.round(totalComplaintsLast30Days * (1 - riskReductionPercentage));
+
         setSimulationData({
             openIssueCount,
-            currentRisk: Math.round(currentRisk),
+            currentAvgRisk: Math.round(currentAvgRisk),
             totalComplaintsLast30Days,
             resolvedCount,
             projectedOpenIssues,
-            projectedRisk: Math.round(projectedRisk),
+            projectedAvgRisk: Math.round(projectedAvgRisk),
             projectedComplaints,
+            riskReductionPercentage: Math.round(riskReductionPercentage * 100),
         });
     }, [selectedArea, issuesToResolve, grievances]);
 
@@ -222,20 +233,19 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
         </Card>
     );
 
-    const { openIssueCount, currentRisk, totalComplaintsLast30Days, projectedOpenIssues, projectedRisk, projectedComplaints, resolvedCount } = simulationData;
-
-    const riskReduction = currentRisk > 0 ? Math.round(((currentRisk - projectedRisk) / currentRisk) * 100) : 0;
+    const { openIssueCount, currentAvgRisk, totalComplaintsLast30Days, projectedOpenIssues, projectedAvgRisk, projectedComplaints, resolvedCount, riskReductionPercentage } = simulationData;
     const complaintReduction = totalComplaintsLast30Days > 0 ? Math.round(((totalComplaintsLast30Days - projectedComplaints) / totalComplaintsLast30Days) * 100) : 0;
 
+
     const chartData = [
-        { name: 'Risk', Before: currentRisk, After: projectedRisk }
+        { name: 'Risk', Before: currentAvgRisk, After: projectedAvgRisk }
     ];
 
     return (
         <Card className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <CardHeader>
                 <CardTitle className="flex items-center text-base sm:text-lg"><BrainCircuit className="mr-2 h-5 w-5 text-primary" /> Impact Simulator</CardTitle>
-                <CardDescription>Simulate how resolving issues changes risk and future complaints.</CardDescription>
+                <CardDescription>Forecast how resolving issues reduces risk and future complaints.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-4">
@@ -257,8 +267,8 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
-                        <p className="text-xs text-muted-foreground">Risk Score</p>
-                        <p className="text-lg font-bold flex items-center justify-center gap-1">{currentRisk} <ArrowRight className="h-4 w-4" /> <span className="text-green-400">{projectedRisk}</span></p>
+                        <p className="text-xs text-muted-foreground">Avg Risk</p>
+                        <p className="text-lg font-bold flex items-center justify-center gap-1">{currentAvgRisk} <ArrowRight className="h-4 w-4" /> <span className="text-green-400">{projectedAvgRisk}</span></p>
                     </div>
                     <div>
                         <p className="text-xs text-muted-foreground">Open Issues</p>
@@ -283,7 +293,7 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
                 </div>
                 
                  <p className="text-sm text-muted-foreground text-center bg-secondary/30 p-3 rounded-md">
-                    Resolving <span className="font-bold text-primary">{resolvedCount}</span> issues around <span className="font-bold text-primary">{selectedArea}</span> is projected to reduce local risk by <span className="font-bold text-green-400">{riskReduction}%</span> and future complaints by <span className="font-bold text-green-400">{complaintReduction}%</span>.
+                    Resolving <span className="font-bold text-primary">{resolvedCount}</span> high-risk issues in <span className="font-bold text-primary">{selectedArea}</span> is projected to reduce local risk by <span className="font-bold text-green-400">{riskReductionPercentage}%</span> and future complaints by <span className="font-bold text-green-400">{complaintReduction}%</span>.
                 </p>
 
             </CardContent>
