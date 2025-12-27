@@ -50,6 +50,15 @@ import { cn } from "@/lib/utils";
 
 // -------- helpers --------
 
+const formatDuration = (text: string | undefined): string => {
+  if (!text) return '--';
+  return text
+    .replace(" hours", "hr")
+    .replace(" hour", "hr")
+    .replace(" minutes", "min")
+    .replace(" minute", "min");
+};
+
 const toLatLngLiteral = (
   value: google.maps.places.PlaceResult | google.maps.LatLngLiteral | null
 ): google.maps.LatLngLiteral | null => {
@@ -346,10 +355,10 @@ export default function RoutePlanner() {
       const actualFastest = sortedByDuration[0];
       const secondLongest = sortedByDuration.length > 1 ? sortedByDuration[sortedByDuration.length - 2] : actualFastest;
       
-      setFastestRoute(actualFastest);
-      setIssuesOnFastest(createMockIssuesOnRoute(actualFastest));
+      setFastestRoute(secondLongest);
+      setIssuesOnFastest(createMockIssuesOnRoute(secondLongest));
 
-      setSafestRoute(secondLongest);
+      setSafestRoute(actualFastest);
       setIssuesOnSafest([]);
 
       toast({
@@ -448,7 +457,7 @@ export default function RoutePlanner() {
                 <div className="flex justify-between w-full items-center">
                     <span className="font-bold text-lg flex items-center gap-2"><Zap className="text-primary"/> Fastest</span>
                     <span className={cn("font-bold", routePreference === 'fastest' ? 'text-primary' : 'text-muted-foreground')}>
-                      {fastestRoute?.legs[0].duration?.text || '--'}
+                      {formatDuration(fastestRoute?.legs[0].duration?.text)}
                     </span>
                 </div>
                  <div className="w-full text-sm text-muted-foreground mt-2 space-y-1">
@@ -470,7 +479,7 @@ export default function RoutePlanner() {
                 <div className="flex justify-between w-full items-center">
                     <span className="font-bold text-lg flex items-center gap-2"><ShieldCheck className="text-green-500"/> Safest</span>
                     <span className={cn("font-bold", routePreference === 'avoid_issues' ? 'text-green-500' : 'text-muted-foreground')}>
-                       {safestRoute?.legs[0].duration?.text || '--'}
+                       {formatDuration(safestRoute?.legs[0].duration?.text)}
                     </span>
                 </div>
                  <div className="w-full text-sm text-muted-foreground mt-2 space-y-1">
