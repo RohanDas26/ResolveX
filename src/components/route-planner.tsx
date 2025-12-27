@@ -27,11 +27,9 @@ import {
     Waypoints,
     CircleDot,
     Flag,
-    Sparkles,
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DEMO_GRIEVANCES } from '@/lib/demo-data';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 // Helper component for Google Places Autocomplete
 function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value, disabled }: { onPlaceChanged: (place: google.maps.places.PlaceResult) => void, placeholder: string, onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void, value: string, disabled?: boolean }) {
@@ -132,27 +130,9 @@ export default function RoutePlanner() {
     const [destinationText, setDestinationText] = useState('');
     const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
     
-    // Set up the demo scenario on mount
     useEffect(() => {
         setIsClient(true);
         setAllGrievances(DEMO_GRIEVANCES);
-
-        const demoOrigin = {
-            name: "JNTU Hyderabad",
-            formatted_address: "Kukatpally, Hyderabad, Telangana 500085, India",
-            geometry: { location: new google.maps.LatLng(17.4930, 78.3914) }
-        };
-        const demoDestination = {
-            name: "Gachibowli Stadium",
-            formatted_address: "Gachibowli, Hyderabad, Telangana 500032, India",
-            geometry: { location: new google.maps.LatLng(17.4426, 78.3495) }
-        };
-
-        setOrigin(demoOrigin);
-        setDestination(demoDestination);
-        setOriginText(demoOrigin.name);
-        setDestinationText(demoDestination.name);
-
     }, []);
 
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
@@ -297,13 +277,6 @@ export default function RoutePlanner() {
                         <CardDescription>Find the best route for your journey, avoiding reported issues.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Alert className="border-primary/50 text-primary-foreground">
-                            <Sparkles className="h-4 w-4" />
-                            <AlertTitle className="font-semibold text-primary">Demo Scenario Ready!</AlertTitle>
-                            <AlertDescription className="text-muted-foreground text-xs">
-                                A sample route is pre-loaded. Choose "Safest" vs "Fastest" and click "Find Route" to see the difference.
-                            </AlertDescription>
-                        </Alert>
                         <div className="space-y-2">
                             <Label>Origin</Label>
                             <div className="flex gap-2">
@@ -428,3 +401,4 @@ export default function RoutePlanner() {
     );
 }
 
+    
