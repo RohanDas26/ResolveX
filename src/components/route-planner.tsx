@@ -708,5 +708,3 @@ export default function RoutePlanner() {
     </div>
   );
 }
-
-    

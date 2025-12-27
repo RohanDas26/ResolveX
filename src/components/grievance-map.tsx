@@ -73,7 +73,7 @@ export default function GrievanceMap({
     <Map
       defaultCenter={TELANGANA_CENTER}
       defaultZoom={8}
-      mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "RESOLVEX_MAP"}
+      mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
       className="w-full h-full"
       gestureHandling={'greedy'}
       disableDefaultUI={false}
