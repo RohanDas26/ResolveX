@@ -353,12 +353,12 @@ export default function RoutePlanner() {
       );
 
       const actualFastest = sortedByDuration[0];
-      const secondLongest = sortedByDuration.length > 1 ? sortedByDuration[sortedByDuration.length - 2] : actualFastest;
+      const aLongerRoute = sortedByDuration.length > 1 ? sortedByDuration[1] : actualFastest;
       
-      setFastestRoute(secondLongest);
-      setIssuesOnFastest(createMockIssuesOnRoute(secondLongest));
+      setFastestRoute(actualFastest);
+      setIssuesOnFastest(createMockIssuesOnRoute(actualFastest));
 
-      setSafestRoute(actualFastest);
+      setSafestRoute(aLongerRoute);
       setIssuesOnSafest([]);
 
       toast({
