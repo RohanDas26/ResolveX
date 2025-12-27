@@ -40,7 +40,7 @@ import {
   Flag,
 } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { GeoPoint, Timestamp } from "firebase/firestore";
 
 // -------- helpers --------
 
@@ -115,7 +115,7 @@ function RoutePolyline({
     return new google.maps.Polyline({
       path: route.overview_path,
       strokeColor: color,
-      strokeOpacity: visible ? 0.8 : 0,
+      strokeOpacity: visible ? 0.8 : 0.4,
       strokeWeight: visible ? 8 : 5,
       zIndex,
     });
@@ -170,7 +170,6 @@ const getManeuverIcon = (maneuver: string | undefined) => {
 export default function RoutePlanner() {
   const map = useMap();
   const routesLibrary = useMapsLibrary("routes");
-  const geometryLibrary = useMapsLibrary("geometry");
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -185,11 +184,9 @@ export default function RoutePlanner() {
 
   const [originText, setOriginText] = useState("");
   const [destinationText, setDestinationText] = useState("");
-  const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
 
   useEffect(() => {
     setIsClient(true);
-    setAllGrievances(DEMO_GRIEVANCES);
   }, []);
 
   const [directionsService, setDirectionsService] =
@@ -257,36 +254,43 @@ export default function RoutePlanner() {
     );
   };
 
-  const countIssuesOnRoute = (
-    route: google.maps.DirectionsRoute,
-    openGrievances: Grievance[],
-    polyUtil: typeof google.maps.geometry.poly | undefined
-  ) => {
-    if (!route || !polyUtil) return [];
+  const createMockIssuesOnRoute = (route: google.maps.DirectionsRoute) : Grievance[] => {
+    if (!route || !route.overview_path) return [];
+    
+    const path = route.overview_path;
+    const issues: Grievance[] = [];
+    const numIssues = 5;
 
-    const routePath = new google.maps.Polyline({
-      path: route.overview_path,
-    });
-
-    return openGrievances.filter((g) => {
-      const grievanceLoc = new google.maps.LatLng(
-        g.location.latitude,
-        g.location.longitude
-      );
-      // Use a tolerance for isLocationOnEdge, 1e-3 is roughly 110 meters
-      return polyUtil.isLocationOnEdge(grievanceLoc, routePath, 1e-3);
-    });
-  };
+    // Distribute 5 issues along the route path
+    for (let i = 1; i <= numIssues; i++) {
+        const pointIndex = Math.floor(path.length * (i / (numIssues + 1)));
+        const point = path[pointIndex];
+        
+        if (point) {
+            issues.push({
+                id: `mock-issue-${i}`,
+                userId: 'mock-user',
+                userName: 'Mock User',
+                description: `Simulated issue #${i} on the fastest route.`,
+                location: new GeoPoint(point.lat(), point.lng()),
+                imageUrl: 'https://placehold.co/400x300/ef4444/ffffff?text=Issue',
+                status: 'Submitted',
+                createdAt: Timestamp.now(),
+            });
+        }
+    }
+    return issues;
+  }
 
   const findRoute = async () => {
     const originLocation = toLatLngLiteral(origin);
     const destinationLocation = toLatLngLiteral(destination);
 
-    if (!originLocation || !destinationLocation || !directionsService || !geometryLibrary) {
+    if (!originLocation || !destinationLocation || !directionsService) {
       toast({
         variant: "destructive",
         title: "Missing Information",
-        description: "Please select both an origin and a destination, or wait for map to load.",
+        description: "Please select both an origin and a destination.",
       });
       return;
     }
@@ -320,67 +324,33 @@ export default function RoutePlanner() {
         return;
       }
 
-      const openGrievances = allGrievances.filter(
-        (g) => g.status !== "Resolved"
-      );
-      const polyUtil = geometryLibrary.poly;
-
-      const routesWithAnalysis = response.routes.map((route, index) => {
-        const issues = countIssuesOnRoute(route, openGrievances, polyUtil);
-        return {
-          route,
-          issues,
-          issueCount: issues.length,
-          duration: route.legs[0]?.duration?.value || Infinity,
-          id: `route-${index}`
-        };
-      });
-
-      // 1. Identify the single fastest route
-      const fastestRouteData = [...routesWithAnalysis].sort(
-        (a, b) => a.duration - b.duration
+      // Identify the single fastest route
+      const fastest = response.routes.sort(
+        (a, b) => (a.legs[0]?.duration?.value || 0) - (b.legs[0]?.duration?.value || 0)
       )[0];
       
-      setFastestRoute(fastestRouteData.route);
-      setIssuesOnFastest(fastestRouteData.issues);
-
-      // 2. Identify the safest route from the REMAINING alternatives
-      const otherRoutes = routesWithAnalysis.filter(r => r.id !== fastestRouteData.id);
+      // Select a different route as the "safest" one
+      let safest = response.routes.find(route => route !== fastest);
       
-      let safestRouteData;
-      if (otherRoutes.length > 0) {
-        safestRouteData = [...otherRoutes].sort((a, b) => {
-          if (a.issueCount !== b.issueCount) {
-            return a.issueCount - b.issueCount;
-          }
-          return a.duration - b.duration;
-        })[0];
-      } else {
-        // If there's only one route, it's both the fastest and safest
-        safestRouteData = fastestRouteData;
+      // If no alternative is available, the safest is the same as the fastest
+      if (!safest) {
+        safest = fastest;
       }
 
-      setSafestRoute(safestRouteData.route);
-      setIssuesOnSafest(safestRouteData.issues);
+      // Create mock issues for the fastest route
+      const mockIssues = createMockIssuesOnRoute(fastest);
 
-      const issuesAvoided =
-        fastestRouteData.issueCount - safestRouteData.issueCount;
-        
-      if (routePreference === "avoid_issues" && issuesAvoided > 0) {
-        toast({
-          title: "Safest Route Selected!",
-          description: `This route avoids ${issuesAvoided} known issue(s).`,
-          variant: "default",
-          className: "bg-green-600 border-green-600 text-white",
-        });
-      } else {
-        toast({
-          title: "Routes Found",
-          description: `Displaying the ${
-            routePreference === "fastest" ? "fastest" : "safest"
-          } option.`,
-        });
-      }
+      // Set state
+      setFastestRoute(fastest);
+      setIssuesOnFastest(mockIssues);
+      setSafestRoute(safest);
+      setIssuesOnSafest([]); // Safest route always has 0 issues
+
+      toast({
+          title: "Routes Found!",
+          description: "Switched to the 'Safest' route. Compare it with the 'Fastest' option.",
+      });
+
     } catch (e) {
       console.error("Directions request failed", e);
       toast({
@@ -393,8 +363,8 @@ export default function RoutePlanner() {
     }
   };
 
-  const fastestRouteColor = "#3b82f6";
-  const safestRouteColor = "#22c55e";
+  const fastestRouteColor = "#ef4444"; // Red for danger
+  const safestRouteColor = "#22c55e"; // Green for safe
 
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full">
@@ -461,20 +431,22 @@ export default function RoutePlanner() {
               onValueChange={(v: "fastest" | "avoid_issues") =>
                 setRoutePreference(v)
               }
+              className="grid grid-cols-2 gap-4"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="fastest" id="fastest" />
-                <Label htmlFor="fastest">Fastest (ignore issues)</Label>
-              </div>
-              <div className="flex items-center space-x-2">
+              <Label htmlFor="fastest" className="flex flex-col items-center gap-2 -m-2 p-2 rounded-md hover:bg-accent cursor-pointer has-[input:checked]:bg-accent has-[input:checked]:font-semibold">
+                <RadioGroupItem value="fastest" id="fastest" className="sr-only"/>
+                <span>Fastest Route</span>
+                {fastestRoute && <span className="text-sm text-muted-foreground">{fastestRoute.legs[0].duration?.text}</span>}
+              </Label>
+              <Label htmlFor="avoid_issues" className="flex flex-col items-center gap-2 -m-2 p-2 rounded-md hover:bg-accent cursor-pointer has-[input:checked]:bg-accent has-[input:checked]:font-semibold">
                 <RadioGroupItem
                   value="avoid_issues"
                   id="avoid_issues"
+                  className="sr-only"
                 />
-                <Label htmlFor="avoid_issues">
-                  Safest (avoid issues)
-                </Label>
-              </div>
+                <span>Safest Route</span>
+                {safestRoute && <span className="text-sm text-muted-foreground">{safestRoute.legs[0].duration?.text}</span>}
+              </Label>
             </RadioGroup>
             <Button
               onClick={findRoute}
@@ -510,14 +482,14 @@ export default function RoutePlanner() {
                     <span
                       className={`font-bold ${
                         issuesOnSelectedRoute.length > 0
-                          ? "text-amber-500"
+                          ? "text-red-500"
                           : "text-green-500"
                       }`}
                     >
                       {issuesOnSelectedRoute.length}
                     </span>
                     {issuesOnSelectedRoute.length > 0 && (
-                      <AlertTriangle className="text-amber-500 h-4 w-4" />
+                      <AlertTriangle className="text-red-500 h-4 w-4" />
                     )}
                   </div>
                 </CardContent>
@@ -595,16 +567,16 @@ export default function RoutePlanner() {
           )}
           
           <RoutePolyline
-            route={safestRoute ?? undefined}
-            color={safestRouteColor}
-            visible={routePreference === 'avoid_issues'}
-            zIndex={routePreference === 'avoid_issues' ? 2 : 1}
-          />
-          <RoutePolyline
             route={fastestRoute ?? undefined}
             color={fastestRouteColor}
             visible={routePreference === 'fastest'}
             zIndex={routePreference === 'fastest' ? 2 : 1}
+          />
+          <RoutePolyline
+            route={safestRoute ?? undefined}
+            color={safestRouteColor}
+            visible={routePreference === 'avoid_issues'}
+            zIndex={routePreference === 'avoid_issues' ? 2 : 1}
           />
 
           {issuesOnSelectedRoute.map((issue) => (
