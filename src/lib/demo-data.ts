@@ -163,5 +163,3 @@ export const DEMO_USERS: UserProfile[] = Object.keys(grievancesByUser).map(userI
         grievanceCount: grievancesByUser[userId],
     };
 });
-
-    

@@ -9,7 +9,7 @@ import AdminMap from "@/components/admin/admin-map";
 import { useSearchParams } from 'next/navigation'
 import { doc, updateDoc, collection, query, writeBatch, getDocs } from "firebase/firestore";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 
 function AdminDashboardContent() {
@@ -24,6 +24,7 @@ function AdminDashboardContent() {
     useMemoFirebase(() => firestore ? collection(firestore, 'grievances') : null, [firestore])
   );
 
+  // Use live data if available and not empty, otherwise fall back to demo data.
   const grievances = useMemo(() => {
     if (liveGrievances && liveGrievances.length > 0) {
       return liveGrievances;
@@ -31,32 +32,24 @@ function AdminDashboardContent() {
     return DEMO_GRIEVANCES;
   }, [liveGrievances]);
   
-  const [topReporters, setTopReporters] = useState<UserProfile[]>([]);
-  const [isReportersLoading, setIsReportersLoading] = useState(true);
+  const { data: liveUsers, isLoading: isUsersLoading } = useCollection<UserProfile>(
+    useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore])
+  );
+  
+  const topReporters = useMemo(() => {
+      let users: UserProfile[];
+      // Use live users if available and not empty, otherwise use demo users.
+      if (liveUsers && liveUsers.length > 0) {
+          users = liveUsers;
+      } else {
+          users = DEMO_USERS;
+      }
+      return users.filter(u => u.grievanceCount > 0)
+                  .sort((a, b) => b.grievanceCount - a.grievanceCount)
+                  .slice(0, 5);
+  }, [liveUsers]);
 
-  useEffect(() => {
-    const calculateTopReporters = async () => {
-        if (!firestore) return;
-        setIsReportersLoading(true);
-        try {
-            const usersRef = collection(firestore, "users");
-            const q = query(usersRef);
-            const usersSnapshot = await getDocs(q);
-
-            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-            const sortedUsers = users.filter(u => u.grievanceCount > 0).sort((a, b) => b.grievanceCount - a.grievanceCount).slice(0, 5);
-            setTopReporters(sortedUsers);
-        } catch (error) {
-            console.error("Error fetching top reporters:", error);
-            setTopReporters([]); 
-        } finally {
-            setIsReportersLoading(false);
-        }
-    };
-
-    calculateTopReporters();
-  }, [firestore, grievances]); // Re-calculate when grievances change to keep leaderboard fresh
-
+  const isReportersLoading = isUsersLoading && !liveUsers;
 
   useEffect(() => {
     const grievanceId = searchParams.get('id');
@@ -78,6 +71,15 @@ function AdminDashboardContent() {
   const handleUpdateGrievanceStatus = async (id: string, status: Grievance['status']) => {
     if (!firestore) {
       toast({ variant: "destructive", title: "Firestore not available" });
+      return;
+    }
+     // Don't allow updating demo data
+    if (id.startsWith('demo-')) {
+      toast({
+        variant: "default",
+        title: "Demo Data",
+        description: "Status updates are disabled for demo grievances.",
+      });
       return;
     }
     const grievanceRef = doc(firestore, "grievances", id);
