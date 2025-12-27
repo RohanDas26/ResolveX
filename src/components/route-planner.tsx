@@ -51,7 +51,7 @@ function PlaceAutocomplete({ onPlaceChanged, placeholder, onInputChange, value, 
 }
 
 // Main component to render the calculated route polyline
-function RoutePolyline({ route, color, visible = true }: { route: google.maps.DirectionsRoute | undefined, color: string, visible?: boolean }) {
+function RoutePolyline({ route, color, visible = true, zIndex = 0 }: { route: google.maps.DirectionsRoute | undefined, color: string, visible?: boolean, zIndex?: number }) {
     const map = useMap();
 
     const polyline = useMemo(() => {
@@ -61,10 +61,10 @@ function RoutePolyline({ route, color, visible = true }: { route: google.maps.Di
             strokeColor: color,
             strokeOpacity: visible ? 0.8 : 0.4,
             strokeWeight: visible ? 7 : 5,
-            zIndex: visible ? 1 : 0
+            zIndex: zIndex
         });
         return p;
-    }, [map, route, color, visible]);
+    }, [map, route, color, visible, zIndex]);
 
     useEffect(() => {
         if (!map || !polyline) return;
@@ -120,12 +120,10 @@ export default function RoutePlanner() {
     const geometryLibrary = useMapsLibrary('geometry');
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
-
     
-    type LocationValue = google.maps.LatLngLiteral | { geometry: { location: google.maps.LatLng } } | {name: string, formatted_address: string};
+    const [origin, setOrigin] = useState<google.maps.places.PlaceResult | google.maps.LatLngLiteral | null>(null);
+    const [destination, setDestination] = useState<google.maps.places.PlaceResult | google.maps.LatLngLiteral | null>(null);
 
-    const [origin, setOrigin] = useState<LocationValue | null>(null);
-    const [destination, setDestination] = useState<LocationValue | null>(null);
     const [originText, setOriginText] = useState('');
     const [destinationText, setDestinationText] = useState('');
     const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
@@ -137,11 +135,23 @@ export default function RoutePlanner() {
 
     const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
     const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
-    const [selectedRoute, setSelectedRoute] = useState<google.maps.DirectionsRoute | null>(null);
-
     const [routePreference, setRoutePreference] = useState<'avoid_issues' | 'fastest'>('avoid_issues');
     const [isLoading, setIsLoading] = useState(false);
-    const [issuesOnRoute, setIssuesOnRoute] = useState<Grievance[]>([]);
+    
+    const [fastestRoute, setFastestRoute] = useState<google.maps.DirectionsRoute | null>(null);
+    const [safestRoute, setSafestRoute] = useState<google.maps.DirectionsRoute | null>(null);
+    const [issuesOnFastest, setIssuesOnFastest] = useState<Grievance[]>([]);
+    const [issuesOnSafest, setIssuesOnSafest] = useState<Grievance[]>([]);
+
+
+    const selectedRoute = useMemo(() => {
+      return routePreference === 'fastest' ? fastestRoute : safestRoute;
+    }, [routePreference, fastestRoute, safestRoute]);
+    
+    const issuesOnSelectedRoute = useMemo(() => {
+        return routePreference === 'fastest' ? issuesOnFastest : issuesOnSafest;
+    }, [routePreference, issuesOnFastest, issuesOnSafest]);
+
 
     useEffect(() => {
         if (!routesLibrary || !map) return;
@@ -190,8 +200,10 @@ export default function RoutePlanner() {
         
         setIsLoading(true);
         setDirectionsResult(null);
-        setSelectedRoute(null);
-        setIssuesOnRoute([]);
+        setFastestRoute(null);
+        setSafestRoute(null);
+        setIssuesOnFastest([]);
+        setIssuesOnSafest([]);
         
         const request: google.maps.DirectionsRequest = {
             origin: originLocation,
@@ -228,34 +240,27 @@ export default function RoutePlanner() {
                 return a.duration - b.duration; 
             })[0];
             
-            let chosenRouteData;
-            if (routePreference === 'fastest') {
-                chosenRouteData = fastestRouteData;
-                 toast({
-                    title: "Fastest Route Selected",
-                    description: `Duration: ${chosenRouteData.route.legs[0].duration?.text}. Issues on route: ${chosenRouteData.issueCount}.`,
-                });
-            } else { // 'avoid_issues'
-                chosenRouteData = safestRouteData;
-                const issuesAvoided = fastestRouteData.issueCount - safestRouteData.issueCount;
-                if (issuesAvoided > 0) {
-                     toast({
-                        title: "Safest Route Selected!",
-                        description: `This route avoids ${issuesAvoided} issue(s).`,
-                        variant: 'default',
-                        className: 'bg-green-600 border-green-600 text-white'
-                    });
-                } else {
-                     toast({
-                        title: "Safest Route Selected",
-                        description: `Found route with ${safestRouteData.issueCount} issues. This is the best available option.`,
-                    });
-                }
-            }
-            
             setDirectionsResult(response);
-            setSelectedRoute(chosenRouteData.route);
-            setIssuesOnRoute(chosenRouteData.issues);
+            setFastestRoute(fastestRouteData.route);
+            setIssuesOnFastest(fastestRouteData.issues);
+            setSafestRoute(safestRouteData.route);
+            setIssuesOnSafest(safestRouteData.issues);
+            
+            const issuesAvoided = fastestRouteData.issueCount - safestRouteData.issueCount;
+            if (routePreference === 'avoid_issues' && issuesAvoided > 0) {
+                toast({
+                    title: "Safest Route Selected!",
+                    description: `This route avoids ${issuesAvoided} known issue(s).`,
+                    variant: 'default',
+                    className: 'bg-green-600 border-green-600 text-white'
+                });
+            } else {
+                 toast({
+                    title: "Routes Found",
+                    description: `Displaying the ${routePreference === 'fastest' ? 'fastest' : 'safest'} option.`,
+                });
+            }
+
 
         } catch (e) {
             console.error("Directions request failed", e);
@@ -266,7 +271,8 @@ export default function RoutePlanner() {
     };
 
 
-    const routeColor = routePreference === 'fastest' ? '#3b82f6' : '#22c55e'; // blue or green
+    const fastestRouteColor = '#3b82f6'; // blue-500
+    const safestRouteColor = '#22c55e'; // green-500
 
     return (
         <div className="flex h-[calc(100vh-4rem)] w-full">
@@ -325,8 +331,8 @@ export default function RoutePlanner() {
                                     <p><strong>Duration:</strong> {selectedRoute.legs[0].duration?.text}</p>
                                     <div className="flex items-center gap-2">
                                         <strong>Issues on route:</strong>
-                                        <span className={`font-bold ${issuesOnRoute.length > 0 ? 'text-amber-500' : 'text-green-500'}`}>{issuesOnRoute.length}</span>
-                                        {issuesOnRoute.length > 0 && <AlertTriangle className="text-amber-500 h-4 w-4"/>}
+                                        <span className={`font-bold ${issuesOnSelectedRoute.length > 0 ? 'text-amber-500' : 'text-green-500'}`}>{issuesOnSelectedRoute.length}</span>
+                                        {issuesOnSelectedRoute.length > 0 && <AlertTriangle className="text-amber-500 h-4 w-4"/>}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -375,20 +381,22 @@ export default function RoutePlanner() {
                          <RoutePolyline 
                             key={index} 
                             route={route} 
-                            color={route === selectedRoute ? routeColor : '#808080'}
+                            color={route === selectedRoute ? (routePreference === 'fastest' ? fastestRouteColor : safestRouteColor) : '#808080'}
                             visible={route === selectedRoute}
+                            zIndex={route === selectedRoute ? 1 : 0}
                          />
                     ))}
                      {directionsResult && directionsResult.routes.map((route, index) => (
-                        <RoutePolyline
+                         <RoutePolyline 
                             key={`alt-${index}`}
                             route={route}
-                            color="#808080"
+                            color="#808080" // Grey for non-selected routes
                             visible={route !== selectedRoute}
+                            zIndex={0}
                         />
                     ))}
                     
-                    {issuesOnRoute.map(issue => (
+                    {issuesOnSelectedRoute.map(issue => (
                          <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
                            <div className="p-1 bg-amber-500 rounded-full shadow-lg">
                              <AlertTriangle className="h-4 w-4 text-white" />
@@ -401,4 +409,3 @@ export default function RoutePlanner() {
     );
 }
 
-    
