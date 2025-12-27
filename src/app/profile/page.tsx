@@ -14,7 +14,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, doc, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs, orderBy, limit } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 
@@ -60,13 +60,10 @@ export default function ProfilePage() {
 
             try {
                 const usersRef = collection(firestore, "users");
-                const q = query(usersRef, where("grievanceCount", ">", 0));
+                const q = query(usersRef, orderBy("grievanceCount", "desc"), limit(5));
                 const usersSnapshot = await getDocs(q);
 
-                const users = usersSnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
-                    .sort((a, b) => b.grievanceCount - a.grievanceCount)
-                    .slice(0, 5);
+                const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
                 setLeaderboardUsers(users);
             } catch (error) {
                 console.error("Error fetching top reporters:", error);
@@ -191,3 +188,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    

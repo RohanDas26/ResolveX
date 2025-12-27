@@ -67,15 +67,10 @@ const getRandomLocationInRadius = (
   };
 };
 
-// Pick random center & generate point in its radius
 const getClusterLocation = () => {
   const center = DEMO_CENTERS[Math.floor(Math.random() * DEMO_CENTERS.length)];
   return getRandomLocationInRadius(center.lat, center.lng, center.radiusKm);
 };
-
-/**
- * DATA POOLS
- */
 
 const descriptions = [
   "Large pothole in the middle of the road causing traffic.",
@@ -103,7 +98,7 @@ const descriptions = [
 const userNames = [
   "Priya", "Rohan", "Anika", "Vikram", "Sneha", "Arjun", "Neha",
   "Karthik", "Ishita", "Rahul", "Divya", "Aditya", "Pooja", "Sanjay", "Meera",
-  "Aarav", "Dia", "Kabir", "Zara", "Ravi"
+  "Aarav", "Dia", "Kabir", "Zara", "Ravi", "Sonia", "Amit", "Riya", "Jay", "Kavya"
 ];
 
 const statuses: Grievance["status"][] = ["Submitted", "In Progress", "Resolved"];
@@ -153,7 +148,6 @@ export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = Array.from(
   (_, i) => generateRandomGrievance(i + 1)
 );
 
-// --- RE-INTRODUCING DEMO_USERS ---
 const grievancesByUser = DEMO_GRIEVANCES.reduce((acc, grievance) => {
     acc[grievance.userId] = (acc[grievance.userId] || 0) + 1;
     return acc;
@@ -164,8 +158,10 @@ export const DEMO_USERS: UserProfile[] = Object.keys(grievancesByUser).map(userI
     return {
         id: userId,
         name: grievance.userName,
-        email: `${grievance.userName.toLowerCase()}@example.com`,
+        email: `${grievance.userName.toLowerCase().replace(' ', '')}@example.com`,
         imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${userId}`,
         grievanceCount: grievancesByUser[userId],
     };
-}).sort((a, b) => b.grievanceCount - a.grievanceCount);
+});
+
+    

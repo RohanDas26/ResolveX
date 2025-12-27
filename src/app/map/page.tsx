@@ -59,7 +59,9 @@ export default function MapPage() {
     setSelectedGrievanceId(id);
   }
 
-  if (isUserLoading || isGrievancesLoading) {
+  const isLoading = isUserLoading || isGrievancesLoading;
+
+  if (isLoading && !grievances) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -81,3 +83,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+    
