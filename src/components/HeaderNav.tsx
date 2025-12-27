@@ -7,6 +7,7 @@ import { Icons } from "./icons";
 import { PlusCircle, Map, Milestone, ShieldCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { MobileNav } from "./mobile-nav";
 
 const navLinks = [
   { href: "/map", label: "Live Map", icon: Map },
@@ -19,10 +20,11 @@ export default function HeaderNav() {
 
   return (
     <div className="container flex h-16 max-w-screen-2xl items-center">
+       <MobileNav mainNavItems={navLinks} />
       <div className="mr-8 flex items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <Icons.logo className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">ResolveX</span>
+          <span className="hidden font-bold sm:inline-block text-lg">ResolveX</span>
         </Link>
         <nav className="hidden md:flex items-center gap-2">
           {navLinks.map((link) => (
