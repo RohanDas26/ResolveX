@@ -9,66 +9,8 @@ import AdminMap from "@/components/admin/admin-map";
 import { useSearchParams } from 'next/navigation'
 import { doc, updateDoc, collection, query, writeBatch, getDocs } from "firebase/firestore";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
+import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
-
-// ONE-TIME DATA SEEDING COMPONENT
-function SeedDatabaseButton() {
-    const firestore = useFirestore();
-    const { toast } = useToast();
-    const [isSeeding, setIsSeeding] = useState(false);
-    const [isDone, setIsDone] = useState(false);
-
-    const handleSeed = async () => {
-        if (!firestore) return;
-        setIsSeeding(true);
-
-        try {
-            const grievancesRef = collection(firestore, 'grievances');
-            const grievancesSnapshot = await getDocs(grievancesRef);
-            if (grievancesSnapshot.size > 50) { // Don't re-seed if already populated
-                toast({ title: "Database already seeded!" });
-                setIsDone(true);
-                return;
-            }
-
-            const batch = writeBatch(firestore);
-
-            // Seed grievances
-            DEMO_GRIEVANCES.forEach(grievance => {
-                const docRef = doc(collection(firestore, "grievances"));
-                const { id, pinColor, ...grievanceData } = grievance;
-                batch.set(docRef, grievanceData);
-            });
-
-            // Seed users
-            DEMO_USERS.forEach(user => {
-                const userRef = doc(firestore, "users", user.id);
-                batch.set(userRef, user);
-            });
-
-            await batch.commit();
-            toast({ title: "Database Seeded Successfully!", description: "Map and leaderboards are now populated." });
-            setIsDone(true);
-        } catch (error: any) {
-            console.error("Seeding error:", error);
-            toast({ variant: "destructive", title: "Seeding Failed", description: error.message });
-        } finally {
-            setIsSeeding(false);
-        }
-    };
-    
-    if (isDone) return null;
-
-    return (
-        <div className="fixed bottom-4 right-4 z-50">
-            <Button onClick={handleSeed} disabled={isSeeding} size="lg">
-                {isSeeding ? "Seeding..." : "Populate Demo Data"}
-            </Button>
-        </div>
-    );
-}
-
 
 function AdminDashboardContent() {
   const { toast } = useToast();
@@ -78,12 +20,16 @@ function AdminDashboardContent() {
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   
-  const grievancesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'grievances');
-  }, [firestore]);
+  const { data: liveGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(
+    useMemoFirebase(() => firestore ? collection(firestore, 'grievances') : null, [firestore])
+  );
 
-  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  const grievances = useMemo(() => {
+    if (liveGrievances && liveGrievances.length > 0) {
+      return liveGrievances;
+    }
+    return DEMO_GRIEVANCES;
+  }, [liveGrievances]);
   
   const [topReporters, setTopReporters] = useState<UserProfile[]>([]);
   const [isReportersLoading, setIsReportersLoading] = useState(true);
@@ -178,7 +124,6 @@ function AdminDashboardContent() {
           selectedGrievanceId={selectedGrievanceId}
         />
       </div>
-      <SeedDatabaseButton />
     </div>
   );
 }
@@ -186,5 +131,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-
