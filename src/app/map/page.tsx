@@ -6,9 +6,9 @@ import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { type Grievance } from "@/lib/types";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { collection } from "firebase/firestore";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
@@ -32,10 +32,13 @@ export default function MapPage() {
   const searchParams = useSearchParams();
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
-  // Force the use of demo grievances to ensure a populated map for demonstration.
-  const grievances = DEMO_GRIEVANCES;
-  const isGrievancesLoading = false; // Demo data is never in a loading state.
+  const grievancesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'grievances');
+  }, [firestore]);
+  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
@@ -55,8 +58,8 @@ export default function MapPage() {
     setSelectedGrievanceId(id);
   }
 
-  // Show loader only if the user auth state is loading
-  const isLoading = isUserLoading;
+  // Show loader if user auth state is loading or grievances are loading
+  const isLoading = isUserLoading || (isGrievancesLoading && !grievances);
 
   if (isLoading) {
     return (
