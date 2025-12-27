@@ -30,15 +30,11 @@ function AdminDashboardContent() {
   const [isReportersLoading, setIsReportersLoading] = useState(true);
 
   const grievances = useMemo(() => {
-    if (liveGrievances && liveGrievances.length > 0) {
-      return liveGrievances;
-    }
-    if (!isGrievancesLoading && (!liveGrievances || liveGrievances.length === 0)) {
-        // @ts-ignore
-        return DEMO_GRIEVANCES;
-    }
-    return [];
-  }, [liveGrievances, isGrievancesLoading]);
+    // For a consistent and rich demo experience, we always show the demo data on the admin map.
+    // Live data is still used for updates.
+    // @ts-ignore
+    return DEMO_GRIEVANCES;
+  }, []);
 
 
   useEffect(() => {
@@ -137,7 +133,7 @@ function AdminDashboardContent() {
       <div className="flex-1 h-full w-full md:h-auto">
         <AdminMap 
           grievances={filteredGrievances}
-          isLoading={isLoading}
+          isLoading={false} // Demo data is always available
           onMarkerClick={handleSelectGrievance}
           selectedGrievanceId={selectedGrievanceId}
         />

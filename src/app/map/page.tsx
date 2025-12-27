@@ -50,39 +50,41 @@ export default function MapPage() {
   const { data: liveGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
 
   const grievances = useMemo(() => {
-    // Prioritize live data, but fall back to demo data if live data is empty or null
-    if (liveGrievances && liveGrievances.length > 0) {
-      return liveGrievances;
-    }
-    if (!isGrievancesLoading && (!liveGrievances || liveGrievances.length === 0)) {
-        // @ts-ignore
-        return DEMO_GRIEVANCES;
-    }
-    return []; // Return empty while loading initially
-  }, [liveGrievances, isGrievancesLoading]);
+    // For a consistent and rich demo experience, we always show the demo data on the public map.
+    // Live data would be used in a production version.
+    // @ts-ignore
+    return DEMO_GRIEVANCES;
+  }, []);
 
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
     if (grievanceIdFromUrl) {
-        setSelectedGrievanceId(grievanceIdFromUrl);
+        // Also check live data if the ID comes from a real submission
+        const liveGrievance = liveGrievances?.find(g => g.id === grievanceIdFromUrl);
+        if (liveGrievance) {
+             setSelectedGrievanceId(grievanceIdFromUrl);
+        } else if (DEMO_GRIEVANCES.find(g => g.id === grievanceIdFromUrl)) {
+             setSelectedGrievanceId(grievanceIdFromUrl);
+        }
     }
-  }, [searchParams]);
+  }, [searchParams, liveGrievances]);
   
   const selectedGrievance = useMemo(() => {
     // Check both live and demo data for the selected ID
-    return grievances?.find(g => g.id === selectedGrievanceId) || null;
-  }, [grievances, selectedGrievanceId]);
+    return grievances?.find(g => g.id === selectedGrievanceId) || liveGrievances?.find(g => g.id === selectedGrievanceId) || null;
+  }, [grievances, liveGrievances, selectedGrievanceId]);
   
   const handleMarkerClick = (id: string | null) => {
     setSelectedGrievanceId(id);
   }
 
-  if ((isGrievancesLoading && (!liveGrievances || liveGrievances.length === 0)) || isUserLoading) {
+  // We can show the map immediately with demo data, so we don't need a heavy loading screen.
+  if (isUserLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg">Loading Live Grievance Data...</p>
+        <p className="ml-4 text-lg">Authenticating...</p>
       </div>
     );
   }
@@ -90,7 +92,7 @@ export default function MapPage() {
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full animate-fade-in">
       <GrievanceMap 
-        grievances={grievances} 
+        grievances={[...grievances, ...(liveGrievances || [])]} 
         onMarkerClick={handleMarkerClick}
         selectedGrievanceId={selectedGrievanceId}
         currentUserId={user?.uid}
