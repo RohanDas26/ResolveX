@@ -17,24 +17,18 @@ service cloud.firestore {
       // The document ID must match the UID of the user creating it.
       allow create: if isOwner(userId);
       
-      // Only the owner of the document can update or delete it.
-      // Any signed-in user can read any profile (for leaderboards).
+      // Only the owner of the document can read, update or delete it.
       allow read, update, delete: if isOwner(userId);
       
       // Any signed-in user can list all users (for leaderboards).
       allow list: if isSignedIn();
     }
-
-    // Allow any authenticated user to list all grievances.
-    // This is required for the main map view.
-    match /grievances {
-      allow list: if isSignedIn();
-    }
     
-    // Rules for individual grievance documents.
+    // Rules for the 'grievances' collection
     match /grievances/{grievanceId} {
-      // Any authenticated user can read individual grievance documents.
-      allow get: if isSignedIn();
+      // Any authenticated user can read individual grievance documents
+      // and list the entire collection for map views.
+      allow get, list: if isSignedIn();
 
       // An authenticated user can create a new grievance.
       // The `userId` in the new document must match the creator's UID.
