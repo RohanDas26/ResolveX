@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import MainLayout from './main-layout';
+import { AuthProvider } from '@/hooks/use-auth-context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -22,12 +23,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
-        <Providers>
-          <MainLayout>
-            {children}
-          </MainLayout>
-          <Toaster />
-        </Providers>
+        <AuthProvider>
+          <Providers>
+            <MainLayout>
+              {children}
+            </MainLayout>
+            <Toaster />
+          </Providers>
+        </AuthProvider>
       </body>
     </html>
   );

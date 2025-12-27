@@ -13,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
@@ -125,11 +124,22 @@ function SubmitPageContent() {
 
         setIsSubmitting(true);
 
+        // This is a frontend-only simulation.
+        // In a real app, you would send this data to your backend.
+        console.log("Submitting Grievance:", {
+            description: values.description,
+            photo: values.photo[0].name,
+            location,
+            category: suggestedCategory,
+            userName: "Demo User" // Hardcoded for demo
+        });
+
+
         // Simulate a fake submission process
         setTimeout(() => {
             toast({
-                title: "New grievance added",
-                description: "It will be updated on the map shortly.",
+                title: "Grievance Submitted (Demo)",
+                description: "Your report has been received and will appear on the map.",
             });
             setIsSubmitting(false);
             router.push('/map');

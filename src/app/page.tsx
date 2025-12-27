@@ -45,9 +45,14 @@ export default function HomePage() {
               description="See leaderboards, track resolution progress, and be a part of making your community better."
             />
           </div>
-          <Button size="lg" className="mt-10 sm:mt-12 font-semibold text-base sm:text-lg" onClick={() => router.push('/map')}>
-              Go to Map <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+           <div className="mt-10 sm:mt-12 space-x-4">
+             <Button size="lg" className="font-semibold text-base sm:text-lg" onClick={() => router.push('/map')}>
+                Go to Map <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button size="lg" variant="outline" className="font-semibold text-base sm:text-lg" onClick={() => router.push('/auth')}>
+                Get Started
+            </Button>
+          </div>
       </div>
     </div>
   );
