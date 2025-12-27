@@ -136,7 +136,7 @@ export default function GrievanceMap({
                       <Badge variant={getStatusVariant(selectedGrievance.status)} className="shrink-0">{selectedGrievance.status}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                      By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
+                      By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(selectedGrievance.createdAt, { addSuffix: true }) : 'Just now'}
                   </p>
               </div>
           </div>

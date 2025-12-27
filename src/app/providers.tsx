@@ -2,8 +2,6 @@
 "use client";
 
 import { APIProvider } from "@vis.gl/react-google-maps";
-import { FirebaseClientProvider } from "@/firebase";
-import { useFirebase } from "@/firebase/provider";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -11,7 +9,6 @@ function MapProvider({ children }: { children: React.ReactNode }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
 
   useEffect(() => {
-    // This ensures the env variable is only read on the client side
     setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || null);
   }, []);
 
@@ -51,10 +48,8 @@ function MapProvider({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <FirebaseClientProvider>
       <MapProvider>
         {children}
       </MapProvider>
-    </FirebaseClientProvider>
   );
 }

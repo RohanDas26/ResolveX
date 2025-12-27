@@ -48,7 +48,7 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
 
         // Insight 2: Emerging Hotspot
         const recentGrievances = grievances.filter(g => {
-            const grievanceDate = g.createdAt.toDate();
+            const grievanceDate = g.createdAt;
             const sevenDaysAgo = subDays(new Date(), 7);
             return grievanceDate > sevenDaysAgo;
         });
@@ -71,7 +71,7 @@ function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
         let resolutionTime: number | null = null;
         if (submittedGrievances.length > 0) {
             const totalDays = submittedGrievances.reduce((acc, g) => {
-                return acc + differenceInDays(new Date(), g.createdAt.toDate());
+                return acc + differenceInDays(new Date(), g.createdAt);
             }, 0);
             resolutionTime = Math.round(totalDays / submittedGrievances.length);
         }
@@ -195,7 +195,7 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
         
         // Using total complaints in last 30 days as a proxy for avgMonthlyComplaints
         const avgMonthlyComplaints = areaGrievances.filter(g => {
-            const grievanceDate = g.createdAt.toDate();
+            const grievanceDate = g.createdAt;
             const thirtyDaysAgo = subDays(new Date(), 30);
             return grievanceDate > thirtyDaysAgo;
         }).length || openCount * 1.2; // Fallback based on user's suggestion
@@ -343,8 +343,8 @@ export default function AnalyticsPage() {
 
         if (grievances) {
             grievances.forEach(g => {
-                if (g.createdAt && 'seconds' in g.createdAt) {
-                    const grievanceDate = new Date(g.createdAt.seconds * 1000);
+                if (g.createdAt) {
+                    const grievanceDate = g.createdAt;
                     const dayStr = format(grievanceDate, "MMM dd");
                     const dayData = last30Days.find(d => d.date === dayStr);
                     if (dayData) {
@@ -442,5 +442,3 @@ export default function AnalyticsPage() {
         </div>
     );
 }
-
-    

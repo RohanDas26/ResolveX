@@ -1,6 +1,5 @@
 
 import type { Grievance, UserProfile } from "./types";
-import { GeoPoint, Timestamp } from "firebase/firestore";
 
 /**
  * CLUSTERED GEO DISTRIBUTION
@@ -62,8 +61,8 @@ const getRandomLocationInRadius = (
   const dLng = (radiusDegLng / radiusDegLat) * r * Math.sin(theta);
 
   return {
-    lat: centerLat + dLat,
-    lng: centerLng + dLng,
+    latitude: centerLat + dLat,
+    longitude: centerLng + dLng,
   };
 };
 
@@ -132,10 +131,10 @@ const generateRandomGrievance = (idIndex: number): Grievance & { pinColor: strin
     userId,
     userName,
     description,
-    location: new GeoPoint(randomLocation.lat, randomLocation.lng),
+    location: { latitude: randomLocation.latitude, longitude: randomLocation.longitude },
     imageUrl: `https://picsum.photos/seed/${imageSeed}-${idIndex}/400/300`,
     status,
-    createdAt: Timestamp.fromDate(randomDate),
+    createdAt: randomDate,
     pinColor: getPinColor(status),
     riskScore: Math.floor(Math.random() * 80) + 10,
     aiNotes: "This is a sample AI-generated note for a demo grievance. Analysis would provide more details."
@@ -163,5 +162,3 @@ export const DEMO_USERS: UserProfile[] = Object.keys(grievancesByUser).map(userI
         grievanceCount: grievancesByUser[userId],
     };
 });
-
-    

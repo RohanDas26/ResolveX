@@ -133,7 +133,7 @@ export default function AdminSidebar({
                                         <p className="font-semibold truncate">{g.description}</p>
                                         <div className="flex justify-between items-center">
                                             <p className="text-sm text-muted-foreground">
-                                                <ClientTime date={g.createdAt?.toDate()} />
+                                                <ClientTime date={g.createdAt} />
                                             </p>
                                             <Badge variant={g.status === 'Resolved' ? 'default' : g.status === 'In Progress' ? 'secondary' : 'destructive'} className="shrink-0">{g.status}</Badge>
                                         </div>

@@ -307,10 +307,10 @@ export default function RoutePlanner() {
           location: {
             latitude: point.lat(),
             longitude: point.lng(),
-          } as any,
+          },
           imageUrl: "https://placehold.co/400x300/ef4444/ffffff?text=Issue",
           status: "Submitted",
-          createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
+          createdAt: new Date(),
         });
       }
     }

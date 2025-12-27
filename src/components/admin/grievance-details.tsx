@@ -48,7 +48,7 @@ export default function GrievanceDetails({ grievance, onUpdateGrievanceStatus, n
                     <CardTitle className="text-lg">{grievance.description}</CardTitle>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-muted-foreground mt-4">
                         <div className="flex items-center gap-2"><User /><span>{grievance.userName}</span></div>
-                        <div className="flex items-center gap-2"><Calendar /><span>{grievance.createdAt ? format(grievance.createdAt.toDate(), "PP") : 'N/A'}</span></div>
+                        <div className="flex items-center gap-2"><Calendar /><span>{grievance.createdAt ? format(grievance.createdAt, "PP") : 'N/A'}</span></div>
                         <div className="flex items-center gap-2 col-span-2"><MapPin /><span>{grievance.location.latitude.toFixed(4)}, {grievance.location.longitude.toFixed(4)}</span></div>
                     </div>
                 </CardContent>

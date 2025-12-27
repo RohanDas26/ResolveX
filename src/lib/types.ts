@@ -1,15 +1,18 @@
 
-import type { Timestamp, GeoPoint } from "firebase/firestore";
+export interface Location {
+  latitude: number;
+  longitude: number;
+}
 
 export interface Grievance {
   id: string;
   userId: string;
   userName: string;
   description: string;
-  location: GeoPoint;
+  location: Location;
   imageUrl: string;
   status: "Submitted" | "In Progress" | "Resolved";
-  createdAt: Timestamp;
+  createdAt: Date;
   pinColor?: string;
   // New fields for AI analysis
   riskScore?: number; // A score from 0 to 100
@@ -24,5 +27,3 @@ export interface UserProfile {
     grievanceCount: number;
     isAdmin?: boolean;
 }
-
-    
