@@ -1,10 +1,18 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function StarTrail() {
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  useEffect(() => {
+    if (!isMounted) return;
+
     const starTrail = document.getElementById('star-trail');
     if (!starTrail) return;
 
@@ -43,7 +51,11 @@ export default function StarTrail() {
     const interval = setInterval(createSnowFlake, 10);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isMounted]);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return <div id="star-trail" className="fixed top-0 left-0 w-full h-full star-trail -z-10"></div>;
 }
