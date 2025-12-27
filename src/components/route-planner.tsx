@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -261,26 +260,36 @@ export default function RoutePlanner() {
   const countIssuesOnRoute = (
     route: google.maps.DirectionsRoute,
     openGrievances: Grievance[]
-  ) => {
-    if (!route || !geometryLibrary) return [];
-
-    const routePath = new google.maps.Polyline({
-      path: route.overview_path,
-    });
-
-    const polyUtil =
-      (google.maps.geometry && google.maps.geometry.poly) ||
-      geometryLibrary.poly;
-
-    const onRoute = openGrievances.filter((g) => {
+  ): Grievance[] => {
+    if (!route || !geometryLibrary || !route.overview_path) return [];
+  
+    const onRoute: Grievance[] = [];
+  
+    for (const grievance of openGrievances) {
       const grievanceLoc = new google.maps.LatLng(
-        g.location.latitude,
-        g.location.longitude
+        grievance.location.latitude,
+        grievance.location.longitude
       );
-      // ~50m tolerance
-      return polyUtil.isLocationOnEdge(grievanceLoc, routePath, 1e-3);
-    });
-
+  
+      // The isLocationOnEdge function is very precise. A more robust way is to check the distance.
+      // We iterate through segments of the route polyline.
+      for (let i = 0; i < route.overview_path.length - 1; i++) {
+        const segmentStart = route.overview_path[i];
+        const segmentEnd = route.overview_path[i+1];
+        
+        // Create a temporary polyline for the segment
+        const segmentPolyline = new google.maps.Polyline({
+          path: [segmentStart, segmentEnd],
+        });
+        
+        // Use isLocationOnEdge for the small segment. This is more reliable than for the whole route.
+        // The third argument is tolerance in degrees. 1e-4 is roughly 11 meters.
+        if (geometryLibrary.poly.isLocationOnEdge(grievanceLoc, segmentPolyline, 1e-4)) {
+           onRoute.push(grievance);
+           break; // Move to the next grievance once it's found on any segment
+        }
+      }
+    }
     return onRoute;
   };
 
