@@ -134,7 +134,6 @@ export default function AuthPage() {
       router.push("/map");
 
     } catch (error: any) {
-      console.error(error);
       let description = "An unknown error occurred during sign-in.";
       switch (error.code) {
         case 'auth/user-not-found':
