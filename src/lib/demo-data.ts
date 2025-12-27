@@ -4,65 +4,45 @@ import { GeoPoint, Timestamp } from "firebase/firestore";
 
 /**
  * CLUSTERED GEO DISTRIBUTION
- * Multiple city/district centers across Telangana
+ * The 33 districts of Telangana
  */
 
 export const DEMO_CENTERS = [
-  {
-    name: "KLH University Campus",
-    lat: 17.3946,
-    lng: 78.3324,
-    radiusKm: 2, // High density cluster
-  },
-  {
-    name: "Gajularamaram Industrial Area",
-    lat: 17.5473,
-    lng: 78.4048,
-    radiusKm: 3,
-  },
-  {
-    name: "Hyderabad",
-    lat: 17.385,
-    lng: 78.486,
-    radiusKm: 15,
-  },
-  {
-    name: "Warangal",
-    lat: 17.978,
-    lng: 79.594,
-    radiusKm: 10,
-  },
-  {
-    name: "Nizamabad",
-    lat: 18.672,
-    lng: 78.094,
-    radiusKm: 8,
-  },
-  {
-    name: "Karimnagar",
-    lat: 18.438,
-    lng: 79.128,
-    radiusKm: 8,
-  },
-  {
-    name: "Khammam",
-    lat: 17.247,
-    lng: 80.151,
-    radiusKm: 8,
-  },
-  {
-    name: "Nalgonda",
-    lat: 17.052,
-    lng: 79.267,
-    radiusKm: 8,
-  },
-  {
-    name: "Mahbubnagar",
-    lat: 16.74,
-    lng: 77.985,
-    radiusKm: 10,
-  },
+    { name: "Adilabad", lat: 19.66, lng: 78.53, radiusKm: 15 },
+    { name: "Bhadradri Kothagudem", lat: 17.67, lng: 80.88, radiusKm: 20 },
+    { name: "Hanumakonda", lat: 18.00, lng: 79.58, radiusKm: 10 },
+    { name: "Hyderabad", lat: 17.38, lng: 78.48, radiusKm: 10 },
+    { name: "Jagtial", lat: 18.80, lng: 78.92, radiusKm: 15 },
+    { name: "Jangaon", lat: 17.72, lng: 79.18, radiusKm: 15 },
+    { name: "Jayashankar Bhupalpally", lat: 18.42, lng: 79.87, radiusKm: 20 },
+    { name: "Jogulamba Gadwal", lat: 16.23, lng: 77.98, radiusKm: 15 },
+    { name: "Kamareddy", lat: 18.32, lng: 78.35, radiusKm: 15 },
+    { name: "Karimnagar", lat: 18.43, lng: 79.12, radiusKm: 15 },
+    { name: "Khammam", lat: 17.25, lng: 80.15, radiusKm: 15 },
+    { name: "Komaram Bheem", lat: 19.35, lng: 79.29, radiusKm: 20 },
+    { name: "Mahabubabad", lat: 17.60, lng: 80.00, radiusKm: 15 },
+    { name: "Mahbubnagar", lat: 16.74, lng: 77.98, radiusKm: 15 },
+    { name: "Mancherial", lat: 18.87, lng: 79.45, radiusKm: 15 },
+    { name: "Medak", lat: 18.04, lng: 78.26, radiusKm: 15 },
+    { name: "Medchal-Malkajgiri", lat: 17.50, lng: 78.50, radiusKm: 10 },
+    { name: "Mulugu", lat: 18.18, lng: 80.10, radiusKm: 20 },
+    { name: "Nagarkurnool", lat: 16.48, lng: 78.32, radiusKm: 15 },
+    { name: "Nalgonda", lat: 17.05, lng: 79.26, radiusKm: 15 },
+    { name: "Narayanpet", lat: 16.75, lng: 77.50, radiusKm: 15 },
+    { name: "Nirmal", lat: 19.10, lng: 78.35, radiusKm: 15 },
+    { name: "Nizamabad", lat: 18.67, lng: 78.09, radiusKm: 15 },
+    { name: "Peddapalli", lat: 18.61, lng: 79.37, radiusKm: 15 },
+    { name: "Rajanna Sircilla", lat: 18.38, lng: 78.82, radiusKm: 15 },
+    { name: "Ranga Reddy", lat: 17.25, lng: 78.30, radiusKm: 10 },
+    { name: "Sangareddy", lat: 17.62, lng: 78.08, radiusKm: 15 },
+    { name: "Siddipet", lat: 18.10, lng: 78.85, radiusKm: 15 },
+    { name: "Suryapet", lat: 17.15, lng: 79.62, radiusKm: 15 },
+    { name: "Vikarabad", lat: 17.33, lng: 77.90, radiusKm: 15 },
+    { name: "Wanaparthy", lat: 16.36, lng: 78.06, radiusKm: 15 },
+    { name: "Warangal", lat: 17.97, lng: 79.60, radiusKm: 10 },
+    { name: "Yadadri Bhuvanagiri", lat: 17.51, lng: 78.88, radiusKm: 15 }
 ];
+
 
 const KM_PER_DEG_LAT = 111;
 
@@ -270,3 +250,5 @@ export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = ALL_GRIEVAN
     ...g,
     pinColor: getPinColor(g.status),
 }));
+
+    
