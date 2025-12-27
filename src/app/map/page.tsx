@@ -9,6 +9,8 @@ import { type Grievance } from "@/lib/types";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
 import { collection } from "firebase/firestore";
+import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
@@ -45,7 +47,20 @@ export default function MapPage() {
     return collection(firestore, 'grievances');
   }, [firestore]);
   
-  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  const { data: liveGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+
+  const grievances = useMemo(() => {
+    // Prioritize live data, but fall back to demo data if live data is empty or null
+    if (liveGrievances && liveGrievances.length > 0) {
+      return liveGrievances;
+    }
+    if (!isGrievancesLoading && (!liveGrievances || liveGrievances.length === 0)) {
+        // @ts-ignore
+        return DEMO_GRIEVANCES;
+    }
+    return []; // Return empty while loading initially
+  }, [liveGrievances, isGrievancesLoading]);
+
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
@@ -55,6 +70,7 @@ export default function MapPage() {
   }, [searchParams]);
   
   const selectedGrievance = useMemo(() => {
+    // Check both live and demo data for the selected ID
     return grievances?.find(g => g.id === selectedGrievanceId) || null;
   }, [grievances, selectedGrievanceId]);
   
@@ -62,7 +78,7 @@ export default function MapPage() {
     setSelectedGrievanceId(id);
   }
 
-  if (isGrievancesLoading || isUserLoading) {
+  if ((isGrievancesLoading && (!liveGrievances || liveGrievances.length === 0)) || isUserLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
