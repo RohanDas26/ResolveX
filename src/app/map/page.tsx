@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { type Grievance } from "@/lib/types";
-import { useUser } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
 import { DEMO_GRIEVANCES } from "@/lib/demo-data";
 
@@ -30,7 +29,6 @@ function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null 
 export default function MapPage() {
   const searchParams = useSearchParams();
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
-  const { user, isUserLoading } = useUser();
   const [grievances, setGrievances] = useState<Grievance[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,10 +59,7 @@ export default function MapPage() {
     setSelectedGrievanceId(id);
   }
 
-  // Show loader if user auth state is loading or grievances are loading
-  const isPageLoading = isUserLoading || isLoading;
-
-  if (isPageLoading) {
+  if (isLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -79,12 +74,9 @@ export default function MapPage() {
         grievances={grievances} 
         onMarkerClick={handleMarkerClick}
         selectedGrievanceId={selectedGrievanceId}
-        currentUserId={user?.uid}
       >
         {selectedGrievance && <MapEffect selectedGrievance={selectedGrievance} />}
       </GrievanceMap>
     </div>
   );
 }
-
-    

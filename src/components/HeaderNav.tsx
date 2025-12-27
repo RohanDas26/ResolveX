@@ -7,23 +7,15 @@ import { Icons } from "./icons";
 import { PlusCircle, Map, Milestone, ShieldCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { UserNav } from "./user-nav";
-import { useUser } from "@/firebase";
 
-const publicNavLinks = [
+const navLinks = [
   { href: "/map", label: "Live Map", icon: Map },
   { href: "/directions", label: "Directions", icon: Milestone },
-];
-
-const privateNavLinks = [
   { href: "/admin", label: "Admin", icon: ShieldCheck },
 ];
 
 export default function HeaderNav() {
   const pathname = usePathname();
-  const { user } = useUser();
-
-  const navLinks = [...publicNavLinks, ...(user ? privateNavLinks : [])];
 
   return (
     <div className="container flex h-16 max-w-screen-2xl items-center">
@@ -54,15 +46,12 @@ export default function HeaderNav() {
         </nav>
       </div>
       <div className="flex flex-1 items-center justify-end space-x-4">
-        {user && (
-          <Button asChild>
-            <Link href="/submit">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New Grievance
-            </Link>
-          </Button>
-        )}
-        <UserNav />
+        <Button asChild>
+          <Link href="/submit">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Grievance
+          </Link>
+        </Button>
       </div>
     </div>
   );
