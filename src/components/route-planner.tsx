@@ -163,7 +163,7 @@ export default function RoutePlanner() {
     }
     
     const countIssuesOnRoute = (route: google.maps.DirectionsRoute, openGrievances: Grievance[]) => {
-        if (!geometryLibrary) return 0;
+        if (!geometryLibrary) return [];
         
         const routePath = route.overview_path;
         
@@ -207,7 +207,7 @@ export default function RoutePlanner() {
             setDirectionsResult(response);
             const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
 
-            // --- New Logic ---
+            // --- Corrected Logic ---
             const routesWithAnalysis = response.routes.map(route => {
                 const issues = countIssuesOnRoute(route, openGrievances);
                 return {
@@ -221,8 +221,13 @@ export default function RoutePlanner() {
             // Fastest route is the one with the minimum duration
             const fastestRouteData = [...routesWithAnalysis].sort((a, b) => a.duration - b.duration)[0];
             
-            // Safest route is the one with the minimum issue count
-            const safestRouteData = [...routesWithAnalysis].sort((a, b) => a.issueCount - b.issueCount)[0];
+            // Safest route is the one with the minimum issue count, then shortest duration as a tie-breaker
+            const safestRouteData = [...routesWithAnalysis].sort((a, b) => {
+                if (a.issueCount !== b.issueCount) {
+                    return a.issueCount - b.issueCount;
+                }
+                return a.duration - b.duration;
+            })[0];
 
             let chosenRouteData;
             if (routePreference === 'fastest') {
