@@ -49,7 +49,7 @@ function SubmitPageContent() {
     const [locationError, setLocationError] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const { user, profile, isUserLoading } = useUser();
+    const { user, profile, isUserLoading, isProfileLoading } = useUser();
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
 
@@ -125,7 +125,7 @@ function SubmitPageContent() {
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        if (isUserLoading) {
+        if (isUserLoading || isProfileLoading) {
             toast({ variant: "destructive", title: "Authentication Pending", description: "Please wait for your user profile to load." });
             return;
         }
@@ -236,6 +236,8 @@ function SubmitPageContent() {
             </div>
         )
     }
+
+    const isDataLoading = isUserLoading || isProfileLoading;
 
     return (
         <Card className="w-full max-w-2xl border-0 sm:border sm:shadow-lg animate-fade-in-up">
@@ -361,9 +363,9 @@ function SubmitPageContent() {
                             )}
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isUserLoading}>
-                            {isSubmitting || isUserLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                            {isSubmitting ? "Submitting..." : isUserLoading ? "Loading Profile..." : "Submit Grievance"}
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isDataLoading}>
+                            {isDataLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isSubmitting ? "Submitting..." : isDataLoading ? "Loading Profile..." : "Submit Grievance"}
                         </Button>
                     </form>
                 </Form>
