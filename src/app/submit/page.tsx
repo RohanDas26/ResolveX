@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
 import { useUser, useFirestore, useFirebaseApp } from "@/firebase";
-import { GeoPoint, Timestamp, addDoc, collection } from "firebase/firestore";
+import { GeoPoint, Timestamp, addDoc, collection, doc, writeBatch } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -125,6 +125,11 @@ function SubmitPageContent() {
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (isUserLoading) {
+            toast({ variant: "destructive", title: "Authentication Pending", description: "Please wait for your user profile to load." });
+            return;
+        }
+
         if (!location) {
             toast({ variant: "destructive", title: "Location Missing", description: "Please get your current location before submitting." });
             return;
@@ -160,14 +165,26 @@ function SubmitPageContent() {
                 aiNotes: "A new user-submitted grievance, pending automated analysis.",
             };
 
+            const batch = writeBatch(firestore);
+
             // 3. Save grievance to Firestore
             const grievancesCol = collection(firestore, 'grievances');
-            const docRef = await addDoc(grievancesCol, newGrievance);
+            const newGrievanceRef = doc(grievancesCol); // Create a new doc ref in the collection
+            batch.set(newGrievanceRef, newGrievance);
+            
+            // 4. Update the user's grievanceCount
+            const userRef = doc(firestore, "users", user.uid);
+            batch.update(userRef, {
+                grievanceCount: (profile.grievanceCount || 0) + 1
+            });
+            
+            // 5. Commit the batch
+            await batch.commit();
 
             toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now live on the map." });
 
-            // 4. Navigate to the map, highlighting the new grievance
-            router.push(`/map?id=${docRef.id}`);
+            // 6. Navigate to the map, highlighting the new grievance
+            router.push(`/map?id=${newGrievanceRef.id}`);
 
         } catch(error: any) {
              console.error("Grievance submission error:", error);
@@ -212,7 +229,7 @@ function SubmitPageContent() {
         }
     };
     
-    if (isUserLoading) {
+    if (isUserLoading && !user) { // Only show full page loader on initial load
         return (
              <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -344,9 +361,9 @@ function SubmitPageContent() {
                             )}
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                            {isSubmitting ? "Submitting..." : "Submit Grievance"}
+                        <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isUserLoading}>
+                            {isSubmitting || isUserLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isSubmitting ? "Submitting..." : isUserLoading ? "Loading Profile..." : "Submit Grievance"}
                         </Button>
                     </form>
                 </Form>
@@ -362,3 +379,5 @@ export default function SubmitPage() {
         </div>
     );
 }
+
+    
