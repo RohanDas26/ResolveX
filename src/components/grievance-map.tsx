@@ -8,6 +8,8 @@ import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
+import { Button } from "./ui/button";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 
@@ -106,11 +108,11 @@ export default function GrievanceMap({
         <InfoWindow
           position={{ lat: selectedGrievance.location.latitude, lng: selectedGrievance.location.longitude }}
           onCloseClick={handleCloseInfoWindow}
-          maxWidth={320}
-          
+          pixelOffset={[0, -50]}
+          headerDisabled
         >
-            <div className="w-full max-w-xs rounded-lg overflow-hidden bg-background text-foreground shadow-xl -m-4">
-              <div className="relative w-full h-40">
+            <div className="w-64 rounded-lg overflow-hidden bg-background/80 text-foreground shadow-2xl backdrop-blur-md border border-border/20">
+              <div className="relative w-full h-32">
                   <Image
                       src={selectedGrievance.imageUrl}
                       alt={selectedGrievance.description}
@@ -119,13 +121,21 @@ export default function GrievanceMap({
                       data-ai-hint="issue photo"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-1 right-1 h-7 w-7 rounded-full bg-background/50 hover:bg-background/80"
+                    onClick={handleCloseInfoWindow}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
               </div>
-              <div className="p-4">
-                  <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-base leading-tight truncate pr-2">{selectedGrievance.description}</h3>
+              <div className="p-3">
+                  <div className="flex justify-between items-start mb-1.5">
+                      <h3 className="font-semibold text-sm leading-tight pr-2">{selectedGrievance.description}</h3>
                       <Badge variant={getStatusVariant(selectedGrievance.status)} className="shrink-0">{selectedGrievance.status}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                       By {selectedGrievance.userName} • {selectedGrievance.createdAt ? formatDistanceToNow(new Date(selectedGrievance.createdAt.seconds * 1000), { addSuffix: true }) : 'Just now'}
                   </p>
               </div>
