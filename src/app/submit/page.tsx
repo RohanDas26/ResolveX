@@ -12,12 +12,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, DragEvent } from "react";
-import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags, Phone } from "lucide-react";
+import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
-import { summarizeGrievance } from "@/ai/flows/summarize-grievance-flow";
-import { Badge } from "@/components/ui/badge";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -46,9 +44,6 @@ function SubmitPageContent() {
     const [locationError, setLocationError] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    
-    const [isSummarizing, setIsSummarizing] = useState(false);
-    const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -57,42 +52,6 @@ function SubmitPageContent() {
             phone: "",
         },
     });
-
-    const handleAiAssist = async () => {
-        const description = form.getValues("description");
-        if (!description || description.length < 10) {
-            toast({
-                variant: "destructive",
-                title: "Description Too Short",
-                description: "Please enter at least 10 characters for the AI to assist.",
-            });
-            return;
-        }
-        setIsSummarizing(true);
-        setSuggestedCategory(null);
-        try {
-            const result = await summarizeGrievance(description);
-            if (result.description) {
-                form.setValue("description", result.description);
-            }
-            if (result.category) {
-                setSuggestedCategory(result.category);
-            }
-            toast({
-                title: "AI Assist Successful!",
-                description: "The description has been enhanced.",
-            });
-        } catch (error) {
-            console.error("AI Assist Error:", error);
-            toast({
-                variant: "destructive",
-                title: "AI Assist Failed",
-                description: "Could not summarize the description. Please try again.",
-            });
-        } finally {
-            setIsSummarizing(false);
-        }
-    };
 
     const handleGetCurrentLocation = () => {
         setLocation(null);
@@ -136,7 +95,6 @@ function SubmitPageContent() {
             phone: values.phone,
             photo: values.photo[0].name,
             location,
-            category: suggestedCategory,
             userName: "Demo User" // Hardcoded for demo
         });
 
@@ -201,17 +159,7 @@ function SubmitPageContent() {
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <div className="flex justify-between items-center">
-                                        <FormLabel>Describe the issue</FormLabel>
-                                        <Button type="button" size="sm" variant="outline" onClick={handleAiAssist} disabled={isSummarizing}>
-                                            {isSummarizing ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Zap className="mr-2 h-4 w-4 text-amber-500" />
-                                            )}
-                                            AI Assist
-                                        </Button>
-                                    </div>
+                                    <FormLabel>Describe the issue</FormLabel>
                                     <FormControl>
                                         <Textarea rows={5} placeholder="e.g., Big hole near hostel gate, bikes falling" {...field} />
                                     </FormControl>
@@ -219,13 +167,6 @@ function SubmitPageContent() {
                                 </FormItem>
                             )}
                         />
-                        {suggestedCategory && (
-                            <div className="flex items-center gap-2 animate-fade-in">
-                                <Tags className="h-5 w-5 text-primary"/>
-                                <span className="font-medium text-sm">Suggested Category:</span>
-                                <Badge variant="secondary">{suggestedCategory}</Badge>
-                            </div>
-                        )}
                         <FormField
                             control={form.control}
                             name="phone"
