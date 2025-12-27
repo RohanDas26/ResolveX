@@ -117,7 +117,7 @@ function RoutePolyline({
       path: route.overview_path,
       strokeColor: color,
       strokeOpacity: visible ? 0.8 : 0.4,
-      strokeWeight: visible ? 8 : 5,
+      strokeWeight: visible ? 7 : 5,
       zIndex,
     });
   }, [map, route, color, visible, zIndex]);
@@ -254,7 +254,7 @@ export default function RoutePlanner() {
       }
     );
   };
-
+  
   const createMockIssuesOnRoute = (
     route: google.maps.DirectionsRoute
   ): Grievance[] => {
@@ -332,21 +332,27 @@ export default function RoutePlanner() {
           (a.legs[0]?.duration?.value || 0) - (b.legs[0]?.duration?.value || 0)
       );
 
-      // The "Safest" route is the actual fastest route.
+      // The "Fastest" route is the one with the shortest duration.
       const actualFastestRoute = sortedRoutes[0];
-      setSafestRoute(actualFastestRoute);
-      setIssuesOnSafest([]); // It has 0 issues.
+      
+      // The "Safest" route is the second longest for a clear demo.
+      let demoSafestRoute = sortedRoutes.length > 1 ? sortedRoutes[sortedRoutes.length - 2] : sortedRoutes[0];
+       // If only one route, use it for both.
+      if (sortedRoutes.length === 1) {
+        demoSafestRoute = sortedRoutes[0];
+      }
 
-      // The "Fastest" route for the demo is a longer alternative.
-      let demoFastestRoute =
-        sortedRoutes.find((r) => r !== actualFastestRoute) || sortedRoutes[0];
-      setFastestRoute(demoFastestRoute);
-      setIssuesOnFastest(createMockIssuesOnRoute(demoFastestRoute));
+
+      setFastestRoute(actualFastestRoute);
+      setIssuesOnFastest(createMockIssuesOnRoute(actualFastestRoute));
+      setSafestRoute(demoSafestRoute);
+      setIssuesOnSafest([]); // Safest route has no issues.
+
 
       toast({
         title: "Routes Found",
         description:
-          "The safest route is clear, while the 'fastest' has issues. Compare them!",
+          "The fastest route has issues, while the safest is clear. Compare them!",
       });
 
     } catch (e) {
@@ -595,3 +601,5 @@ export default function RoutePlanner() {
     </div>
   );
 }
+
+    
