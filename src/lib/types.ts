@@ -21,7 +21,7 @@ export interface Grievance {
 }
 
 export interface UserProfile {
-    id?: string;
+    id: string;
     name: string;
     email?: string;
     imageUrl: string;

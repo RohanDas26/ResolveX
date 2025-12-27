@@ -92,7 +92,7 @@ export function MobileNav({ mainNavItems }: MobileNavProps) {
              <MobileLink
                 href="/submit"
                 onOpenChange={setOpen}
-                className="text-muted-foreground"
+                className="font-semibold text-primary"
               >
                 New Grievance
             </MobileLink>
