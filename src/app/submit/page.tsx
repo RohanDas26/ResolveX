@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
 import { useUser, useFirestore, useFirebaseApp } from "@/firebase";
-import { GeoPoint, Timestamp, addDoc, collection, doc, writeBatch, getDoc } from "firebase/firestore";
+import { GeoPoint, Timestamp, addDoc, collection, doc, writeBatch, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -144,9 +144,10 @@ function SubmitPageContent() {
             const extension = photoFile.name.split(".").pop();
             const photoRef = ref(storage, `grievances/${user.uid}/${grievanceId}.${extension}`);
 
+            // Fetch user profile directly before submission
             const userRef = doc(firestore, "users", user.uid);
             const userDoc = await getDoc(userRef);
-            const profile = userDoc.exists() ? userDoc.data() as UserProfile : null;
+            const profile = userDoc.exists() ? (userDoc.data() as UserProfile) : null;
             
             const userName = profile?.name || user.displayName || "Anonymous User";
             const currentCount = profile?.grievanceCount ?? 0;
@@ -170,7 +171,9 @@ function SubmitPageContent() {
             const newGrievanceRef = doc(collection(firestore, "grievances"));
             batch.set(newGrievanceRef, newGrievance);
 
-            if (profile) {
+            // This will create the profile if it doesn't exist, or update it if it does.
+            // Using { merge: true } is key to this working for both cases.
+             if (profile) {
                 batch.update(userRef, { grievanceCount: currentCount + 1 });
             } else {
                 batch.set(userRef, {
@@ -180,6 +183,7 @@ function SubmitPageContent() {
                     grievanceCount: 1
                 });
             }
+
 
             await batch.commit();
 
@@ -196,9 +200,8 @@ function SubmitPageContent() {
                 title: "Submission Failed",
                 description: error?.message || "An unexpected error occurred.",
             });
-            setIsSubmitting(false); // Ensure loading state is turned off on error
+            setIsSubmitting(false);
         }
-        // No finally block needed if router push happens on success
     }
 
     const handleFile = (file: File) => {
@@ -368,7 +371,7 @@ function SubmitPageContent() {
 
                         <Button type="submit" size="lg" className="w-full font-semibold" disabled={isSubmitting || !location || isUserLoading}>
                             {isSubmitting || isUserLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                            {isSubmitting ? "Submitting..." : isUserLoading ? "Loading..." : "Submit Grievance"}
+                            {isSubmitting ? "Submitting..." : isUserLoading ? "Authenticating..." : "Submit Grievance"}
                         </Button>
                     </form>
                 </Form>
@@ -384,3 +387,5 @@ export default function SubmitPage() {
         </div>
     );
 }
+
+    
