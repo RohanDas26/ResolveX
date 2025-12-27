@@ -228,10 +228,8 @@ export default function RoutePlanner() {
                 return;
             }
 
-            setDirectionsResult(response);
             const openGrievances = allGrievances.filter(g => g.status !== 'Resolved');
 
-            // 1. Analyze all routes
             const routesWithAnalysis = response.routes.map(route => {
                 const issues = countIssuesOnRoute(route, openGrievances);
                 return {
@@ -242,18 +240,14 @@ export default function RoutePlanner() {
                 };
             });
             
-            // 2. Find the objectively fastest route
             const fastestRouteData = [...routesWithAnalysis].sort((a, b) => a.duration - b.duration)[0];
-            
-            // 3. Find the objectively safest route
             const safestRouteData = [...routesWithAnalysis].sort((a, b) => {
                 if (a.issueCount !== b.issueCount) {
-                    return a.issueCount - b.issueCount; // Primary sort: by fewest issues
+                    return a.issueCount - b.issueCount;
                 }
-                return a.duration - b.duration; // Secondary sort: by duration
+                return a.duration - b.duration; 
             })[0];
-
-            // 4. Select which route to display based on user preference
+            
             let chosenRouteData;
             if (routePreference === 'fastest') {
                 chosenRouteData = fastestRouteData;
@@ -279,6 +273,7 @@ export default function RoutePlanner() {
                 }
             }
             
+            setDirectionsResult(response);
             setSelectedRoute(chosenRouteData.route);
             setIssuesOnRoute(chosenRouteData.issues);
 
@@ -411,6 +406,14 @@ export default function RoutePlanner() {
                             visible={route === selectedRoute}
                          />
                     ))}
+                     {directionsResult && directionsResult.routes.map((route, index) => (
+                        <RoutePolyline
+                            key={`alt-${index}`}
+                            route={route}
+                            color="#808080"
+                            visible={route !== selectedRoute}
+                        />
+                    ))}
                     
                     {issuesOnRoute.map(issue => (
                          <AdvancedMarker key={issue.id} position={{ lat: issue.location.latitude, lng: issue.location.longitude }}>
@@ -425,4 +428,3 @@ export default function RoutePlanner() {
     );
 }
 
-    
