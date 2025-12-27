@@ -14,10 +14,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   // Check if the current path starts with any of the excluded paths
   const showStarTrail = !noStarTrailPaths.some(path => pathname.startsWith(path));
 
+  // Only show the header if the user is NOT on the homepage
+  const showHeader = pathname !== '/';
+
   return (
     <div className="relative flex flex-col min-h-screen">
       {showStarTrail && <StarTrail />}
-      <HeaderLayout />
+      {showHeader && <HeaderLayout />}
       <main className="flex-1">{children}</main>
     </div>
   );
