@@ -34,12 +34,6 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'raw.githubusercontent.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
         hostname: 'www.gstatic.com',
         port: '',
         pathname: '/**',
@@ -56,12 +50,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'www.google.com',
-        port: '',
-        pathname: '/**',
-      }
     ],
   },
 };
