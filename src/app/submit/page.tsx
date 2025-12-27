@@ -37,6 +37,7 @@ const formSchema = z.object({
 
 function SubmitPageContent() {
     const { toast } = useToast();
+    const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -119,10 +120,6 @@ function SubmitPageContent() {
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        if (!user) {
-            toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
-            return;
-        }
         if (!location) {
             toast({ variant: "destructive", title: "Location Missing", description: "Please get your current location before submitting." });
             return;
@@ -137,10 +134,7 @@ function SubmitPageContent() {
                 description: "It will be updated on the map shortly.",
             });
             setIsSubmitting(false);
-            // Optional: reset the form if desired
-            // form.reset();
-            // setPhotoPreview(null);
-            // setLocation(null);
+            router.push('/map');
         }, 1500);
     }
 
@@ -327,3 +321,5 @@ export default function SubmitPage() {
         </div>
     );
 }
+
+    
