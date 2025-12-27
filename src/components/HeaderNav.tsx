@@ -18,6 +18,20 @@ const navLinks = [
 
 export default function HeaderNav() {
   const pathname = usePathname();
+  const isHomePage = pathname === '/';
+
+  if (isHomePage) {
+    return (
+       <div className="container flex h-16 max-w-screen-2xl items-center">
+         <div className="flex items-center">
+            <Link href="/" className="flex items-center space-x-2">
+              <Icons.logo className="h-6 w-6 text-primary" />
+              <span className="font-bold sm:inline-block text-lg">ResolveX</span>
+            </Link>
+         </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container flex h-16 max-w-screen-2xl items-center">
