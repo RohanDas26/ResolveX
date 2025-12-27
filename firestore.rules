@@ -24,16 +24,22 @@ service cloud.firestore {
     }
     
     // Rules for the 'grievances' collection
-    match /grievances/{grievanceId} {
-      // Any authenticated user can read the collection or individual documents.
-      allow read: if isSignedIn();
+    // This rule allows any authenticated user to LIST all grievances,
+    // which is required for the map and feeds to work.
+    match /grievances {
+      allow list: if isSignedIn();
+    }
 
-      // An authenticated user can create a new grievance if the userId matches their own.
+    // This rule applies to INDIVIDUAL grievance documents
+    match /grievances/{grievanceId} {
+      // Any authenticated user can GET a single grievance document.
+      allow get: if isSignedIn();
+
+      // An authenticated user can CREATE a new grievance if the userId matches their own.
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      // Only the user who created the grievance can update or delete it.
-      // The isAdmin check has been removed to simplify and fix permission errors.
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Only the user who created the grievance can UPDATE or DELETE it.
+      allow update, delete: if resource.data.userId == request.auth.uid;
     }
   }
 }
