@@ -20,6 +20,7 @@ export default function HeaderNav() {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
 
+  // Simplified header for the homepage
   if (isHomePage) {
     return (
        <div className="container flex h-16 max-w-screen-2xl items-center">
@@ -33,6 +34,7 @@ export default function HeaderNav() {
     )
   }
 
+  // Full header for all other pages
   return (
     <div className="container flex h-16 max-w-screen-2xl items-center">
        <MobileNav mainNavItems={navLinks} />
