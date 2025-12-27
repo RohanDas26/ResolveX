@@ -5,15 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/icons";
 import Image from 'next/image';
 
-const GoogleMapsLogo = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1372 1372" {...props}>
-        <path d="M685.9 0C306.9 0 0 306.9 0 685.9c0 379 306.9 685.9 685.9 685.9s685.9-306.9 685.9-685.9C1371.8 306.9 1064.9 0 685.9 0zm0 0" fill="#fff"/>
-        <path d="M685.9 82.3c333.3 0 603.6 270.3 603.6 603.6s-270.3 603.6-603.6 603.6S82.3 1019.2 82.3 685.9 352.6 82.3 685.9 82.3zm-11.4 380.2L423.8 578.4l-116.5 73.1 390-245.2zm22.9 0v531.5c73-44.4 122.9-125.4 122.9-219.2 0-66-24.8-126.1-66-172.9l-56.9-139.4zm-192.1 430.7L254.6 720.1l-75.1 47.1 127.3 180.2 171.7-64.3zm363.3-365.1l-159.2-99.9-204.1 128.4 159.2 99.9 204.1-128.4z" fill="#4285f4"/>
-        <path d="M423.8 578.4l-116.5 73.1 247.2 155.4 116.5-73.1-247.2-155.4z" fill="#1967d2"/>
-    </svg>
-);
-
-
 const TechCard = ({ logo, title, description, index }: { logo: React.ReactNode, title: string, description: string, index: number }) => (
     <Card className="text-center animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`}}>
         <CardHeader className="items-center">
@@ -41,7 +32,7 @@ export default function AboutUsPage() {
             description: 'For rapid, utility-first styling that creates a modern and responsive design system.'
         },
         {
-            logo: <GoogleMapsLogo />,
+            logo: <Image src="https://www.google.com/images/branding/product/2x/maps_96in128dp.png" alt="Google Maps logo" layout="fill" objectFit="contain" />,
             title: 'Google Maps Platform',
             description: 'Powers our core features, including live maps, heatmaps, and smart route navigation.'
         },

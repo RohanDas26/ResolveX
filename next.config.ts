@@ -55,6 +55,12 @@ const nextConfig: NextConfig = {
         hostname: 'assets.vercel.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.google.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
