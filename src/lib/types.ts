@@ -1,5 +1,4 @@
 
-import { Timestamp } from "firebase/firestore";
 
 export interface Location {
   latitude: number;
@@ -14,7 +13,7 @@ export interface Grievance {
   location: Location;
   imageUrl: string;
   status: "Submitted" | "In Progress" | "Resolved";
-  createdAt: Date | Timestamp;
+  createdAt: Date;
   pinColor?: string;
   riskScore?: number;
   aiNotes?: string;

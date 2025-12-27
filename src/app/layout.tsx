@@ -6,7 +6,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import MainLayout from './main-layout';
-import { AuthProvider } from '@/hooks/use-auth-context';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -26,12 +25,10 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
         <Providers>
             <FirebaseClientProvider>
-                <AuthProvider>
-                    <MainLayout>
-                        {children}
-                    </MainLayout>
-                    <Toaster />
-                </AuthProvider>
+                <MainLayout>
+                    {children}
+                </MainLayout>
+                <Toaster />
             </FirebaseClientProvider>
         </Providers>
       </body>

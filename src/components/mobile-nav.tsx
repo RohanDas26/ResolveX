@@ -11,7 +11,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Icons } from "./icons"
 import { Menu } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth-context"
 
 interface MobileLinkProps extends LinkProps {
   onOpenChange?: (open: boolean) => void
@@ -54,7 +53,6 @@ interface MobileNavProps {
 
 export function MobileNav({ mainNavItems }: MobileNavProps) {
   const [open, setOpen] = React.useState(false)
-  const { user } = useAuth();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -91,15 +89,13 @@ export function MobileNav({ mainNavItems }: MobileNavProps) {
                   </MobileLink>
                 )
             )}
-             {user && (
-                 <MobileLink
-                    href="/submit"
-                    onOpenChange={setOpen}
-                    className="text-muted-foreground"
-                  >
-                    New Grievance
-                </MobileLink>
-             )}
+             <MobileLink
+                href="/submit"
+                onOpenChange={setOpen}
+                className="text-muted-foreground"
+              >
+                New Grievance
+            </MobileLink>
           </div>
         </ScrollArea>
       </SheetContent>
