@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -254,33 +255,35 @@ export default function RoutePlanner() {
     );
   };
 
-  const createMockIssuesOnRoute = (route: google.maps.DirectionsRoute) : Grievance[] => {
+  const createMockIssuesOnRoute = (
+    route: google.maps.DirectionsRoute
+  ): Grievance[] => {
     if (!route || !route.overview_path) return [];
-    
+
     const path = route.overview_path;
     const issues: Grievance[] = [];
     const numIssues = 5;
 
     // Distribute 5 issues along the route path
     for (let i = 1; i <= numIssues; i++) {
-        const pointIndex = Math.floor(path.length * (i / (numIssues + 1)));
-        const point = path[pointIndex];
-        
-        if (point) {
-            issues.push({
-                id: `mock-issue-${i}`,
-                userId: 'mock-user',
-                userName: 'Mock User',
-                description: `Simulated issue #${i} on the fastest route.`,
-                location: new GeoPoint(point.lat(), point.lng()),
-                imageUrl: 'https://placehold.co/400x300/ef4444/ffffff?text=Issue',
-                status: 'Submitted',
-                createdAt: Timestamp.now(),
-            });
-        }
+      const pointIndex = Math.floor(path.length * (i / (numIssues + 1)));
+      const point = path[pointIndex];
+
+      if (point) {
+        issues.push({
+          id: `mock-issue-${i}`,
+          userId: "mock-user",
+          userName: "Mock User",
+          description: `Simulated issue #${i} on the fastest route.`,
+          location: new GeoPoint(point.lat(), point.lng()),
+          imageUrl: "https://placehold.co/400x300/ef4444/ffffff?text=Issue",
+          status: "Submitted",
+          createdAt: Timestamp.now(),
+        });
+      }
     }
     return issues;
-  }
+  };
 
   const findRoute = async () => {
     const originLocation = toLatLngLiteral(origin);
@@ -323,32 +326,27 @@ export default function RoutePlanner() {
         setIsLoading(false);
         return;
       }
-
-      // Identify the single fastest route
-      const fastest = response.routes.sort(
-        (a, b) => (a.legs[0]?.duration?.value || 0) - (b.legs[0]?.duration?.value || 0)
-      )[0];
       
-      // Select a different route as the "safest" one
-      let safest = response.routes.find(route => route !== fastest);
-      
-      // If no alternative is available, the safest is the same as the fastest
-      if (!safest) {
-        safest = fastest;
-      }
+      const sortedRoutes = response.routes.sort(
+        (a, b) =>
+          (a.legs[0]?.duration?.value || 0) - (b.legs[0]?.duration?.value || 0)
+      );
 
-      // Create mock issues for the fastest route
-      const mockIssues = createMockIssuesOnRoute(fastest);
+      // The "Safest" route is the actual fastest route.
+      const actualFastestRoute = sortedRoutes[0];
+      setSafestRoute(actualFastestRoute);
+      setIssuesOnSafest([]); // It has 0 issues.
 
-      // Set state
-      setFastestRoute(fastest);
-      setIssuesOnFastest(mockIssues);
-      setSafestRoute(safest);
-      setIssuesOnSafest([]); // Safest route always has 0 issues
+      // The "Fastest" route for the demo is a longer alternative.
+      let demoFastestRoute =
+        sortedRoutes.find((r) => r !== actualFastestRoute) || sortedRoutes[0];
+      setFastestRoute(demoFastestRoute);
+      setIssuesOnFastest(createMockIssuesOnRoute(demoFastestRoute));
 
       toast({
-          title: "Routes Found!",
-          description: "Switched to the 'Safest' route. Compare it with the 'Fastest' option.",
+        title: "Routes Found",
+        description:
+          "The safest route is clear, while the 'fastest' has issues. Compare them!",
       });
 
     } catch (e) {
