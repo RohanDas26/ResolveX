@@ -177,44 +177,46 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
     useEffect(() => {
         if (!grievances) return;
 
+        // 1. Find the selected area's geographical data
         const center = DEMO_CENTERS.find(c => c.name === selectedArea);
         if (!center) return;
 
+        // 2. Filter grievances for the selected area
         const { lat, lng, radiusKm } = center;
         const radiusDeg = radiusKm / 111.32;
-
         const areaGrievances = grievances.filter(g => 
             Math.sqrt(Math.pow(g.location.latitude - lat, 2) + Math.pow(g.location.longitude - lng, 2)) < radiusDeg
         );
-
-        const openGrievances = areaGrievances.filter(g => g.status !== 'Resolved');
-        const openIssueCount = openGrievances.length;
         
-        // Sort open grievances by risk score, descending.
+        // 3. Isolate open grievances and sort them by highest risk
+        const openGrievances = areaGrievances.filter(g => g.status !== 'Resolved');
         const sortedOpenGrievances = [...openGrievances].sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0));
 
-        // Current State
+        // 4. Calculate the "Before" state
+        const openIssueCount = sortedOpenGrievances.length;
         const currentTotalRisk = sortedOpenGrievances.reduce((acc, g) => acc + (g.riskScore || 0), 0);
         const currentAvgRisk = openIssueCount > 0 ? currentTotalRisk / openIssueCount : 0;
-        
         const totalComplaintsLast30Days = areaGrievances.filter(g => {
             const grievanceDate = g.createdAt.toDate();
             const thirtyDaysAgo = subDays(new Date(), 30);
             return grievanceDate > thirtyDaysAgo;
         }).length;
-        
-        // Simulation Logic
+
+        // 5. Simulate resolving the top 'N' issues
         const resolvedCount = Math.min(issuesToResolve, openIssueCount);
         const remainingGrievances = sortedOpenGrievances.slice(resolvedCount);
 
+        // 6. Calculate the "After" state
         const projectedOpenIssues = remainingGrievances.length;
         const projectedTotalRisk = remainingGrievances.reduce((acc, g) => acc + (g.riskScore || 0), 0);
         const projectedAvgRisk = projectedOpenIssues > 0 ? projectedTotalRisk / projectedOpenIssues : 0;
-
-        // Project future complaints based on the reduction of total risk
+        
+        // 7. Project future complaints based on risk reduction
         const riskReductionPercentage = currentTotalRisk > 0 ? (currentTotalRisk - projectedTotalRisk) / currentTotalRisk : 0;
-        const projectedComplaints = Math.round(totalComplaintsLast30Days * (1 - (riskReductionPercentage * 0.5))); // Assume 50% impact
+        // Assume reducing total risk by X% reduces new complaints by a fraction of that (e.g., 50% effectiveness)
+        const projectedComplaints = Math.round(totalComplaintsLast30Days * (1 - (riskReductionPercentage * 0.5))); 
 
+        // 8. Update state
         setSimulationData({
             openIssueCount,
             currentAvgRisk: Math.round(currentAvgRisk),
@@ -225,6 +227,7 @@ function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
             projectedComplaints,
             riskReductionPercentage: Math.round(riskReductionPercentage * 100),
         });
+
     }, [selectedArea, issuesToResolve, grievances]);
 
     if (!simulationData) return (
