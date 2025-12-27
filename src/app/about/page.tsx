@@ -5,11 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/icons";
 import Image from 'next/image';
 
-const TechCard = ({ logo, title, description, index }: { logo: string, title: string, description: string, index: number }) => (
+const GoogleMapsLogo = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1372 1372" {...props}>
+        <path d="M685.9 0C306.9 0 0 306.9 0 685.9c0 379 306.9 685.9 685.9 685.9s685.9-306.9 685.9-685.9C1371.8 306.9 1064.9 0 685.9 0zm0 0" fill="#fff"/>
+        <path d="M685.9 82.3c333.3 0 603.6 270.3 603.6 603.6s-270.3 603.6-603.6 603.6S82.3 1019.2 82.3 685.9 352.6 82.3 685.9 82.3zm-11.4 380.2L423.8 578.4l-116.5 73.1 390-245.2zm22.9 0v531.5c73-44.4 122.9-125.4 122.9-219.2 0-66-24.8-126.1-66-172.9l-56.9-139.4zm-192.1 430.7L254.6 720.1l-75.1 47.1 127.3 180.2 171.7-64.3zm363.3-365.1l-159.2-99.9-204.1 128.4 159.2 99.9 204.1-128.4z" fill="#4285f4"/>
+        <path d="M423.8 578.4l-116.5 73.1 247.2 155.4 116.5-73.1-247.2-155.4z" fill="#1967d2"/>
+    </svg>
+);
+
+
+const TechCard = ({ logo, title, description, index }: { logo: React.ReactNode, title: string, description: string, index: number }) => (
     <Card className="text-center animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`}}>
         <CardHeader className="items-center">
             <div className="relative h-16 w-16 mb-2">
-                <Image src={logo} alt={`${title} logo`} layout="fill" objectFit="contain" />
+                {logo}
             </div>
             <CardTitle>{title}</CardTitle>
         </CardHeader>
@@ -22,32 +31,32 @@ const TechCard = ({ logo, title, description, index }: { logo: string, title: st
 export default function AboutUsPage() {
     const technologies = [
         {
-            logo: 'https://cdn.worldvectorlogo.com/logos/next-js.svg',
+            logo: <Image src="https://cdn.worldvectorlogo.com/logos/next-js.svg" alt="Next.js logo" layout="fill" objectFit="contain" />,
             title: 'Next.js & React',
             description: 'For a high-performance, server-rendered user interface that is both fast and scalable.'
         },
         {
-            logo: 'https://cdn.worldvectorlogo.com/logos/tailwindcss.svg',
+            logo: <Image src="https://cdn.worldvectorlogo.com/logos/tailwindcss.svg" alt="Tailwind CSS logo" layout="fill" objectFit="contain" />,
             title: 'Tailwind CSS',
             description: 'For rapid, utility-first styling that creates a modern and responsive design system.'
         },
         {
-            logo: 'https://raw.githubusercontent.com/goniszewski/goniszewski.github.io/main/static/img/google-maps-platform-logo.svg',
+            logo: <GoogleMapsLogo />,
             title: 'Google Maps Platform',
             description: 'Powers our core features, including live maps, heatmaps, and smart route navigation.'
         },
         {
-            logo: 'https://www.gstatic.com/devrel-devsite/prod/v229de41e0508544773a48e7146ce2353b3f94747a16f21272b2203b57a60d53c/firebase/images/lockup.svg',
+            logo: <Image src="https://www.gstatic.com/devrel-devsite/prod/v229de41e0508544773a48e7146ce2353b3f94747a16f21272b2203b57a60d53c/firebase/images/lockup.svg" alt="Firebase logo" layout="fill" objectFit="contain" />,
             title: 'Firebase',
             description: 'Provides the backend-as-a-service for data storage, ensuring real-time updates and scalability.'
         },
         {
-            logo: 'https://static-00.iconduck.com/assets.00/genkit-icon-2048x2048-s6r5fb2j.png',
+            logo: <Image src="https://static-00.iconduck.com/assets.00/genkit-icon-2048x2048-s6r5fb2j.png" alt="Genkit logo" layout="fill" objectFit="contain" />,
             title: 'Genkit & Gemini',
             description: 'Drives our AI features, including description enhancement and risk analysis.'
         },
         {
-            logo: 'https://assets.vercel.com/image/upload/v1588805858/repositories/vercel/logo.png',
+            logo: <Image src="https://assets.vercel.com/image/upload/v1588805858/repositories/vercel/logo.png" alt="Vercel logo" layout="fill" objectFit="contain" />,
             title: 'Vercel',
             description: 'For seamless, continuous deployment and global hosting that ensures our app is always available.'
         },
