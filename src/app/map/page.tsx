@@ -6,9 +6,9 @@ import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { type Grievance } from "@/lib/types";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { useMap } from "@vis.gl/react-google-maps";
-import { DEMO_GRIEVANCES } from "@/lib/demo-data";
+import { collection } from "firebase/firestore";
 
 const TELANGANA_CENTER = { lat: 17.8739, lng: 79.1103 };
 const INITIAL_ZOOM = 8;
@@ -36,16 +36,16 @@ function MapEffect({ selectedGrievance }: { selectedGrievance: Grievance | null 
 
 export default function MapPage() {
   const searchParams = useSearchParams();
-  const [grievances, setGrievances] = useState<Grievance[] | null>(null);
+  const firestore = useFirestore();
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
-  const [isLoading, setIsLoading] = useState(true);
+
+  const grievancesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'grievances');
+  }, [firestore]);
   
-  useEffect(() => {
-    // This is a temporary solution to simulate fetching data on the client
-    setGrievances(DEMO_GRIEVANCES);
-    setIsLoading(false);
-  }, []);
+  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
 
   useEffect(() => {
     const grievanceIdFromUrl = searchParams.get('id');
@@ -62,7 +62,7 @@ export default function MapPage() {
     setSelectedGrievanceId(id);
   }
 
-  if (isLoading || isUserLoading) {
+  if (isGrievancesLoading || isUserLoading) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex items-center justify-center bg-muted animate-fade-in">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

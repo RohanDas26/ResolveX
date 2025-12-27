@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Grievance": {
@@ -6,13 +7,13 @@
       "type": "object",
       "description": "Represents a grievance submitted by a user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the grievance."
-        },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who submitted the grievance. (Relationship: User 1:N Grievance)"
+          "description": "ID of the user who submitted the grievance."
+        },
+        "userName": {
+          "type": "string",
+          "description": "Name of the user who submitted the grievance."
         },
         "description": {
           "type": "string",
@@ -23,66 +24,78 @@
           "description": "URL of the image associated with the grievance.",
           "format": "uri"
         },
-        "latitude": {
-          "type": "number",
-          "description": "Latitude of the grievance location."
+        "location": {
+          "type": "object",
+          "description": "GeoPoint of the grievance location.",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          },
+          "required": ["latitude", "longitude"]
         },
-        "longitude": {
-          "type": "number",
-          "description": "Longitude of the grievance location."
-        },
-        "submissionDate": {
+        "createdAt": {
           "type": "string",
-          "description": "Date and time when the grievance was submitted.",
+          "description": "Timestamp when the grievance was submitted.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
           "description": "Current status of the grievance (e.g., submitted, in progress, resolved).",
-          "format": "string"
+          "enum": ["Submitted", "In Progress", "Resolved"]
+        },
+        "riskScore": {
+            "type": "number",
+            "description": "AI-generated risk score (0-100)."
+        },
+        "aiNotes": {
+            "type": "string",
+            "description": "Notes from AI analysis."
         }
       },
       "required": [
-        "id",
         "userId",
+        "userName",
         "description",
         "imageUrl",
-        "latitude",
-        "longitude",
-        "submissionDate",
+        "location",
+        "createdAt",
         "status"
       ]
     },
-    "User": {
+    "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "description": "Represents a user of the application.",
       "properties": {
-        "id": {
+        "name": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Full name of the user."
         },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
         },
-        "name": {
+        "imageUrl": {
           "type": "string",
-          "description": "Full name of the user."
+          "format": "uri",
+          "description": "URL of the user's profile picture."
         },
-        "registrationDate": {
-          "type": "string",
-          "description": "Date and time when the user registered.",
-          "format": "date-time"
+        "grievanceCount": {
+          "type": "number",
+          "description": "The number of grievances reported by the user."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Whether the user has admin privileges."
         }
       },
       "required": [
-        "id",
-        "email",
         "name",
-        "registrationDate"
+        "email",
+        "imageUrl",
+        "grievanceCount"
       ]
     }
   },
@@ -97,40 +110,24 @@
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "User",
+          "entityName": "UserProfile",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/UserProfile"
           },
-          "description": "Stores user profiles. Uses path-based ownership for user data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "Unique identifier for the user."
-            }
-          ]
+          "description": "Stores user profiles. The document ID is the user's UID from Firebase Auth."
         }
       },
       {
-        "path": "/users/{userId}/grievances/{grievanceId}",
+        "path": "/grievances/{grievanceId}",
         "definition": {
           "entityName": "Grievance",
           "schema": {
-            "$ref": "#/backend/entities/Grievance"
+            "$ref": "#/entities/Grievance"
           },
-          "description": "Stores grievance data. Each grievance is stored as a subcollection of the corresponding user document. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "Unique identifier for the user who submitted the grievance."
-            },
-            {
-              "name": "grievanceId",
-              "description": "Unique identifier for the grievance."
-            }
-          ]
+          "description": "A top-level collection storing all grievances. This allows for efficient querying by admins across all users."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable backend for the ResolveX application, focusing on user authentication, grievance submission, and live tracking. It leverages path-based ownership for user-specific data and incorporates denormalization to ensure authorization independence. This approach avoids using `get()` calls in security rules, which are inefficient and can lead to security vulnerabilities. The structure includes dedicated collections for users and their grievances. The design prioritizes Authorization Independence, Clarity of Intent, DBAC, and QAPs.\n\n1.  **Users Collection:** Stores user profiles. Path-based ownership is used for user data (`/users/{userId}`).\n2.  **Grievances Collection:** Stores grievance data. Each grievance is stored as a subcollection of the corresponding user document (`/users/{userId}/grievances/{grievanceId}`). This establishes clear ownership and simplifies security rules. To ensure Authorization Independence, the userId is included in each grievance document.\n\nThis structure effectively achieves Authorization Independence as security rules for accessing grievances can directly rely on the `request.auth.uid` and the `userId` field in the grievance document without needing to perform costly and potentially insecure `get()` calls. The separation of user and grievance data into distinct collections also supports required QAPs, allowing secure `list` operations for user-specific grievances. The structure is designed to be Radically Consistent with semantic naming conventions."
+    "reasoning": "The Firestore structure has been updated to use a top-level `grievances` collection. This is more scalable and efficient for an admin-focused application, as it allows administrators to query, filter, and view all grievances across all users without needing to perform complex, nested queries. The previous structure (nesting grievances under users) is good for strict user-data separation but makes global queries difficult. In this model, security rules will still enforce that a user can only create grievances with their own `userId`, and admins will have broader read access."
   }
 }

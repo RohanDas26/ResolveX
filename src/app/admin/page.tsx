@@ -7,17 +7,26 @@ import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
 import { useSearchParams } from 'next/navigation'
-import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
+import { DEMO_USERS } from "@/lib/demo-data";
 import { doc, updateDoc, collection, query, where } from "firebase/firestore";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 
 function AdminDashboardContent() {
   const { toast } = useToast();
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams();
+  const firestore = useFirestore();
 
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
-  const [grievances, setGrievances] = useState<Grievance[]>(DEMO_GRIEVANCES);
+  
+  // Use live data from Firestore
+  const grievancesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'grievances');
+  }, [firestore]);
+
+  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+
 
   // Set selected grievance from URL query param on initial load
   useEffect(() => {
@@ -28,8 +37,8 @@ function AdminDashboardContent() {
   }, [searchParams]);
 
   const topReporters = useMemo(() => {
-      // Use the static demo users which now have correct, pre-calculated counts
-      // and are pre-sorted.
+      // For now, we can continue using static demo users for the leaderboard,
+      // as calculating this live can be complex.
       return DEMO_USERS.slice(0, 5);
   }, []);
 
@@ -44,12 +53,26 @@ function AdminDashboardContent() {
     return grievances?.find(g => g.id === selectedGrievanceId) || null;
   }, [grievances, selectedGrievanceId]);
 
-  const handleUpdateGrievanceStatus = (id: string, status: Grievance['status']) => {
-    setGrievances(prev => prev.map(g => g.id === id ? { ...g, status } : g));
-    toast({
-      title: "Status Updated (Demo)",
-      description: `Grievance status changed to ${status}. This is a local update.`,
-    });
+  const handleUpdateGrievanceStatus = async (id: string, status: Grievance['status']) => {
+    if (!firestore) {
+      toast({ variant: "destructive", title: "Firestore not available" });
+      return;
+    }
+    const grievanceRef = doc(firestore, "grievances", id);
+    try {
+      await updateDoc(grievanceRef, { status });
+      toast({
+        title: "Status Updated",
+        description: `Grievance status changed to ${status}.`,
+      });
+    } catch (error: any) {
+      console.error("Error updating status: ", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message,
+      });
+    }
   };
   
   const handleSelectGrievance = (id: string | null) => {
@@ -60,7 +83,7 @@ function AdminDashboardContent() {
     <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] animate-fade-in">
       <AdminSidebar 
         grievances={filteredGrievances}
-        isLoading={false}
+        isLoading={isGrievancesLoading}
         topReporters={topReporters}
         activeFilter={filter}
         onFilterChange={setFilter}
@@ -71,7 +94,7 @@ function AdminDashboardContent() {
       <div className="flex-1 h-full w-full md:h-auto">
         <AdminMap 
           grievances={filteredGrievances}
-          isLoading={false}
+          isLoading={isGrievancesLoading}
           onMarkerClick={handleSelectGrievance}
           selectedGrievanceId={selectedGrievanceId}
         />

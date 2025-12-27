@@ -13,8 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, DragEvent } from "react";
 import { Loader2, MapPin, UploadCloud, CheckCircle, AlertCircle, Zap, Tags } from "lucide-react";
-import { useUser } from "@/firebase";
-import { GeoPoint, Timestamp } from "firebase/firestore";
+import { useUser, useFirestore, useFirebaseApp } from "@/firebase";
+import { GeoPoint, Timestamp, addDoc, collection } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -39,13 +40,16 @@ const formSchema = z.object({
 function SubmitPageContent() {
     const { toast } = useToast();
     const router = useRouter();
+    const firestore = useFirestore();
+    const firebaseApp = useFirebaseApp();
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const { user, isUserLoading } = useUser();
+    const { user, profile, isUserLoading } = useUser();
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
 
@@ -125,31 +129,52 @@ function SubmitPageContent() {
             toast({ variant: "destructive", title: "Location Missing", description: "Please get your current location before submitting." });
             return;
         }
-        if (!user) {
+        if (!user || !profile) {
             toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to submit a grievance." });
             return;
         }
         
         setIsSubmitting(true);
         
-        // In a real app, you would now upload the photo to a service like Firebase Storage
-        // and then save the grievance data to Firestore.
-        
-        // For this demo, we'll just simulate the process.
-        
-        const grievanceId = uuidv4();
-        
-        // We are not adding the new grievance to any state here.
-        // We will just show a success message and navigate.
-        // The new grievance will NOT appear in the app as we are using static demo data.
+        try {
+            const storage = getStorage(firebaseApp);
+            const photoFile = values.photo[0] as File;
+            const grievanceId = uuidv4();
+            const photoRef = ref(storage, `grievances/${user.uid}/${grievanceId}.${photoFile.name.split('.').pop()}`);
 
-        setTimeout(() => {
+            // 1. Upload photo to Firebase Storage
+            const uploadResult = await uploadBytes(photoRef, photoFile);
+            const imageUrl = await getDownloadURL(uploadResult.ref);
+
+            // 2. Prepare grievance data for Firestore
+            const newGrievance = {
+                // id will be the doc id, so we dont store it in the document
+                userId: user.uid,
+                userName: profile.name,
+                description: values.description,
+                location: new GeoPoint(location.lat, location.lng),
+                imageUrl: imageUrl,
+                status: "Submitted" as const,
+                createdAt: Timestamp.now(),
+                riskScore: Math.floor(Math.random() * 40) + 10, // Assign a random low-ish risk for now
+                aiNotes: "A new user-submitted grievance, pending automated analysis.",
+            };
+
+            // 3. Save grievance to Firestore
+            const grievancesCol = collection(firestore, 'grievances');
+            const docRef = await addDoc(grievancesCol, newGrievance);
+
+            toast({ title: "Grievance Submitted!", description: "Thank you for your report. It's now live on the map." });
+
+            // 4. Navigate to the map, highlighting the new grievance
+            router.push(`/map?id=${docRef.id}`);
+
+        } catch(error: any) {
+             console.error("Grievance submission error:", error);
+             toast({ variant: "destructive", title: "Submission Failed", description: error.message || "An unexpected error occurred." });
+        } finally {
             setIsSubmitting(false);
-            toast({ title: "Grievance Submitted! (Demo)", description: "Thank you for your report. In a real app, this would be saved." });
-
-            // Navigate to the map, optionally highlighting the location (though the pin won't exist in demo data)
-            router.push(`/map?id=${grievanceId}`);
-        }, 1500); // Simulate network delay
+        }
     }
 
     const handleFile = (file: File) => {
@@ -337,5 +362,3 @@ export default function SubmitPage() {
         </div>
     );
 }
-
-    

@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Grievance, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,11 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, MapPin, CheckCircle, Clock, Loader2, MailWarning } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Leaderboard from '@/components/leaderboard';
-import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
+import { DEMO_USERS } from "@/lib/demo-data";
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { collection, query, where } from 'firebase/firestore';
 
 const getBadge = (grievanceCount: number) => {
     if (grievanceCount >= 10) {
@@ -30,45 +31,21 @@ const getBadge = (grievanceCount: number) => {
 };
 
 export default function ProfilePage() {
-    const { user: authUser, isUserLoading } = useUser();
+    const { user: authUser, isUserLoading, profile } = useUser();
+    const firestore = useFirestore();
     const { toast } = useToast();
     
-    // DEMO DATA STATE
-    const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [userGrievances, setUserGrievances] = useState<Grievance[]>([]);
-    const [leaderboardUsers, setLeaderboardUsers] = useState<UserProfile[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const userGrievancesQuery = useMemoFirebase(() => {
+        if (!firestore || !authUser) return null;
+        return query(collection(firestore, 'grievances'), where('userId', '==', authUser.uid));
+    }, [firestore, authUser]);
 
-    useEffect(() => {
-        if (!isUserLoading) {
-            if (authUser) {
-                // Find the demo profile for the logged-in user, or create a default one
-                let demoProfile = DEMO_USERS.find(u => u.id === authUser.uid);
+    const { data: userGrievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(userGrievancesQuery);
+    
+    // Leaderboard still uses demo data for simplicity
+    const [leaderboardUsers, setLeaderboardUsers] = useState<UserProfile[]>(DEMO_USERS);
 
-                if (!demoProfile) {
-                    demoProfile = {
-                        id: authUser.uid,
-                        name: authUser.displayName || 'New User',
-                        email: authUser.email || '',
-                        imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`, // Generate avatar
-                        grievanceCount: 0,
-                    };
-                }
-                
-                setProfile(demoProfile);
-                
-                // Filter demo grievances for this user
-                setUserGrievances(DEMO_GRIEVANCES.filter(g => g.userId === authUser.uid));
-                
-                // Use the pre-sorted demo users for the leaderboard
-                setLeaderboardUsers(DEMO_USERS);
-            }
-            setIsLoading(false);
-        }
-    }, [authUser, isUserLoading]);
-
-
-    const grievanceCount = useMemo(() => profile?.grievanceCount || 0, [profile]);
+    const grievanceCount = useMemo(() => userGrievances?.length || 0, [userGrievances]);
     const badge = useMemo(() => getBadge(grievanceCount), [grievanceCount]);
 
     const handleResendVerification = async () => {
@@ -89,7 +66,7 @@ export default function ProfilePage() {
         }
     };
 
-    if (isLoading) {
+    if (isUserLoading || isGrievancesLoading) {
         return (
             <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center p-8 animate-fade-in">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -98,6 +75,13 @@ export default function ProfilePage() {
     }
     
     if (!profile || !authUser) return <div className="container mx-auto px-4 py-8 animate-fade-in"><p>Could not load user profile. Please make sure you are logged in.</p></div>;
+
+    const displayProfile = {
+        ...profile,
+        grievanceCount: grievanceCount,
+        imageUrl: profile.imageUrl || `https://api.dicebear.com/8.x/bottts/svg?seed=${authUser.uid}`
+    };
+
 
     return (
         <div className="container mx-auto px-4 py-8 animate-fade-in">
@@ -119,11 +103,11 @@ export default function ProfilePage() {
                     <Card className="animate-fade-in-up">
                         <CardHeader className="flex flex-col items-center text-center">
                             <Avatar className="w-24 h-24 mb-4 border-4 border-primary/50">
-                                <AvatarImage src={profile.imageUrl} alt={profile.name} />
-                                <AvatarFallback>{profile.name?.[0].toUpperCase()}</AvatarFallback>
+                                <AvatarImage src={displayProfile.imageUrl} alt={displayProfile.name} />
+                                <AvatarFallback>{displayProfile.name?.[0].toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                            <CardDescription>Grievances Reported: {grievanceCount}</CardDescription>
+                            <CardTitle className="text-2xl">{displayProfile.name}</CardTitle>
+                            <CardDescription>Grievances Reported: {displayProfile.grievanceCount}</CardDescription>
                             {badge && (
                                 <div className="flex items-center gap-2 mt-4 animate-fade-in-up">
                                     <badge.icon className={`h-8 w-8 ${badge.color}`} />
@@ -146,7 +130,7 @@ export default function ProfilePage() {
                 <div className="md:col-span-2">
                     <h2 className="text-2xl font-bold mb-4">Your Reported Grievances</h2>
                     <div className="space-y-4">
-                        {userGrievances.length > 0 ? userGrievances.map((g, index) => (
+                        {userGrievances && userGrievances.length > 0 ? userGrievances.map((g, index) => (
                              <Card key={g.id} className="flex items-start gap-4 p-4 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`}}>
                                  <div className="w-24 h-24 rounded-md overflow-hidden shrink-0">
                                      <img src={g.imageUrl} alt={g.description} className="w-full h-full object-cover" />
