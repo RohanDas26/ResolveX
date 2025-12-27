@@ -115,8 +115,8 @@ function RoutePolyline({
     return new google.maps.Polyline({
       path: route.overview_path,
       strokeColor: color,
-      strokeOpacity: visible ? 0.8 : 0.4,
-      strokeWeight: visible ? 7 : 5,
+      strokeOpacity: visible ? 0.8 : 0,
+      strokeWeight: visible ? 8 : 5,
       zIndex,
     });
   }, [map, route, color, visible, zIndex]);
@@ -259,49 +259,34 @@ export default function RoutePlanner() {
 
   const countIssuesOnRoute = (
     route: google.maps.DirectionsRoute,
-    openGrievances: Grievance[]
-  ): Grievance[] => {
-    if (!route || !geometryLibrary || !route.overview_path) return [];
-  
-    const onRoute: Grievance[] = [];
-  
-    for (const grievance of openGrievances) {
+    openGrievances: Grievance[],
+    polyUtil: typeof google.maps.geometry.poly | undefined
+  ) => {
+    if (!route || !polyUtil) return [];
+
+    const routePath = new google.maps.Polyline({
+      path: route.overview_path,
+    });
+
+    return openGrievances.filter((g) => {
       const grievanceLoc = new google.maps.LatLng(
-        grievance.location.latitude,
-        grievance.location.longitude
+        g.location.latitude,
+        g.location.longitude
       );
-  
-      // The isLocationOnEdge function is very precise. A more robust way is to check the distance.
-      // We iterate through segments of the route polyline.
-      for (let i = 0; i < route.overview_path.length - 1; i++) {
-        const segmentStart = route.overview_path[i];
-        const segmentEnd = route.overview_path[i+1];
-        
-        // Create a temporary polyline for the segment
-        const segmentPolyline = new google.maps.Polyline({
-          path: [segmentStart, segmentEnd],
-        });
-        
-        // Use isLocationOnEdge for the small segment. This is more reliable than for the whole route.
-        // The third argument is tolerance in degrees. 1e-4 is roughly 11 meters.
-        if (geometryLibrary.poly.isLocationOnEdge(grievanceLoc, segmentPolyline, 1e-4)) {
-           onRoute.push(grievance);
-           break; // Move to the next grievance once it's found on any segment
-        }
-      }
-    }
-    return onRoute;
+      // Use a tolerance for isLocationOnEdge, 1e-3 is roughly 110 meters
+      return polyUtil.isLocationOnEdge(grievanceLoc, routePath, 1e-3);
+    });
   };
 
   const findRoute = async () => {
     const originLocation = toLatLngLiteral(origin);
     const destinationLocation = toLatLngLiteral(destination);
 
-    if (!originLocation || !destinationLocation || !directionsService) {
+    if (!originLocation || !destinationLocation || !directionsService || !geometryLibrary) {
       toast({
         variant: "destructive",
         title: "Missing Information",
-        description: "Please select both an origin and a destination.",
+        description: "Please select both an origin and a destination, or wait for map to load.",
       });
       return;
     }
@@ -338,35 +323,49 @@ export default function RoutePlanner() {
       const openGrievances = allGrievances.filter(
         (g) => g.status !== "Resolved"
       );
+      const polyUtil = geometryLibrary.poly;
 
-      const routesWithAnalysis = response.routes.map((route) => {
-        const issues = countIssuesOnRoute(route, openGrievances);
+      const routesWithAnalysis = response.routes.map((route, index) => {
+        const issues = countIssuesOnRoute(route, openGrievances, polyUtil);
         return {
           route,
           issues,
           issueCount: issues.length,
           duration: route.legs[0]?.duration?.value || Infinity,
+          id: `route-${index}`
         };
       });
 
+      // 1. Identify the single fastest route
       const fastestRouteData = [...routesWithAnalysis].sort(
         (a, b) => a.duration - b.duration
       )[0];
-
-      const safestRouteData = [...routesWithAnalysis].sort((a, b) => {
-        if (a.issueCount !== b.issueCount) {
-          return a.issueCount - b.issueCount;
-        }
-        return a.duration - b.duration;
-      })[0];
-
+      
       setFastestRoute(fastestRouteData.route);
       setIssuesOnFastest(fastestRouteData.issues);
+
+      // 2. Identify the safest route from the REMAINING alternatives
+      const otherRoutes = routesWithAnalysis.filter(r => r.id !== fastestRouteData.id);
+      
+      let safestRouteData;
+      if (otherRoutes.length > 0) {
+        safestRouteData = [...otherRoutes].sort((a, b) => {
+          if (a.issueCount !== b.issueCount) {
+            return a.issueCount - b.issueCount;
+          }
+          return a.duration - b.duration;
+        })[0];
+      } else {
+        // If there's only one route, it's both the fastest and safest
+        safestRouteData = fastestRouteData;
+      }
+
       setSafestRoute(safestRouteData.route);
       setIssuesOnSafest(safestRouteData.issues);
 
       const issuesAvoided =
         fastestRouteData.issueCount - safestRouteData.issueCount;
+        
       if (routePreference === "avoid_issues" && issuesAvoided > 0) {
         toast({
           title: "Safest Route Selected!",
@@ -594,18 +593,18 @@ export default function RoutePlanner() {
               />
             </AdvancedMarker>
           )}
-
-          <RoutePolyline
-            route={fastestRoute ?? undefined}
-            color={fastestRouteColor}
-            visible={routePreference === "fastest"}
-            zIndex={routePreference === "fastest" ? 1 : 0}
-          />
+          
           <RoutePolyline
             route={safestRoute ?? undefined}
             color={safestRouteColor}
-            visible={routePreference === "avoid_issues"}
-            zIndex={routePreference === "avoid_issues" ? 1 : 0}
+            visible={routePreference === 'avoid_issues'}
+            zIndex={routePreference === 'avoid_issues' ? 2 : 1}
+          />
+          <RoutePolyline
+            route={fastestRoute ?? undefined}
+            color={fastestRouteColor}
+            visible={routePreference === 'fastest'}
+            zIndex={routePreference === 'fastest' ? 2 : 1}
           />
 
           {issuesOnSelectedRoute.map((issue) => (
