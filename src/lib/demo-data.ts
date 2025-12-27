@@ -164,6 +164,7 @@ export const DEMO_USERS: UserProfile[] = Object.keys(grievancesByUser).map(userI
     return {
         id: userId,
         name: grievance.userName,
+        email: `${grievance.userName.toLowerCase()}@example.com`,
         imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${userId}`,
         grievanceCount: grievancesByUser[userId],
     };

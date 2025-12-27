@@ -17,11 +17,12 @@ service cloud.firestore {
       // The document ID must match the UID of the user creating it.
       allow create: if isOwner(userId);
       
-      // Only the owner of the document can read, update, or delete it.
+      // Only the owner of the document can update or delete it.
+      // Any signed-in user can read any profile (for leaderboards).
       allow read, update, delete: if isOwner(userId);
       
-      // Nobody can list all users.
-      allow list: if false;
+      // Any signed-in user can list all users (for leaderboards).
+      allow list: if isSignedIn();
     }
 
     // Rules for the top-level 'grievances' collection
