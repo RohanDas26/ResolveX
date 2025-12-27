@@ -10,9 +10,11 @@ import { Loader2, Zap, BrainCircuit, SlidersHorizontal, ArrowRight, Lightbulb, A
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { DEMO_GRIEVANCES as ALL_DEMO_GRIEVANCES, DEMO_CENTERS } from "@/lib/demo-data";
+import { DEMO_CENTERS } from "@/lib/demo-data";
 import { Label } from "@/components/ui/label";
 import { differenceInDays } from "date-fns";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
 
@@ -28,15 +30,7 @@ function categorizeGrievance(description: string): string {
     return "Other";
 }
 
-function AIInsights() {
-    const [grievances, setGrievances] = useState<Grievance[] | null>(null);
-
-    useEffect(() => {
-        // Use live data if available, otherwise fall back to demo data on the client.
-        // This prevents hydration errors caused by server/client data mismatch.
-        setGrievances(ALL_DEMO_GRIEVANCES);
-    }, []);
-
+function AIInsights({ grievances }: { grievances: Grievance[] | null }) {
     const insights = useMemo(() => {
         if (!grievances || grievances.length === 0) {
             return { topCategory: null, emergingHotspot: null, resolutionTime: null, strategicRecommendation: null };
@@ -175,16 +169,10 @@ function AIInsights() {
     );
 }
 
-function ImpactSimulator() {
+function ImpactSimulator({ grievances }: { grievances: Grievance[] | null }) {
     const [selectedArea, setSelectedArea] = useState<string>(DEMO_CENTERS[0].name);
     const [issuesToResolve, setIssuesToResolve] = useState(15);
     const [simulationData, setSimulationData] = useState<any>(null);
-
-    // This state is now initialized inside useEffect to avoid hydration errors
-    const [grievances, setGrievances] = useState<Grievance[] | null>(null);
-    useEffect(() => {
-        setGrievances(ALL_DEMO_GRIEVANCES);
-    }, []);
 
     useEffect(() => {
         if (!grievances) return;
@@ -305,15 +293,12 @@ function ImpactSimulator() {
 
 
 export default function AnalyticsPage() {
-    const [grievances, setGrievances] = useState<Grievance[] | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        // Use demo data on the client side to avoid security rule violations
-        // and hydration errors.
-        setGrievances(ALL_DEMO_GRIEVANCES);
-        setIsLoading(false);
-    }, []);
+    const firestore = useFirestore();
+    const grievancesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'grievances');
+    }, [firestore]);
+    const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
 
     const statusData = useMemo(() => {
         if (!grievances) return [];
@@ -358,7 +343,7 @@ export default function AnalyticsPage() {
         return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
     }, [grievances]);
 
-    if (isLoading) {
+    if (isGrievancesLoading) {
         return (
             <div className="flex h-full w-full items-center justify-center p-8">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -371,8 +356,8 @@ export default function AnalyticsPage() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight animate-fade-in-up">Grievance Analytics</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                  <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                    <AIInsights />
-                    <ImpactSimulator />
+                    <AIInsights grievances={grievances} />
+                    <ImpactSimulator grievances={grievances} />
                 </div>
                 <Card className="animate-fade-in-up">
                     <CardHeader>
