@@ -22,6 +22,7 @@ interface AdminSidebarProps {
     grievances: Grievance[] | null;
     isLoading: boolean;
     topReporters: UserProfile[] | null;
+    isReportersLoading: boolean;
     activeFilter: string | null;
     onFilterChange: (filter: string | null) => void;
     onUpdateGrievanceStatus: (id: string, status: Grievance['status']) => void;
@@ -48,6 +49,7 @@ export default function AdminSidebar({
     grievances, 
     isLoading, 
     topReporters,
+    isReportersLoading,
     activeFilter, 
     onFilterChange,
     onUpdateGrievanceStatus,
@@ -146,7 +148,7 @@ export default function AdminSidebar({
                             <CardTitle>Top Reporters</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Leaderboard users={topReporters} isLoading={isLoading} />
+                            <Leaderboard users={topReporters} isLoading={isReportersLoading} />
                         </CardContent>
                     </Card>
                 </div>
