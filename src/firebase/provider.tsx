@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User } from 'firebase/auth';
+import { Auth } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 interface FirebaseProviderProps {
@@ -112,7 +112,6 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
 export const useUser = (): { user: null, isUserLoading: boolean, userError: null } => {
   return {
     user: null,
-
     isUserLoading: false,
     userError: null,
   };
