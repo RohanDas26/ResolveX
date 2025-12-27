@@ -1,64 +1,78 @@
 
 'use client';
 
-import { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-// This is a mock user. In a real app, this would come from your auth provider.
-const MOCK_USER: UserProfile = {
-  id: 'user_123',
-  name: 'Demo User',
-  email: 'demo@example.com',
-  imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=user_123`,
-  grievanceCount: 5, // Example count
-};
+import { getAuth, onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { initializeFirebase } from '@/firebase';
+import { doc, getFirestore, setDoc } from 'firebase/firestore';
+import { useToast } from './use-toast';
 
 interface AuthContextType {
-  user: UserProfile | null;
+  user: User | null;
   isLoading: boolean;
-  login: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { toast } = useToast();
+
+  const { auth, firestore } = initializeFirebase();
 
   useEffect(() => {
-    // Check localStorage for a "logged in" state
-    try {
-      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      if (isLoggedIn) {
-        setUser(MOCK_USER);
-      }
-    } catch (error) {
-      console.error("Could not access localStorage:", error);
-    } finally {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
       setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  const signIn = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
+    toast({ title: 'Sign In Successful', description: 'Welcome back!' });
+    router.push('/map');
+  };
+
+  const signUp = async (email: string, password: string, name: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    
+    if (userCredential.user) {
+        await updateProfile(userCredential.user, {
+            displayName: name,
+            photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=${userCredential.user.uid}`
+        });
+
+        // Create user profile in Firestore
+        const userRef = doc(firestore, "users", userCredential.user.uid);
+        await setDoc(userRef, {
+            name: name,
+            email: userCredential.user.email,
+            imageUrl: userCredential.user.photoURL,
+            grievanceCount: 0,
+            isAdmin: false // Default to not admin
+        });
+        
+        // Manually update the user state because onAuthStateChanged might be slow
+        setUser({ ...userCredential.user, displayName: name, photoURL: userCredential.user.photoURL });
     }
-  }, []);
-
-  const login = () => {
-    setIsLoading(true);
-    localStorage.setItem('isLoggedIn', 'true');
-    setUser(MOCK_USER);
-    setIsLoading(false);
-    router.push('/map'); // Redirect after login
+    toast({ title: 'Sign Up Successful', description: 'Welcome! You are now logged in.' });
+    router.push('/map');
   };
 
-  const logout = () => {
-    setIsLoading(true);
-    localStorage.removeItem('isLoggedIn');
-    setUser(null);
-    setIsLoading(false);
-    router.push('/'); // Redirect to home after logout
+  const logout = async () => {
+    await signOut(auth);
+    router.push('/');
   };
 
-  const value = { user, isLoading, login, logout };
+  const value = { user, isLoading, signIn, signUp, logout };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

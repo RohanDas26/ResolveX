@@ -1,4 +1,6 @@
 
+import { Timestamp } from "firebase/firestore";
+
 export interface Location {
   latitude: number;
   longitude: number;
@@ -12,15 +14,14 @@ export interface Grievance {
   location: Location;
   imageUrl: string;
   status: "Submitted" | "In Progress" | "Resolved";
-  createdAt: Date;
+  createdAt: Date | Timestamp;
   pinColor?: string;
-  // New fields for AI analysis
-  riskScore?: number; // A score from 0 to 100
-  aiNotes?: string; // AI-generated notes about the grievance
+  riskScore?: number;
+  aiNotes?: string;
 }
 
 export interface UserProfile {
-    id?: string; // id is the doc id, so it's not in the doc data
+    id?: string;
     name: string;
     email?: string;
     imageUrl: string;

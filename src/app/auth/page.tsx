@@ -25,8 +25,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { FirebaseError } from 'firebase/app';
 
 const signUpSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.'}),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z
     .string()
@@ -39,27 +43,64 @@ const signInSchema = z.object({
 });
 
 function SignUpForm() {
-  const { login } = useAuth();
+  const { signUp } = useAuth();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { name: '', email: '', password: '' },
   });
 
-  const onSubmit = (values: z.infer<typeof signUpSchema>) => {
-    // This is a frontend simulation.
-    console.log('Simulating sign up for:', values.email);
-    toast({
-      title: 'Sign Up Successful (Demo)',
-      description: 'You are now logged in.',
-    });
-    login(); // Simulate login and redirect
+  const onSubmit = async (values: z.infer<typeof signUpSchema>) => {
+    setIsLoading(true);
+    try {
+      await signUp(values.email, values.password, values.name);
+      // Redirect is handled by the auth context
+    } catch (error) {
+      console.error("Sign up error", error);
+      let description = "An unexpected error occurred. Please try again.";
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            description = "This email address is already in use by another account.";
+            break;
+          case 'auth/invalid-email':
+            description = "The email address is not valid.";
+            break;
+          case 'auth/weak-password':
+            description = "The password is too weak.";
+            break;
+          default:
+            description = "Failed to create an account. Please check the details and try again."
+        }
+      }
+      toast({
+        variant: "destructive",
+        title: 'Sign Up Failed',
+        description,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="John Doe" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="email"
@@ -86,7 +127,8 @@ function SignUpForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading && <Loader2 className='animate-spin' />}
           Create Account
         </Button>
       </form>
@@ -95,22 +137,30 @@ function SignUpForm() {
 }
 
 function SignInForm() {
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' },
   });
 
-  const onSubmit = (values: z.infer<typeof signInSchema>) => {
-    // This is a frontend simulation.
-    console.log('Simulating sign in for:', values.email);
-     toast({
-      title: 'Sign In Successful (Demo)',
-      description: 'Welcome back!',
-    });
-    login(); // Simulate login and redirect
+  const onSubmit = async (values: z.infer<typeof signInSchema>) => {
+    setIsLoading(true);
+    try {
+      await signIn(values.email, values.password);
+      // Redirect is handled by the auth context
+    } catch (error) {
+      console.error("Sign in error", error);
+      toast({
+        variant: "destructive",
+        title: 'Sign In Failed',
+        description: 'Invalid email or password. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -142,7 +192,8 @@ function SignInForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading && <Loader2 className='animate-spin' />}
           Sign In
         </Button>
       </form>

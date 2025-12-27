@@ -10,12 +10,13 @@ import { cn } from "@/lib/utils";
 import { MobileNav } from "./mobile-nav";
 import { useAuth } from "@/hooks/use-auth-context";
 import UserNav from "./user-nav";
+import { Skeleton } from "./ui/skeleton";
 
 const navLinks = [
   { href: "/map", label: "Live Map", icon: Map, protected: false },
   { href: "/directions", label: "Directions", icon: Milestone, protected: false },
   { href: "/tickets", label: "My Tickets", icon: Ticket, protected: true },
-  { href: "/admin", label: "Admin", icon: ShieldCheck, protected: true },
+  { href: "/admin", label: "Admin", icon: ShieldCheck, protected: true }, // Assuming admin is a protected route
 ];
 
 export default function HeaderNav() {
@@ -55,7 +56,7 @@ export default function HeaderNav() {
         </nav>
       </div>
       <div className="flex flex-1 items-center justify-end space-x-4">
-        {isLoading ? null : user ? (
+        {isLoading ? <Skeleton className="h-10 w-24" /> : user ? (
           <>
             <Button asChild>
               <Link href="/submit">
