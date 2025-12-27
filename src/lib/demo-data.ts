@@ -117,6 +117,16 @@ const getPinColor = (status: Grievance["status"]) => {
   }
 };
 
+// Define the problem zone points
+const problemZonePoints = [
+    { lat: 17.445, lng: 78.381 },
+    { lat: 17.446, lng: 78.382 },
+    { lat: 17.447, lng: 78.383 },
+    { lat: 17.448, lng: 78.384 },
+    { lat: 17.449, lng: 78.385 },
+];
+
+
 const generateRandomGrievance = (idIndex: number): Grievance & { pinColor: string } => {
   const randomLocation = getClusterLocation();
   const randomDate = new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000);
@@ -143,10 +153,31 @@ const generateRandomGrievance = (idIndex: number): Grievance & { pinColor: strin
 
 const DEMO_COUNT = 250;
 
-export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = Array.from(
+let baseGrievances: (Grievance & { pinColor: string })[] = Array.from(
   { length: DEMO_COUNT },
   (_, i) => generateRandomGrievance(i + 1)
 );
+
+// Add the specific problem zone grievances
+const problemGrievances = problemZonePoints.map((point, index) => {
+    const id = DEMO_COUNT + index + 1;
+    return {
+        id: `demo-problem-${id}`,
+        userId: 'user-demo-problem',
+        userName: 'Problem Reporter',
+        description: "Severe pothole on main road.",
+        location: new GeoPoint(point.lat, point.lng),
+        imageUrl: `https://picsum.photos/seed/pothole-problem-${id}/400/300`,
+        status: "Submitted" as Grievance['status'],
+        createdAt: Timestamp.fromDate(new Date()),
+        pinColor: getPinColor("Submitted"),
+        riskScore: 95,
+        aiNotes: "This is a high-risk pothole located on a major arterial road. Immediate attention required."
+    };
+});
+
+export const DEMO_GRIEVANCES: (Grievance & { pinColor: string })[] = [...baseGrievances, ...problemGrievances];
+
 
 const grievancesByUser = DEMO_GRIEVANCES.reduce((acc, grievance) => {
     acc[grievance.userId] = (acc[grievance.userId] || 0) + 1;
