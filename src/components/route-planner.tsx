@@ -42,6 +42,7 @@ import {
   Route,
   ShieldCheck,
   Zap,
+  PanelTop,
 } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
 import { DEMO_GRIEVANCES } from "@/lib/demo-data";
@@ -201,6 +202,8 @@ export default function RoutePlanner() {
   const [originText, setOriginText] = useState("");
   const [destinationText, setDestinationText] = useState("");
   const [allGrievances, setAllGrievances] = useState<Grievance[]>([]);
+  const [showDirections, setShowDirections] = useState(true);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -351,10 +354,10 @@ export default function RoutePlanner() {
           (a.legs[0]?.duration?.value || Infinity) -
           (b.legs[0]?.duration?.value || Infinity)
       );
-
+      
       const actualFastest = sortedByDuration[0];
       const aLongerRoute = sortedByDuration.length > 1 ? sortedByDuration[1] : actualFastest;
-      
+
       setFastestRoute(actualFastest);
       setIssuesOnFastest(createMockIssuesOnRoute(actualFastest));
 
@@ -384,177 +387,127 @@ export default function RoutePlanner() {
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full">
       <div className="w-full max-w-md flex flex-col border-r border-border">
-        <Card className="border-0 border-b rounded-none shadow-none">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Navigation /> Smart Navigator
-            </CardTitle>
-            <CardDescription>
-              Find the best route for your journey, avoiding reported issues.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Origin</Label>
-              <div className="flex gap-2">
+        <ScrollArea className="flex-1">
+          <Card className="border-0 rounded-none shadow-none">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Navigation /> Smart Navigator
+              </CardTitle>
+              <CardDescription>
+                Find the best route for your journey, avoiding reported issues.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Origin</Label>
+                <div className="flex gap-2">
+                  {isClient ? (
+                    <PlaceAutocomplete
+                      onPlaceChanged={(p) => {
+                        setOrigin(p);
+                        setOriginText(
+                          p.formatted_address || p.name || ""
+                        );
+                      }}
+                      placeholder="Enter origin"
+                      value={originText}
+                      onInputChange={(e) => setOriginText(e.target.value)}
+                    />
+                  ) : (
+                    <Input placeholder="Enter origin" disabled />
+                  )}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleUseMyLocation}
+                  >
+                    <LocateFixed />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Destination</Label>
                 {isClient ? (
                   <PlaceAutocomplete
                     onPlaceChanged={(p) => {
-                      setOrigin(p);
-                      setOriginText(
+                      setDestination(p);
+                      setDestinationText(
                         p.formatted_address || p.name || ""
                       );
                     }}
-                    placeholder="Enter origin"
-                    value={originText}
-                    onInputChange={(e) => setOriginText(e.target.value)}
+                    placeholder="Enter destination"
+                    value={destinationText}
+                    onInputChange={(e) =>
+                      setDestinationText(e.target.value)
+                    }
                   />
                 ) : (
-                  <Input placeholder="Enter origin" disabled />
+                  <Input placeholder="Enter destination" disabled />
                 )}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleUseMyLocation}
-                >
-                  <LocateFixed />
-                </Button>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Destination</Label>
-              {isClient ? (
-                <PlaceAutocomplete
-                  onPlaceChanged={(p) => {
-                    setDestination(p);
-                    setDestinationText(
-                      p.formatted_address || p.name || ""
-                    );
-                  }}
-                  placeholder="Enter destination"
-                  value={destinationText}
-                  onInputChange={(e) =>
-                    setDestinationText(e.target.value)
-                  }
-                />
-              ) : (
-                <Input placeholder="Enter destination" disabled />
-              )}
-            </div>
-            
-            <RadioGroup
-              value={routePreference}
-              onValueChange={(v: "fastest" | "avoid_issues") =>
-                setRoutePreference(v)
-              }
-              className="grid grid-cols-2 gap-4"
-            >
-              <Label htmlFor="fastest" className={cn(
-                  "flex flex-col items-center justify-between rounded-lg border-2 p-4 cursor-pointer transition-all",
-                  routePreference === 'fastest' ? 'border-primary bg-primary/10' : 'border-muted bg-transparent hover:border-muted-foreground/50'
-              )}>
-                <RadioGroupItem value="fastest" id="fastest" className="sr-only"/>
-                <div className="flex justify-between w-full items-center">
-                    <span className="font-bold text-lg flex items-center gap-2"><Zap className="text-primary"/> Fastest</span>
-                    <span className={cn("font-bold", routePreference === 'fastest' ? 'text-primary' : 'text-muted-foreground')}>
-                      {formatDuration(fastestRoute?.legs[0].duration?.text)}
-                    </span>
-                </div>
-                 <div className="w-full text-sm text-muted-foreground mt-2 space-y-1">
-                    <div className="flex justify-between"><span>Distance:</span> <span>{fastestRoute?.legs[0].distance?.text || '--'}</span></div>
-                    <div className="flex justify-between items-center">
-                      <span>Issues:</span>
-                      <span className="flex items-center gap-1 font-bold text-destructive">
-                        <AlertTriangle className="h-4 w-4"/> {issuesOnFastest.length}
-                      </span>
-                    </div>
-                 </div>
-              </Label>
               
-               <Label htmlFor="avoid_issues" className={cn(
-                  "flex flex-col items-center justify-between rounded-lg border-2 p-4 cursor-pointer transition-all",
-                  routePreference === 'avoid_issues' ? 'border-green-500 bg-green-500/10' : 'border-muted bg-transparent hover:border-muted-foreground/50'
-              )}>
-                <RadioGroupItem value="avoid_issues" id="avoid_issues" className="sr-only"/>
-                <div className="flex justify-between w-full items-center">
-                    <span className="font-bold text-lg flex items-center gap-2"><ShieldCheck className="text-green-500"/> Safest</span>
-                    <span className={cn("font-bold", routePreference === 'avoid_issues' ? 'text-green-500' : 'text-muted-foreground')}>
-                       {formatDuration(safestRoute?.legs[0].duration?.text)}
-                    </span>
-                </div>
-                 <div className="w-full text-sm text-muted-foreground mt-2 space-y-1">
-                    <div className="flex justify-between"><span>Distance:</span> <span>{safestRoute?.legs[0].distance?.text || '--'}</span></div>
-                    <div className="flex justify-between items-center">
-                      <span>Issues:</span>
-                      <span className="flex items-center gap-1 font-bold text-green-500">
-                        <ShieldCheck className="h-4 w-4"/> {issuesOnSafest.length}
+              <RadioGroup
+                value={routePreference}
+                onValueChange={(v: "fastest" | "avoid_issues") =>
+                  setRoutePreference(v)
+                }
+                className="grid grid-cols-2 gap-4"
+              >
+                <Label htmlFor="fastest" className={cn(
+                    "flex flex-col items-center justify-between rounded-lg border-2 p-4 cursor-pointer transition-all",
+                    routePreference === 'fastest' ? 'border-primary bg-primary/10' : 'border-muted bg-transparent hover:border-muted-foreground/50'
+                )}>
+                  <RadioGroupItem value="fastest" id="fastest" className="sr-only"/>
+                  <div className="flex justify-between w-full items-center">
+                      <span className="font-bold text-lg flex items-center gap-2"><Zap className="text-primary"/> Fastest</span>
+                      <span className={cn("font-bold", routePreference === 'fastest' ? 'text-primary' : 'text-muted-foreground')}>
+                        {formatDuration(fastestRoute?.legs[0].duration?.text)}
                       </span>
-                    </div>
-                 </div>
-              </Label>
-            </RadioGroup>
-
-            <Button
-              onClick={findRoute}
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="animate-spin mr-2" />}
-              {isLoading ? "Finding Routes..." : "Find Route"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <ScrollArea className="flex-1">
-          {selectedRoute ? (
-            <div className="p-4 space-y-4 animate-fade-in">
-              <Card>
-                <CardHeader className="p-4">
-                  <CardTitle className="text-lg">
-                    Turn-by-turn Directions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1 p-4 pt-0">
-                   <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    {selectedRoute.legs?.[0]?.steps?.map(
-                      (step, index) => (
-                        <div
-                          key={index}
-                          className="flex gap-4 items-start p-2 rounded-md hover:bg-muted animate-fade-in-up"
-                          style={{ animationDelay: `${index * 50}ms` }}
-                        >
-                          <div className="pt-1 text-primary">
-                            {getManeuverIcon(step.maneuver)}
-                          </div>
-                          <div>
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: step.instructions || "",
-                              }}
-                              className="font-semibold"
-                            />
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>{step.distance?.text}</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {step.duration?.text}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
                   </div>
-                </CardContent>
-              </Card>
+                   <div className="w-full text-sm text-muted-foreground mt-2 space-y-1">
+                      <div className="flex justify-between"><span>Distance:</span> <span>{fastestRoute?.legs[0].distance?.text || '--'}</span></div>
+                      <div className="flex justify-between items-center">
+                        <span>Issues:</span>
+                        <span className="flex items-center gap-1 font-bold text-destructive">
+                          <AlertTriangle className="h-4 w-4"/> {issuesOnFastest.length}
+                        </span>
+                      </div>
+                   </div>
+                </Label>
+                
+                 <Label htmlFor="avoid_issues" className={cn(
+                    "flex flex-col items-center justify-between rounded-lg border-2 p-4 cursor-pointer transition-all",
+                    routePreference === 'avoid_issues' ? 'border-green-500 bg-green-500/10' : 'border-muted bg-transparent hover:border-muted-foreground/50'
+                )}>
+                  <RadioGroupItem value="avoid_issues" id="avoid_issues" className="sr-only"/>
+                  <div className="flex justify-between w-full items-center">
+                      <span className="font-bold text-lg flex items-center gap-2"><ShieldCheck className="text-green-500"/> Safest</span>
+                      <span className={cn("font-bold", routePreference === 'avoid_issues' ? 'text-green-500' : 'text-muted-foreground')}>
+                         {formatDuration(safestRoute?.legs[0].duration?.text)}
+                      </span>
+                  </div>
+                   <div className="w-full text-sm text-muted-foreground mt-2 space-y-1">
+                      <div className="flex justify-between"><span>Distance:</span> <span>{safestRoute?.legs[0].distance?.text || '--'}</span></div>
+                      <div className="flex justify-between items-center">
+                        <span>Issues:</span>
+                        <span className="flex items-center gap-1 font-bold text-green-500">
+                          <ShieldCheck className="h-4 w-4"/> {issuesOnSafest.length}
+                        </span>
+                      </div>
+                   </div>
+                </Label>
+              </RadioGroup>
 
-            </div>
-          ) : (
-            <div className="p-8 text-center text-muted-foreground animate-fade-in">
-              <Info className="h-8 w-8 mx-auto mb-2" />
-              <p>Enter an origin and destination to see your route.</p>
-            </div>
-          )}
+              <Button
+                onClick={findRoute}
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading && <Loader2 className="animate-spin mr-2" />}
+                {isLoading ? "Finding Routes..." : "Find Route"}
+              </Button>
+            </CardContent>
+          </Card>
         </ScrollArea>
       </div>
 
@@ -613,6 +566,60 @@ export default function RoutePlanner() {
             </AdvancedMarker>
           ))}
         </Map>
+        
+        {selectedRoute && (
+          <div className="absolute top-4 left-4 right-4 animate-fade-in-up">
+            <Card className="bg-background/80 backdrop-blur-md max-w-sm mx-auto">
+              <CardHeader className="flex flex-row items-center justify-between p-3">
+                <CardTitle className="text-lg">Directions</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setShowDirections(!showDirections)}>
+                    <PanelTop className={cn("h-5 w-5 transition-transform", showDirections && "rotate-180")}/>
+                </Button>
+              </CardHeader>
+              {showDirections && (
+                <CardContent className="p-3 pt-0">
+                  <ScrollArea className="max-h-60 text-sm">
+                    <div className="space-y-3 pr-4">
+                      {selectedRoute.legs?.[0]?.steps?.map((step, index) => (
+                          <div
+                            key={index}
+                            className="flex gap-4 items-start p-2 rounded-md animate-fade-in-up"
+                            style={{ animationDelay: `${index * 50}ms` }}
+                          >
+                            <div className="pt-1 text-primary">
+                              {getManeuverIcon(step.maneuver)}
+                            </div>
+                            <div>
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: step.instructions || "",
+                                }}
+                                className="font-semibold"
+                              />
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>{step.distance?.text}</span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {step.duration?.text}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              )}
+            </Card>
+          </div>
+        )}
+         {!selectedRoute && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center text-muted-foreground animate-fade-in p-4 bg-background/80 rounded-lg shadow-lg">
+              <Info className="h-8 w-8 mx-auto mb-2" />
+              <p>Enter an origin and destination to see your route.</p>
+            </div>
+          )}
       </div>
     </div>
   );

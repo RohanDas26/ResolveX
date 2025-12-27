@@ -7,10 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AdminMap from "@/components/admin/admin-map";
 import { useSearchParams } from 'next/navigation'
-import { doc, updateDoc, collection, query, writeBatch, getDocs } from "firebase/firestore";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { DEMO_GRIEVANCES, DEMO_USERS } from "@/lib/demo-data";
-import { Button } from "@/components/ui/button";
+import { doc, updateDoc, collection } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 
 function AdminDashboardContent() {
   const { toast } = useToast();
@@ -20,11 +18,41 @@ function AdminDashboardContent() {
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState<string | null>(null);
   
-  // Force use of demo data for a consistently populated map.
-  const grievances = DEMO_GRIEVANCES;
-  const isGrievancesLoading = false; // Demo data is never loading.
-  const topReporters = DEMO_USERS;
-  const isReportersLoading = false; // Demo data is never loading.
+  const grievancesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'grievances');
+  }, [firestore]);
+  const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
+  
+  const [topReporters, setTopReporters] = useState<UserProfile[]>([]);
+  const [isReportersLoading, setIsReportersLoading] = useState(true);
+
+  useEffect(() => {
+    if (grievances) {
+      setIsReportersLoading(true);
+      const reporterCounts: { [userId: string]: { count: number; name: string; id: string } } = {};
+
+      grievances.forEach(g => {
+        if (!reporterCounts[g.userId]) {
+          reporterCounts[g.userId] = { count: 0, name: g.userName, id: g.userId };
+        }
+        reporterCounts[g.userId].count++;
+      });
+
+      const sortedReporters = Object.values(reporterCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10) // Get top 10
+        .map(reporter => ({
+          id: reporter.id,
+          name: reporter.name,
+          grievanceCount: reporter.count,
+          imageUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${reporter.id}`
+        }));
+      
+      setTopReporters(sortedReporters);
+      setIsReportersLoading(false);
+    }
+  }, [grievances]);
   
   useEffect(() => {
     const grievanceId = searchParams.get('id');
@@ -46,15 +74,6 @@ function AdminDashboardContent() {
   const handleUpdateGrievanceStatus = async (id: string, status: Grievance['status']) => {
     if (!firestore) {
       toast({ variant: "destructive", title: "Firestore not available" });
-      return;
-    }
-     // Don't allow updating demo data
-    if (id.startsWith('demo-')) {
-      toast({
-        variant: "default",
-        title: "Demo Data",
-        description: "Status updates are disabled for demo grievances.",
-      });
       return;
     }
     const grievanceRef = doc(firestore, "grievances", id);
